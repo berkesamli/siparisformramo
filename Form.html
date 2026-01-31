@@ -470,20 +470,32 @@
   .col-total { min-width: 140px; }
 
   /* Glass specific styles */
-  .glass-dims {
+  .glass-selects {
     display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 2px;
-    margin-top: 6px;
+    flex-direction: column;
+    gap: 6px;
   }
 
-  .glass-dims input {
-    width: 70px;
-    min-width: 70px;
+  .glass-selects select {
+    width: 100%;
+  }
+
+  .glass-plaka {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    align-items: center;
+  }
+
+  .glass-plaka input {
+    width: 100%;
     text-align: center;
-    padding: 8px 4px;
-    font-size: 13px;
+  }
+
+  .plaka-m2 {
+    font-size: 11px;
+    color: var(--brand-light);
+    font-weight: 600;
   }
 
   .glass-price {
@@ -497,12 +509,15 @@
 
   .m2-display {
     font-size: 12px;
-    color: var(--brand-light);
-    font-weight: 600;
+    color: var(--accent);
+    font-weight: 700;
     margin-top: 4px;
+    padding: 4px 8px;
+    background: rgba(245, 158, 11, 0.1);
+    border-radius: var(--radius-sm);
   }
 
-  .glassType {
+  .glassType, .glassSize {
     width: 100%;
   }
 
@@ -1255,6 +1270,18 @@ const discRow = document.getElementById('discRow');
 const discTL = document.getElementById('discountTL');
 const activeRowsEl = document.getElementById('activeRows');
 
+// Cam plaka ölçüleri (cm)
+const GLASS_SIZES = {
+  mat: [
+    { label: "122 × 183 cm", en: 122, boy: 183 }
+  ],
+  duz: [
+    { label: "122 × 183 cm", en: 122, boy: 183 },
+    { label: "121 × 161 cm", en: 121, boy: 161 },
+    { label: "91,4 × 122 cm", en: 91.4, boy: 122 }
+  ]
+};
+
 function buildRows() {
   tbody.innerHTML = "";
   for (let i = 0; i < 15; i++) {
@@ -1269,10 +1296,13 @@ function buildRows() {
       </td>
       <td class="col-code">
         <input class="codeOrName" placeholder="Ürün kodu / adı">
-        <select class="glassType hide">
-          <option value="duz">Düz Cam</option>
-          <option value="mat">Mat Cam</option>
-        </select>
+        <div class="glass-selects hide">
+          <select class="glassType">
+            <option value="duz">Düz Cam</option>
+            <option value="mat">Mat Cam</option>
+          </select>
+          <select class="glassSize"></select>
+        </div>
         <div class="hint"></div>
       </td>
       <td class="col-unit">
@@ -1281,10 +1311,9 @@ function buildRows() {
           <option value="boy">Boy</option>
           <option value="koli">Koli</option>
         </select>
-        <div class="glass-dims hide">
-          <input type="number" class="glass-en" step="0.01" min="0" placeholder="En (cm)" inputmode="decimal">
-          <span style="color:var(--text-muted);margin:0 4px;">×</span>
-          <input type="number" class="glass-boy" step="0.01" min="0" placeholder="Boy (cm)" inputmode="decimal">
+        <div class="glass-plaka hide">
+          <input type="number" class="plaka-adet" step="1" min="1" placeholder="Plaka Adedi" inputmode="numeric" value="1">
+          <span class="plaka-m2"></span>
         </div>
       </td>
       <td class="col-qty">
@@ -1327,11 +1356,13 @@ function wireRowEvents() {
   tbody.querySelectorAll("tr").forEach(tr => {
     const kindEl = tr.querySelector(".kind");
     const codeEl = tr.querySelector(".codeOrName");
+    const glassSelectsEl = tr.querySelector(".glass-selects");
     const glassTypeEl = tr.querySelector(".glassType");
+    const glassSizeEl = tr.querySelector(".glassSize");
     const unitEl = tr.querySelector(".unit");
-    const glassDimsEl = tr.querySelector(".glass-dims");
-    const glassEnEl = tr.querySelector(".glass-en");
-    const glassBoyEl = tr.querySelector(".glass-boy");
+    const glassPlakaEl = tr.querySelector(".glass-plaka");
+    const plakaAdetEl = tr.querySelector(".plaka-adet");
+    const plakaM2El = tr.querySelector(".plaka-m2");
     const qtyEl = tr.querySelector(".qty");
     const m2DisplayEl = tr.querySelector(".m2-display");
     const usdEl = tr.querySelector(".usd");
@@ -1343,6 +1374,46 @@ function wireRowEvents() {
 
     setPrevUnit(tr, unitEl.value);
     tr.dataset.prevBase = "";
+
+    // Populate glass size options based on type
+    const updateGlassSizes = () => {
+      const type = glassTypeEl.value;
+      const sizes = GLASS_SIZES[type] || [];
+      glassSizeEl.innerHTML = sizes.map((s, i) =>
+        `<option value="${i}">${s.label}</option>`
+      ).join("");
+      updatePlakaInfo();
+    };
+
+    // Update plaka m² info
+    const updatePlakaInfo = () => {
+      const type = glassTypeEl.value;
+      const sizeIdx = parseInt(glassSizeEl.value) || 0;
+      const sizes = GLASS_SIZES[type] || [];
+      const size = sizes[sizeIdx];
+      if (size) {
+        const m2PerPlaka = round2((size.en * size.boy) / 10000);
+        plakaM2El.textContent = `1 plaka = ${f2(m2PerPlaka)} m²`;
+      }
+    };
+
+    // Calculate total m² for glass
+    const calcGlassM2 = () => {
+      const type = glassTypeEl.value;
+      const sizeIdx = parseInt(glassSizeEl.value) || 0;
+      const sizes = GLASS_SIZES[type] || [];
+      const size = sizes[sizeIdx];
+      const plakaAdet = parseInt(plakaAdetEl.value) || 0;
+
+      if (size && plakaAdet > 0) {
+        const m2PerPlaka = round2((size.en * size.boy) / 10000);
+        const totalM2 = round2(m2PerPlaka * plakaAdet);
+        m2DisplayEl.textContent = `${f2(totalM2)} m²`;
+        return { m2PerPlaka, totalM2, size, plakaAdet };
+      }
+      m2DisplayEl.textContent = "";
+      return { m2PerPlaka: 0, totalM2: 0, size: null, plakaAdet: 0 };
+    };
 
     const setHintAndPrice = () => {
       if (kindEl.value === "glass") return; // Glass has its own display
@@ -1394,35 +1465,30 @@ function wireRowEvents() {
     const applyGlass = () => {
       // Show glass-specific elements
       codeEl.classList.add("hide");
-      glassTypeEl.classList.remove("hide");
+      glassSelectsEl.classList.remove("hide");
       unitEl.classList.add("hide");
-      glassDimsEl.classList.remove("hide");
+      glassPlakaEl.classList.remove("hide");
       qtyEl.classList.add("hide");
       m2DisplayEl.classList.remove("hide");
       priceBoxEl.classList.add("hide");
       glassPriceEl.classList.remove("hide");
       hintEl.textContent = "";
       tr.querySelector(".price-hint").textContent = "";
+
+      // Initialize glass dropdowns
+      updateGlassSizes();
     };
 
     const hideGlass = () => {
       // Hide glass-specific elements
       codeEl.classList.remove("hide");
-      glassTypeEl.classList.add("hide");
+      glassSelectsEl.classList.add("hide");
       unitEl.classList.remove("hide");
-      glassDimsEl.classList.add("hide");
+      glassPlakaEl.classList.add("hide");
       qtyEl.classList.remove("hide");
       m2DisplayEl.classList.add("hide");
       priceBoxEl.classList.remove("hide");
       glassPriceEl.classList.add("hide");
-    };
-
-    const calcGlassM2 = () => {
-      const en = parseFloat(glassEnEl.value) || 0;
-      const boy = parseFloat(glassBoyEl.value) || 0;
-      const m2 = round2((en * boy) / 10000); // cm² to m²
-      m2DisplayEl.textContent = m2 > 0 ? `${f2(m2)} m²` : "";
-      return m2;
     };
 
     const syncFromTL = () => {
@@ -1542,7 +1608,19 @@ function wireRowEvents() {
       recalc();
     };
 
-    const onGlassDim = () => {
+    const onGlassTypeChange = () => {
+      updateGlassSizes();
+      calcGlassM2();
+      recalc();
+    };
+
+    const onGlassSizeChange = () => {
+      updatePlakaInfo();
+      calcGlassM2();
+      recalc();
+    };
+
+    const onPlakaAdetChange = () => {
       calcGlassM2();
       recalc();
     };
@@ -1553,13 +1631,13 @@ function wireRowEvents() {
 
     kindEl.addEventListener("change", onKind);
     codeEl.addEventListener("input", onCode);
-    glassTypeEl.addEventListener("change", recalc);
+    glassTypeEl.addEventListener("change", onGlassTypeChange);
+    glassSizeEl.addEventListener("change", onGlassSizeChange);
+    plakaAdetEl.addEventListener("input", onPlakaAdetChange);
     unitEl.addEventListener("change", onUnit);
     qtyEl.addEventListener("input", onQty);
     tlEl.addEventListener("input", syncFromTL);
     usdEl.addEventListener("input", syncFromUSD);
-    glassEnEl.addEventListener("input", onGlassDim);
-    glassBoyEl.addEventListener("input", onGlassDim);
     m2PriceEl.addEventListener("input", onM2Price);
 
     onKind();
@@ -1609,19 +1687,33 @@ function recalc() {
     let line = 0;
 
     if (kind === "glass") {
-      // Glass calculation - m² based
-      const glassEn = parseFloat(tr.querySelector(".glass-en").value) || 0;
-      const glassBoy = parseFloat(tr.querySelector(".glass-boy").value) || 0;
+      // Glass calculation - plaka based
+      const glassType = tr.querySelector(".glassType").value;
+      const sizeIdx = parseInt(tr.querySelector(".glassSize").value) || 0;
+      const plakaAdet = parseInt(tr.querySelector(".plaka-adet").value) || 0;
       const m2Price = parseFloat(tr.querySelector(".m2-price").value) || 0;
-      const m2 = round2((glassEn * glassBoy) / 10000); // cm² to m²
 
-      // Update m² display
-      tr.querySelector(".m2-display").textContent = m2 > 0 ? `${f2(m2)} m²` : "";
+      const sizes = GLASS_SIZES[glassType] || [];
+      const size = sizes[sizeIdx];
 
-      line = round2(m2 * m2Price);
-      tr.querySelector(".price-hint").textContent = m2Price > 0 ? `m² Fiyatı: ${TL(m2Price)}` : "";
+      if (size && plakaAdet > 0) {
+        const m2PerPlaka = round2((size.en * size.boy) / 10000);
+        const totalM2 = round2(m2PerPlaka * plakaAdet);
 
-      if (glassEn > 0 && glassBoy > 0) activeCount++;
+        // Update displays
+        tr.querySelector(".plaka-m2").textContent = `1 plaka = ${f2(m2PerPlaka)} m²`;
+        tr.querySelector(".m2-display").textContent = `${f2(totalM2)} m²`;
+
+        line = round2(totalM2 * m2Price);
+        tr.querySelector(".price-hint").textContent = m2Price > 0
+          ? `${plakaAdet} plaka × ${f2(m2PerPlaka)} m² × ${TL(m2Price)}/m²`
+          : "";
+
+        activeCount++;
+      } else {
+        tr.querySelector(".m2-display").textContent = "";
+        tr.querySelector(".price-hint").textContent = "";
+      }
     } else if (kind === "frame" && code) {
       const c = CATALOG[baseCode(code)];
       const unitTL = tlIn !== "" && isFinite(parseFloat(tlIn))
@@ -1716,20 +1808,28 @@ document.getElementById("sendBtn").addEventListener("click", () => {
 
     if (kind === "glass") {
       const glassType = tr.querySelector(".glassType").value;
-      const glassEn = parseFloat(tr.querySelector(".glass-en").value) || 0;
-      const glassBoy = parseFloat(tr.querySelector(".glass-boy").value) || 0;
+      const sizeIdx = parseInt(tr.querySelector(".glassSize").value) || 0;
+      const plakaAdet = parseInt(tr.querySelector(".plaka-adet").value) || 0;
       const m2Price = parseFloat(tr.querySelector(".m2-price").value) || 0;
-      const m2 = round2((glassEn * glassBoy) / 10000);
 
-      if (glassEn > 0 && glassBoy > 0) {
+      const sizes = GLASS_SIZES[glassType] || [];
+      const size = sizes[sizeIdx];
+
+      if (size && plakaAdet > 0) {
+        const m2PerPlaka = round2((size.en * size.boy) / 10000);
+        const totalM2 = round2(m2PerPlaka * plakaAdet);
         const glassName = glassType === "mat" ? "Mat Cam" : "Düz Cam";
+
         rows.push({
           kind: "glass",
           name: glassName,
           glassType: glassType,
-          en: glassEn,
-          boy: glassBoy,
-          m2: m2,
+          sizeLabel: size.label,
+          en: size.en,
+          boy: size.boy,
+          plakaAdet: plakaAdet,
+          m2PerPlaka: m2PerPlaka,
+          m2: totalM2,
           m2Price: m2Price,
           unitPriceTL: m2Price
         });
