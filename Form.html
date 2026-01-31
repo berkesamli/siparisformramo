@@ -464,10 +464,47 @@
   /* Column Widths */
   .col-type { min-width: 140px; }
   .col-code { min-width: 200px; }
-  .col-unit { min-width: 120px; }
+  .col-unit { min-width: 180px; }
   .col-qty { min-width: 100px; }
   .col-price { min-width: 200px; }
   .col-total { min-width: 140px; }
+
+  /* Glass specific styles */
+  .glass-dims {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    margin-top: 6px;
+  }
+
+  .glass-dims input {
+    width: 70px;
+    min-width: 70px;
+    text-align: center;
+    padding: 8px 4px;
+    font-size: 13px;
+  }
+
+  .glass-price {
+    margin-top: 6px;
+  }
+
+  .glass-price input {
+    width: 100%;
+    text-align: center;
+  }
+
+  .m2-display {
+    font-size: 12px;
+    color: var(--brand-light);
+    font-weight: 600;
+    margin-top: 4px;
+  }
+
+  .glassType {
+    width: 100%;
+  }
 
   /* Price Box */
   .price-box {
@@ -1018,7 +1055,6 @@
           <i class="lucide-user-circle"></i>
           <select id="employee">
             <option value="" disabled selected>Seçiniz...</option>
-            <option>Engin Yılmaz</option>
             <option>Razaman Kaypan</option>
             <option>Murat Gündüz</option>
           </select>
@@ -1072,10 +1108,10 @@
             <thead>
               <tr>
                 <th class="col-type">Tür</th>
-                <th class="col-code">Kod / Ad</th>
-                <th class="col-unit">Birim</th>
-                <th class="col-qty">Miktar</th>
-                <th class="col-price">TL ↔ USD</th>
+                <th class="col-code">Kod / Ad / Cam Türü</th>
+                <th class="col-unit">Birim / Ölçü</th>
+                <th class="col-qty">Miktar / m²</th>
+                <th class="col-price">Birim Fiyat (TL)</th>
                 <th class="col-total">Satır Tutarı</th>
               </tr>
             </thead>
@@ -1227,11 +1263,16 @@ function buildRows() {
       <td class="col-type">
         <select class="kind">
           <option value="frame">Çerçeve Profili</option>
+          <option value="glass">Cam</option>
           <option value="other">Diğer</option>
         </select>
       </td>
       <td class="col-code">
         <input class="codeOrName" placeholder="Ürün kodu / adı">
+        <select class="glassType hide">
+          <option value="duz">Düz Cam</option>
+          <option value="mat">Mat Cam</option>
+        </select>
         <div class="hint"></div>
       </td>
       <td class="col-unit">
@@ -1240,15 +1281,24 @@ function buildRows() {
           <option value="boy">Boy</option>
           <option value="koli">Koli</option>
         </select>
+        <div class="glass-dims hide">
+          <input type="number" class="glass-en" step="0.01" min="0" placeholder="En (cm)" inputmode="decimal">
+          <span style="color:var(--text-muted);margin:0 4px;">×</span>
+          <input type="number" class="glass-boy" step="0.01" min="0" placeholder="Boy (cm)" inputmode="decimal">
+        </div>
       </td>
       <td class="col-qty">
         <input type="number" class="qty" step="0.01" min="0" inputmode="decimal" placeholder="0">
+        <div class="m2-display hide"></div>
       </td>
       <td class="col-price">
         <div class="price-box">
           <input type="number" class="tl" step="0.01" min="0" placeholder="TL">
           <span class="price-eq">=</span>
           <input type="number" class="usd" step="0.0001" min="0" placeholder="USD">
+        </div>
+        <div class="glass-price hide">
+          <input type="number" class="m2-price" step="0.01" min="0" placeholder="m² Fiyatı (TL)" inputmode="decimal">
         </div>
         <div class="price-hint"></div>
       </td>
@@ -1277,16 +1327,26 @@ function wireRowEvents() {
   tbody.querySelectorAll("tr").forEach(tr => {
     const kindEl = tr.querySelector(".kind");
     const codeEl = tr.querySelector(".codeOrName");
+    const glassTypeEl = tr.querySelector(".glassType");
     const unitEl = tr.querySelector(".unit");
+    const glassDimsEl = tr.querySelector(".glass-dims");
+    const glassEnEl = tr.querySelector(".glass-en");
+    const glassBoyEl = tr.querySelector(".glass-boy");
     const qtyEl = tr.querySelector(".qty");
+    const m2DisplayEl = tr.querySelector(".m2-display");
     const usdEl = tr.querySelector(".usd");
     const tlEl = tr.querySelector(".tl");
+    const m2PriceEl = tr.querySelector(".m2-price");
+    const glassPriceEl = tr.querySelector(".glass-price");
+    const priceBoxEl = tr.querySelector(".price-box");
     const hintEl = tr.querySelector(".hint");
 
     setPrevUnit(tr, unitEl.value);
     tr.dataset.prevBase = "";
 
     const setHintAndPrice = () => {
+      if (kindEl.value === "glass") return; // Glass has its own display
+
       const rate = parseFloat(rateEl.value) || 0;
       const usd = parseFloat(usdEl.value) || 0;
       const tl = parseFloat(tlEl.value);
@@ -1331,8 +1391,42 @@ function wireRowEvents() {
       }
     };
 
+    const applyGlass = () => {
+      // Show glass-specific elements
+      codeEl.classList.add("hide");
+      glassTypeEl.classList.remove("hide");
+      unitEl.classList.add("hide");
+      glassDimsEl.classList.remove("hide");
+      qtyEl.classList.add("hide");
+      m2DisplayEl.classList.remove("hide");
+      priceBoxEl.classList.add("hide");
+      glassPriceEl.classList.remove("hide");
+      hintEl.textContent = "";
+      tr.querySelector(".price-hint").textContent = "";
+    };
+
+    const hideGlass = () => {
+      // Hide glass-specific elements
+      codeEl.classList.remove("hide");
+      glassTypeEl.classList.add("hide");
+      unitEl.classList.remove("hide");
+      glassDimsEl.classList.add("hide");
+      qtyEl.classList.remove("hide");
+      m2DisplayEl.classList.add("hide");
+      priceBoxEl.classList.remove("hide");
+      glassPriceEl.classList.add("hide");
+    };
+
+    const calcGlassM2 = () => {
+      const en = parseFloat(glassEnEl.value) || 0;
+      const boy = parseFloat(glassBoyEl.value) || 0;
+      const m2 = round2((en * boy) / 10000); // cm² to m²
+      m2DisplayEl.textContent = m2 > 0 ? `${f2(m2)} m²` : "";
+      return m2;
+    };
+
     const syncFromTL = () => {
-      if (syncing) return;
+      if (syncing || kindEl.value === "glass") return;
       syncing = true;
       const r = parseFloat(rateEl.value) || 0;
       const t = parseFloat(tlEl.value) || 0;
@@ -1343,7 +1437,7 @@ function wireRowEvents() {
     };
 
     const syncFromUSD = () => {
-      if (syncing) return;
+      if (syncing || kindEl.value === "glass") return;
       syncing = true;
       const r = parseFloat(rateEl.value) || 0;
       const u = parseFloat(usdEl.value) || 0;
@@ -1383,10 +1477,15 @@ function wireRowEvents() {
     };
 
     const onKind = () => {
-      if (kindEl.value === "other") {
-        applyOther();
+      if (kindEl.value === "glass") {
+        applyGlass();
       } else {
-        applyFrame(CATALOG[baseCode(codeEl.value)]);
+        hideGlass();
+        if (kindEl.value === "other") {
+          applyOther();
+        } else {
+          applyFrame(CATALOG[baseCode(codeEl.value)]);
+        }
       }
       setHintAndPrice();
       recalc();
@@ -1402,6 +1501,11 @@ function wireRowEvents() {
         applyOther();
         setPrevUnit(tr, "adet");
         setHintAndPrice();
+        recalc();
+        return;
+      }
+
+      if (kindEl.value === "glass") {
         recalc();
         return;
       }
@@ -1438,12 +1542,25 @@ function wireRowEvents() {
       recalc();
     };
 
+    const onGlassDim = () => {
+      calcGlassM2();
+      recalc();
+    };
+
+    const onM2Price = () => {
+      recalc();
+    };
+
     kindEl.addEventListener("change", onKind);
     codeEl.addEventListener("input", onCode);
+    glassTypeEl.addEventListener("change", recalc);
     unitEl.addEventListener("change", onUnit);
     qtyEl.addEventListener("input", onQty);
     tlEl.addEventListener("input", syncFromTL);
     usdEl.addEventListener("input", syncFromUSD);
+    glassEnEl.addEventListener("input", onGlassDim);
+    glassBoyEl.addEventListener("input", onGlassDim);
+    m2PriceEl.addEventListener("input", onM2Price);
 
     onKind();
   });
@@ -1491,7 +1608,21 @@ function recalc() {
 
     let line = 0;
 
-    if (kind === "frame" && code) {
+    if (kind === "glass") {
+      // Glass calculation - m² based
+      const glassEn = parseFloat(tr.querySelector(".glass-en").value) || 0;
+      const glassBoy = parseFloat(tr.querySelector(".glass-boy").value) || 0;
+      const m2Price = parseFloat(tr.querySelector(".m2-price").value) || 0;
+      const m2 = round2((glassEn * glassBoy) / 10000); // cm² to m²
+
+      // Update m² display
+      tr.querySelector(".m2-display").textContent = m2 > 0 ? `${f2(m2)} m²` : "";
+
+      line = round2(m2 * m2Price);
+      tr.querySelector(".price-hint").textContent = m2Price > 0 ? `m² Fiyatı: ${TL(m2Price)}` : "";
+
+      if (glassEn > 0 && glassBoy > 0) activeCount++;
+    } else if (kind === "frame" && code) {
       const c = CATALOG[baseCode(code)];
       const unitTL = tlIn !== "" && isFinite(parseFloat(tlIn))
         ? round2(parseFloat(tlIn))
@@ -1583,7 +1714,27 @@ document.getElementById("sendBtn").addEventListener("click", () => {
     const usdS = (tr.querySelector(".usd").value || "").trim();
     const tlS = (tr.querySelector(".tl").value || "").trim();
 
-    if (kind === "frame") {
+    if (kind === "glass") {
+      const glassType = tr.querySelector(".glassType").value;
+      const glassEn = parseFloat(tr.querySelector(".glass-en").value) || 0;
+      const glassBoy = parseFloat(tr.querySelector(".glass-boy").value) || 0;
+      const m2Price = parseFloat(tr.querySelector(".m2-price").value) || 0;
+      const m2 = round2((glassEn * glassBoy) / 10000);
+
+      if (glassEn > 0 && glassBoy > 0) {
+        const glassName = glassType === "mat" ? "Mat Cam" : "Düz Cam";
+        rows.push({
+          kind: "glass",
+          name: glassName,
+          glassType: glassType,
+          en: glassEn,
+          boy: glassBoy,
+          m2: m2,
+          m2Price: m2Price,
+          unitPriceTL: m2Price
+        });
+      }
+    } else if (kind === "frame") {
       if (!code) return;
       let usdFinal = usdS;
       if (tlS !== "" && rate) {

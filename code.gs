@@ -122,6 +122,22 @@ function processOrder_(data){
         lineNo++; gross = round2(gross + lineTotal);
         itemRows.push([orderId, lineNo, fullText || base || "Ürün", unitText, unitPriceTL, lineTotal]);
 
+      }else if(kind==="glass"){
+        // Cam işleme - m² bazlı
+        const glassName = String(row.name||"Cam").trim();
+        const en = Number(row.en||0);
+        const boy = Number(row.boy||0);
+        const m2 = round2(Number(row.m2||0));
+        const m2Price = round2(Number(row.m2Price||0));
+
+        if(m2 <= 0) return;
+
+        const unitText = `${fmt(m2)} m² (${en}x${boy} cm)`;
+        const lineTotal = round2(m2 * m2Price);
+
+        lineNo++; gross = round2(gross + lineTotal);
+        itemRows.push([orderId, lineNo, glassName, unitText, m2Price, lineTotal]);
+
       }else{
         const name = String(row.name||"").trim();
         const qty  = Number(row.qty||0); if(qty<=0 || !name) return;
