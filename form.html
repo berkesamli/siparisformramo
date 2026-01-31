@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+  </head>
+  <body>
+    
+  </body>
+</html>
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<base target="_top">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Olga Çerçeve — Sipariş Formu</title>
+<style>
+  :root{ --brand:#8b4b00; --muted:#6d6d6d; --bg:#faf9f7; --line:#e5e1dc; --switch:#8b4b00; }
+  html,body{margin:0;padding:0;background:var(--bg);font:15px/1.45 -apple-system,Segoe UI,Roboto,Arial,sans-serif}
+  .wrap{max-width:980px;margin:24px auto;padding:0 12px}
+  .card{background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 2px 14px rgba(0,0,0,.06);padding:16px}
+  .title{display:flex;justify-content:space-between;align-items:center;border-bottom:2px solid var(--line);padding-bottom:8px;margin-bottom:12px}
+  .brand{color:var(--brand);font-weight:900;letter-spacing:.35px}
+  h1{margin:0;font-size:18px}
+  .grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin:8px 0 10px}
+  label{font-size:13px;color:#333;display:block;margin-bottom:6px;font-weight:800}
+  #employee,#customer{font-size:18px;font-weight:800}
+  input,select,textarea{width:100%;border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-size:16px;outline:none;background:#fff;box-sizing:border-box}
+  input:focus,select:focus,textarea:focus{border-color:#d3b99c;box-shadow:0 0 0 3px rgba(139,75,0,.08)}
+  textarea{min-height:84px;resize:vertical}
+  input[type=number]{text-align:right;font-variant-numeric:tabular-nums}
+  table{width:100%;border-collapse:collapse}
+  th,td{border:1px solid var(--line);padding:8px;text-align:center;vertical-align:middle;white-space:nowrap}
+  th{background:#f7f3ef;color:#2b2b2b;font-weight:800}
+  td input,td select{height:46px;margin:0}
+  .muted{color:#777;font-size:12px}.muted strong{color:#444}
+  .right{text-align:right}
+  .col-unit{min-width:140px}
+  .col-unit select{width:100%;font-weight:700;text-align-last:center}
+  .col-price{min-width:160px}
+  .price-box{display:flex;align-items:center;gap:6px;justify-content:center}
+  .price-box input{width:70px;max-width:70px;min-width:70px;font-size:16px;padding:8px 8px}
+  .eq{font-weight:900;font-size:16px;min-width:12px;text-align:center;color:#333}
+  .price-hint{margin-top:4px;font-size:11px;color:#555;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .col-total{min-width:140px}
+  tfoot td{white-space:nowrap}
+  #discountPct{width:72px;text-align:right}
+  .switch{position:relative;width:56px;height:30px;display:inline-block}
+  .switch input{opacity:0;width:0;height:0}
+  .slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:#d8d6d3;border-radius:16px;transition:.2s}
+  .slider:before{position:absolute;content:"";height:26px;width:26px;left:2px;top:2px;background:#fff;border-radius:50%;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:.2s}
+  .switch input:checked + .slider{background:var(--switch)}
+  .switch input:checked + .slider:before{transform:translateX(26px)}
+  .btn{appearance:none;border:0;border-radius:12px;background:var(--brand);color:#fff;padding:14px 18px;font-weight:800;cursor:pointer;display:inline-block}
+  .btn:disabled{opacity:.6;cursor:not-allowed}
+  .btn:hover{filter:brightness(.95)}
+  .status{margin-left:10px;font-size:14px}
+  .ok{color:#0a7}.err{color:#c00}
+  .hide{display:none!important}
+  @media (max-width:860px){ .grid{grid-template-columns:1fr 1fr} }
+  @media (max-width:640px){
+    .grid{grid-template-columns:1fr}
+    td input,td select{height:50px}
+    .col-price{min-width:150px}
+    .price-box input{width:68px;max-width:68px;min-width:68px}
+    .col-unit{min-width:130px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <div class="title"><h1 class="brand">OLGA ÇERÇEVE</h1><h1>Sipariş Formu</h1></div>
+
+    <div class="grid">
+      <div>
+        <label>Çalışan</label>
+        <select id="employee"><option value="" disabled selected>Seçiniz…</option><option>Engin Yılmaz</option><option>Razaman Kaypan</option><option>Murat Gündüz</option></select>
+      </div>
+      <div>
+        <label>Müşteri</label>
+        <input id="customer" placeholder="Müşteri / Firma adı">
+      </div>
+      <div>
+        <label>Dolar kuru (TL / USD)</label>
+        <div style="display:flex;align-items:center;gap:10px">
+          <input id="rate" type="number" step="0.0001" min="0" value="42.0000" inputmode="decimal">
+          <div class="muted" id="rateHint">1 USD = ₺ 42,00</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="muted">Boy/Koli girilse bile hesap METRE’ye çevrilir; “Birim” sütununda <strong>mt/adt</strong> olarak gösterilir.</div>
+
+    <table id="tbl">
+      <thead>
+        <tr>
+          <th>Tür</th><th>Kod / Ad</th><th class="col-unit">Birim</th><th>Miktar</th><th class="col-price">TL ↔ USD</th><th class="col-total">Satır Tutarı (₺)</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+      <tfoot>
+        <tr><td colspan="5" class="right">Ara Toplam</td><td id="gross">₺ 0,00</td></tr>
+        <tr><td colspan="5" class="right">İndirim (%)</td><td><input id="discountPct" type="number" min="0" step="0.01" value="0" inputmode="decimal"></td></tr>
+        <tr id="discRow" class="hide"><td colspan="5" class="right">İndirim Tutarı</td><td id="discountTL">₺ 0,00</td></tr>
+        <tr>
+          <td colspan="5" class="right"><span style="margin-right:10px">KDV %20 uygula</span>
+            <label class="switch"><input id="vat" type="checkbox"><span class="slider"></span></label>
+          </td>
+          <td id="vatAmount">₺ 0,00</td>
+        </tr>
+        <tr><td colspan="5" class="right">Genel Toplam</td><td id="net">₺ 0,00</td></tr>
+      </tfoot>
+    </table>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
+      <div><label>Müşteri Notu</label><textarea id="note" placeholder="Teslimat, renk, özel talepler…"></textarea></div>
+      <div style="align-self:end;display:flex;gap:10px;align-items:center;justify-content:flex-end;flex-wrap:wrap">
+        <button class="btn" id="sendBtn" type="button">Siparişi Gönder</button><span id="status" class="status"></span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+function TL(n){ return new Intl.NumberFormat('tr-TR',{style:'currency',currency:'TRY',maximumFractionDigits:2}).format(Number(n)||0); }
+function f2(n){ return (Number(n)||0).toFixed(2); }
+function f4(n){ return (Number(n)||0).toFixed(4); }
+function round2(n){ return Math.round((Number(n)||0)*100)/100; }
+function baseCode(s){ let x=(s||"").toUpperCase().replace(/\s+/g,' ').trim(); x=x.replace(/\bSERISI\b|\bSERİSİ\b/gi,"").trim().replace(/\s+/g,''); const i=x.indexOf('-'); return i>0?x.substring(0,i):x; }
+
+let CATALOG = {};
+google.script.run.withSuccessHandler(map=>{ CATALOG=map||{}; buildRows(); recalc(); }).getCatalog();
+
+const tbody   = document.querySelector("#tbl tbody");
+const grossEl = document.getElementById('gross');
+const netEl   = document.getElementById('net');
+const vatEl   = document.getElementById('vat');
+const vatAmt  = document.getElementById('vatAmount');
+const rateEl  = document.getElementById('rate');
+const rateHint= document.getElementById('rateHint');
+const discPctEl = document.getElementById('discountPct');
+const discRow = document.getElementById('discRow');
+const discTL  = document.getElementById('discountTL');
+
+function buildRows(){
+  tbody.innerHTML = "";
+  for(let i=0;i<15;i++){
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td><select class="kind"><option value="frame">Çerçeve Profili</option><option value="other">Diğer</option></select></td>
+      <td><input class="codeOrName" placeholder="Ürün kodu / adı"><div class="muted hint"></div></td>
+      <td class="col-unit"><select class="unit"><option value="metre">Metre</option><option value="boy">Boy</option><option value="koli">Koli</option></select></td>
+      <td><input type="number" class="qty" step="0.01" min="0" inputmode="decimal"></td>
+      <td class="col-price">
+        <div class="price-box">
+          <input type="number" class="tl"  step="0.01"   min="0" placeholder="TL">
+          <span class="eq">=</span>
+          <input type="number" class="usd" step="0.0001" min="0" placeholder="USD">
+        </div>
+        <div class="price-hint"></div>
+      </td>
+      <td class="line">₺ 0,00</td>`;
+    tbody.appendChild(tr);
+  }
+  wireRowEvents();
+  const first = tbody.querySelector("tr");
+  if(first){ const c=first.querySelector(".codeOrName"); c.value="KS4040-"; c.dispatchEvent(new Event("input")); }
+}
+
+function setPrevUnit(tr,u){ tr.dataset.prevUnit=u; }
+function getPrevUnit(tr){ return tr.dataset.prevUnit || "metre"; }
+
+let syncing=false;
+function wireRowEvents(){
+  tbody.querySelectorAll("tr").forEach(tr=>{
+    const kindEl=tr.querySelector(".kind");
+    const codeEl=tr.querySelector(".codeOrName");
+    const unitEl=tr.querySelector(".unit");
+    const qtyEl =tr.querySelector(".qty");
+    const usdEl =tr.querySelector(".usd");
+    const tlEl  =tr.querySelector(".tl");
+    const hintEl=tr.querySelector(".hint");
+    setPrevUnit(tr, unitEl.value);
+    tr.dataset.prevBase = ""; // önceki taban kod
+
+    const setHintAndPrice=()=>{
+      const rate=parseFloat(rateEl.value)||0;
+      const usd =parseFloat(usdEl.value)||0;
+      const tl  =parseFloat(tlEl.value);
+      const c=CATALOG[baseCode(codeEl.value)];
+      if(kindEl.value==="frame" && c){
+        hintEl.innerHTML = c.type==="metrelik"
+          ? `<strong>1 koli = ${c.koliAdet||0} boy</strong> • <strong>koli: ${f2(c.koliMetre||0)} m</strong>`
+          : `<strong>1 koli = ${c.koliAdet||0} adet</strong>`;
+      }else{ hintEl.textContent=""; }
+      const unit=c?(c.type==="metrelik"?"m":"adet"):"m";
+      const tlUnit = isFinite(tl) && tlEl.value!=="" ? tl : round2(usd*rate);
+      tr.querySelector(".price-hint").textContent=(usd||tlUnit)?`1 ${unit}: ${TL(tlUnit)} (USD ${f4(usd || (rate? tlUnit/rate : 0))})`:"";
+    };
+
+    const applyOther=()=>{ unitEl.innerHTML=`<option value="adet">Adet</option>`; qtyEl.step="1"; qtyEl.inputMode="numeric";
+      const v=parseInt(qtyEl.value||"0",10); qtyEl.value=isFinite(v)&&v>0?v:""; };
+
+    const applyFrame=(c)=>{
+      qtyEl.step="0.01"; qtyEl.inputMode="decimal";
+      if(c && c.type==="metrelik"){
+        unitEl.innerHTML=`<option value="metre">Metre</option><option value="boy">Boy</option><option value="koli">Koli</option>`;
+        if(!["metre","boy","koli"].includes(unitEl.value)) unitEl.value="metre";
+      }else if(c){
+        unitEl.innerHTML=`<option value="adet">Adet</option><option value="koli">Koli</option>`;
+        if(!["adet","koli"].includes(unitEl.value)) unitEl.value="adet"; qtyEl.step="1"; qtyEl.inputMode="numeric";
+      }else{
+        unitEl.innerHTML=`<option value="metre">Metre</option><option value="boy">Boy</option><option value="koli">Koli</option>`;
+      }
+    };
+
+    const syncFromTL = ()=>{ if(syncing) return; syncing=true; const r=parseFloat(rateEl.value)||0, t=parseFloat(tlEl.value)||0;
+      usdEl.value = r? f4(t/r):""; syncing=false; setHintAndPrice(); recalc(); };
+    const syncFromUSD= ()=>{ if(syncing) return; syncing=true; const r=parseFloat(rateEl.value)||0, u=parseFloat(usdEl.value)||0;
+      tlEl.value  = r? f2(u*r):""; syncing=false; setHintAndPrice(); recalc(); };
+
+    // ---- KOD DEĞİŞTİĞİNDE FİYATI TAZELE ----
+    const onCode = ()=>{
+      const base = baseCode(codeEl.value);
+      if(kindEl.value!=="frame"){ setHintAndPrice(); recalc(); return; }
+
+      const prevBase = tr.dataset.prevBase || "";
+      const c = CATALOG[base];
+
+      applyFrame(c);
+
+      if(base !== prevBase){ // farklı koda geçildi
+        if(c && c.priceUSD){         // yeni kod bulundu → USD'yi güncelle
+          usdEl.value = c.priceUSD;
+          syncFromUSD();
+        }else{                       // katalogda yok → fiyatları temizle
+          usdEl.value = "";
+          tlEl.value  = "";
+          tr.querySelector(".line").textContent = TL(0);
+        }
+        tr.dataset.prevBase = base;
+      }else{
+        // aynı kodda yazı güncellemeleri → sadece hint güncelle
+        setHintAndPrice();
+        recalc();
+      }
+    };
+
+    const onKind = ()=>{
+      if(kindEl.value==="other"){ applyOther(); }
+      else { applyFrame(CATALOG[baseCode(codeEl.value)]); }
+      setHintAndPrice(); recalc();
+    };
+
+    const onUnit = ()=>{
+      const c=CATALOG[baseCode(codeEl.value)], prev=getPrevUnit(tr), next=unitEl.value;
+      let q=parseFloat(qtyEl.value)||0;
+      if(kindEl.value==="other"){ applyOther(); setPrevUnit(tr,"adet"); setHintAndPrice(); recalc(); return; }
+      if(!c || !q){ setPrevUnit(tr,next); setHintAndPrice(); recalc(); return; }
+      if(c.type==="metrelik"){
+        let metres=0; if(prev==="metre") metres=q; else if(prev==="boy") metres=q*(c.boyLength||0); else if(prev==="koli") metres=q*(c.koliMetre||0);
+        if(next==="metre") qtyEl.value=round2(metres);
+        else if(next==="boy")  qtyEl.value=Math.ceil((c.boyLength? metres/c.boyLength:0));
+        else if(next==="koli") qtyEl.value=Math.ceil((c.koliMetre? metres/c.koliMetre:0));
+      }
+      setPrevUnit(tr,next); setHintAndPrice(); recalc();
+    };
+
+    const onQty  = ()=>{ if(kindEl.value==="other"){ const n=qtyEl.value===""?"":Math.max(0,parseInt(qtyEl.value,10)||0); qtyEl.value=n; } setHintAndPrice(); recalc(); };
+
+    kindEl.addEventListener("change", onKind);
+    codeEl.addEventListener("input", onCode);
+    unitEl.addEventListener("change", onUnit);
+    qtyEl .addEventListener("input", onQty);
+    tlEl  .addEventListener("input", syncFromTL);
+    usdEl .addEventListener("input", syncFromUSD);
+
+    onKind();
+  });
+}
+
+/* Kur etiketi */
+function updateRateHint(){ const r=parseFloat(rateEl.value)||0; rateHint.textContent=`1 USD = ${TL(r)}`; }
+rateEl.addEventListener("input", ()=>{
+  updateRateHint();
+  tbody.querySelectorAll("tr").forEach(tr=>{
+    const usdEl=tr.querySelector(".usd"), tlEl=tr.querySelector(".tl");
+    if(usdEl.value!==""){ const usd=parseFloat(usdEl.value)||0; tlEl.value=f2((parseFloat(rateEl.value)||0)*usd); }
+    tr.querySelector(".price-hint").textContent="";
+  });
+  recalc();
+}); updateRateHint();
+
+/* Toplamlar */
+vatEl.addEventListener("change", recalc);
+discPctEl.addEventListener("input", recalc);
+
+function recalc(){
+  const rate=parseFloat(rateEl.value)||0; let gross=0;
+  tbody.querySelectorAll("tr").forEach(tr=>{
+    const kind=tr.querySelector(".kind").value, code=tr.querySelector(".codeOrName").value.trim(),
+          unit=tr.querySelector(".unit").value, qty=parseFloat(tr.querySelector(".qty").value)||0,
+          usd=parseFloat(tr.querySelector(".usd").value)||0, tlIn=tr.querySelector(".tl").value;
+    let line=0;
+    if(kind==="frame" && code){ // <-- kod boşsa hiç hesaplama yok
+      const c=CATALOG[baseCode(code)];
+      const unitTL = tlIn!=="" && isFinite(parseFloat(tlIn)) ? round2(parseFloat(tlIn)) : round2((usd||0)*rate);
+      let baseQty=0;
+      if(c?.type==="metrelik"){
+        if(unit==="metre") baseQty=qty;
+        else if(unit==="boy") baseQty=qty*(c.boyLength||0);
+        else if(unit==="koli") baseQty=qty*(c.koliMetre||0);
+      }else{
+        baseQty=qty;
+      }
+      baseQty=round2(baseQty);
+      line=round2(baseQty*unitTL);
+      tr.querySelector(".price-hint").textContent= unitTL?`1 ${(c?.type==="metrelik")?"m":"m"}: ${TL(unitTL)} (USD ${f4(unitTL/(rate||1))})`:"";
+    }else if(kind==="other" && code){
+      const unitTL=round2(parseFloat(tlIn)||0);
+      line=round2((qty||0)*unitTL);
+      tr.querySelector(".price-hint").textContent=unitTL?`Birim: ${TL(unitTL)}`:"";
+    }else{
+      tr.querySelector(".price-hint").textContent="";
+    }
+    tr.querySelector(".line").textContent=TL(line); gross+=line;
+  });
+
+  const vPct=Math.max(0, parseFloat(discPctEl.value)||0);
+  const discount=Math.round(gross*vPct)/100;
+  if(discount>0){ discRow.classList.remove('hide'); discTL.textContent=TL(discount); } else { discRow.classList.add('hide'); discTL.textContent=TL(0); }
+  const after=Math.max(0, gross-discount);
+  const vatAmount=vatEl.checked ? Math.round(after*20)/100 : 0;
+  const net=Math.round((after+vatAmount)*100)/100;
+  grossEl.textContent=TL(gross); vatAmt.textContent=TL(vatAmount); netEl.textContent=TL(net);
+  return {gross, discountPct:vPct, vatApplied:!!vatEl.checked, vatAmount, net, rate};
+}
+
+/* Gönderim — Çerçeve satırı yalnız kod varsa gönderilir */
+document.getElementById("sendBtn").addEventListener("click", ()=>{
+  const statusEl=document.getElementById("status");
+  const employee=document.getElementById("employee").value;
+  const customer=(document.getElementById("customer").value||"").trim();
+  const note=(document.getElementById("note").value||"").trim();
+  if(!employee || !customer){ statusEl.innerHTML='<span class="err">Çalışan ve Müşteri zorunludur.</span>'; return; }
+
+  const rate=parseFloat(rateEl.value)||0, rows=[];
+  tbody.querySelectorAll("tr").forEach(tr=>{
+    const kind=tr.querySelector(".kind").value, code=(tr.querySelector(".codeOrName").value||"").trim(),
+          unit=tr.querySelector(".unit").value, qtyS=(tr.querySelector(".qty").value||"").trim(),
+          usdS=(tr.querySelector(".usd").value||"").trim(), tlS=(tr.querySelector(".tl").value||"").trim();
+
+    if(kind==="frame"){
+      if(!code) return; // kod yoksa tamamen atla
+      let usdFinal=usdS;
+      if(tlS!=="" && rate){ const tlNum=parseFloat(tlS)||0; usdFinal=(tlNum/rate).toFixed(4); }
+      if(qtyS || usdS || tlS){ rows.push({kind:"frame", fullCode:code, unit, qty:qtyS, usd:usdFinal}); }
+    }else{
+      if(!code) return;
+      const qi=qtyS? parseInt(qtyS,10):0;
+      rows.push({kind:"other", name:code, unit:"adet", qty:qi, unitPriceTL:tlS});
+    }
+  });
+  if(!rows.length){ statusEl.innerHTML='<span class="err">En az bir satır ekleyin.</span>'; return; }
+
+  const t=recalc(); statusEl.textContent='Gönderiliyor…';
+  google.script.run
+    .withSuccessHandler(res=>{
+      if(res && res.ok){
+        const link=res.pdfUrl?` — <a href="${res.pdfUrl}" target="_blank">PDF’i indir</a>`:"";
+        statusEl.innerHTML='<span class="ok">Gönderildi. Sipariş No: '+res.orderId+' — Toplam: '+TL(res.net)+link+'</span>';
+        document.getElementById("employee").value=''; document.getElementById("customer").value=''; document.getElementById("note").value='';
+        document.getElementById("discountPct").value="0"; document.getElementById("vat").checked=false;
+        tbody.querySelectorAll("input,select").forEach(el=>{ if(el.id) return; if(el.tagName==="SELECT") el.selectedIndex=0; else el.value=""; });
+        tbody.querySelectorAll(".line").forEach(el=>el.textContent=TL(0));
+        tbody.querySelectorAll(".price-hint").forEach(el=>el.textContent="");
+        tbody.querySelectorAll(".hint").forEach(el=>el.textContent="");
+        buildRows(); recalc();
+      }else{
+        statusEl.innerHTML='<span class="err">Hata: '+(res?.error || 'Bilinmiyor')+'</span>';
+      }
+    })
+    .withFailureHandler(err=>{ statusEl.innerHTML='<span class="err">Sunucu hatası: '+String(err)+'</span>'; })
+    .submitFromHtml({ employee, customer, note, rate: t.rate, vatApplied: t.vatApplied, discountPct: t.discountPct, rows });
+});
+</script>
+</body>
+</html>
