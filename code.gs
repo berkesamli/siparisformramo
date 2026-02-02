@@ -86,6 +86,7 @@ function processOrder_(data){
     const orderId = getNextOrderId_();
 
     const rate       = Math.max(0, Number(payload.rate||0));
+    const euroRate   = Math.max(0, Number(payload.euroRate||0));
     const vatApplied = !!payload.vatApplied;
 
     let lineNo=0, gross=0;
@@ -139,6 +140,27 @@ function processOrder_(data){
         lineNo++; gross = round2(gross + lineTotal);
         itemRows.push([orderId, lineNo, glassName, unitText, m2Price, lineTotal]);
 
+      }else if(kind==="technical"){
+        // Teknik malzeme işleme - kutu bazlı
+        const productCode = String(row.code||"").trim();
+        const productName = String(row.name||"").trim();
+        const category = String(row.category||"Teknik Malzeme").trim();
+        const kutuAdet = Number(row.kutuAdet||0);
+        const adetPerKutu = Number(row.adetPerKutu||0);
+        const totalAdet = Number(row.totalAdet||0);
+        const priceEUR = round2(Number(row.priceEUR||0));
+        const euroRate = Number(row.euroRate||0);
+        const kutuPriceTL = round2(Number(row.kutuPriceTL||0));
+
+        if(kutuAdet <= 0) return;
+
+        const fullName = `${productCode} - ${productName}`;
+        const unitText = `${kutuAdet} kutu × ${adetPerKutu} = ${totalAdet} adt (€${fmt(priceEUR)}/kutu)`;
+        const lineTotal = round2(kutuAdet * kutuPriceTL);
+
+        lineNo++; gross = round2(gross + lineTotal);
+        itemRows.push([orderId, lineNo, fullName, unitText, kutuPriceTL, lineTotal]);
+
       }else{
         const name = String(row.name||"").trim();
         const qty  = Number(row.qty||0); if(qty<=0 || !name) return;
@@ -170,12 +192,12 @@ function processOrder_(data){
       discountPct: Number(payload.discountPct||0), discount, gross, vatApplied, vatAmount, net
     });
 
-    const pdfInfo = createOrderPdf_(orderId, ts, payload, itemRows, gross, discount, vatApplied, vatAmount, net, rate);
+    const pdfInfo = createOrderPdf_(orderId, ts, payload, itemRows, gross, discount, vatApplied, vatAmount, net, rate, euroRate);
 
     MailApp.sendEmail({
       to: EMAIL_TO,
       subject: `Yeni Sipariş ${orderId} — ${payload.customer||""} — ₺ ${fmt(net)}`,
-      htmlBody: buildEmailBody_(orderId, ts, payload, itemRows, gross, discount, vatApplied, vatAmount, net, rate),
+      htmlBody: buildEmailBody_(orderId, ts, payload, itemRows, gross, discount, vatApplied, vatAmount, net, rate, euroRate),
       attachments: [pdfInfo.blob]
     });
 
@@ -196,8 +218,8 @@ function getNextOrderId_(){
   } finally { lock.releaseLock(); }
 }
 
-function buildEmailBody_(orderId, ts, data, itemRows, gross, discount, vatApplied, vatAmount, net, rate){
-  const note = `${esc(data.note||"-")}<br>Kur: ${fmt(rate)} TL/USD`;
+function buildEmailBody_(orderId, ts, data, itemRows, gross, discount, vatApplied, vatAmount, net, rate, euroRate){
+  const note = `${esc(data.note||"-")}<br>Kurlar: ${fmt(rate)} TL/USD | ${fmt(euroRate||0)} TL/EUR`;
   return `
   <div style="font:14px/1.45 -apple-system,Segoe UI,Roboto,Arial,sans-serif;color:#222">
     <h3 style="margin:0 0 8px">Yeni sipariş</h3>
@@ -281,7 +303,7 @@ function writeDailyHuman_(sh, ts, dayKey, orderId, customer, itemRows, sums){
   sh.getRange(r6,7).setValue(`₺ ${fmt(sums.net)} TL`).setFontWeight("bold");
 }
 
-function createOrderPdf_(orderId, ts, data, itemRows, gross, discount, vatApplied, vatAmount, net, rate){
+function createOrderPdf_(orderId, ts, data, itemRows, gross, discount, vatApplied, vatAmount, net, rate, euroRate){
   const folder = getOrCreateFolder_(PDF_FOLDER_NAME);
   const doc = DocumentApp.create(`Sipariş ${orderId}`);
   const b = doc.getBody(); b.clear();
@@ -295,7 +317,7 @@ function createOrderPdf_(orderId, ts, data, itemRows, gross, discount, vatApplie
     `Çalışan: ${data.employee||""}`,
     `Müşteri: ${data.customer||""}`,
     `Not: ${(data.note||"-")}`,
-    `Kur: ${fmt(rate)} TL/USD`
+    `Kurlar: ${fmt(rate)} TL/USD | ${fmt(euroRate||0)} TL/EUR`
   ].forEach(t=>b.appendParagraph(t));
   b.appendParagraph(" ");
 

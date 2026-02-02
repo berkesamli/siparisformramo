@@ -326,6 +326,10 @@
     box-shadow: var(--shadow-sm);
   }
 
+  .rate-hint-euro {
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  }
+
   /* Info Banner */
   .info-banner {
     background: rgba(124, 58, 237, 0.1);
@@ -519,6 +523,62 @@
 
   .glassType, .glassSize {
     width: 100%;
+  }
+
+  /* Technical Materials styles */
+  .technical-selects {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .technical-selects select {
+    width: 100%;
+  }
+
+  .technicalProduct {
+    width: 100%;
+  }
+
+  .technical-box {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    align-items: center;
+  }
+
+  .technical-box input {
+    width: 100%;
+    text-align: center;
+  }
+
+  .kutu-info {
+    font-size: 11px;
+    color: #2563eb;
+    font-weight: 600;
+  }
+
+  .technical-price {
+    margin-top: 6px;
+  }
+
+  .eur-price-box {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    justify-content: center;
+  }
+
+  .eur-price-box input {
+    width: 70px;
+    min-width: 70px;
+    text-align: center;
+  }
+
+  .eur-price-box input[readonly] {
+    background: rgba(37, 99, 235, 0.1);
+    border-color: rgba(37, 99, 235, 0.3);
+    color: var(--text-primary);
   }
 
   /* Price Box */
@@ -1097,6 +1157,17 @@
           <div class="rate-hint" id="rateHint">1 USD = ₺42,00</div>
         </div>
       </div>
+
+      <div class="form-group">
+        <label class="form-label">
+          <i class="lucide-euro"></i>
+          Euro Kuru (TL/EUR)
+        </label>
+        <div class="rate-display">
+          <input id="euroRate" type="number" step="0.0001" min="0" value="45.0000" inputmode="decimal">
+          <div class="rate-hint rate-hint-euro" id="euroRateHint">1 EUR = ₺45,00</div>
+        </div>
+      </div>
     </section>
 
     <!-- Info Banner -->
@@ -1265,6 +1336,8 @@ const vatEl = document.getElementById('vat');
 const vatAmt = document.getElementById('vatAmount');
 const rateEl = document.getElementById('rate');
 const rateHint = document.getElementById('rateHint');
+const euroRateEl = document.getElementById('euroRate');
+const euroRateHint = document.getElementById('euroRateHint');
 const discPctEl = document.getElementById('discountPct');
 const discRow = document.getElementById('discRow');
 const discTL = document.getElementById('discountTL');
@@ -1282,6 +1355,63 @@ const GLASS_SIZES = {
   ]
 };
 
+// Teknik Malzeme Ürün Kataloğu (POZZI-GHISLANZONI)
+// adetPerKutu: Kutudaki adet sayısı
+// priceEUR: Kutu fiyatı EUR
+const TECHNICAL_PRODUCTS = [
+  // ASKILAR
+  { code: "501", name: "Düz Askı Çelik", category: "Askılar", adetPerKutu: 2000, priceEUR: 35.00 },
+  { code: "501 OT", name: "Düz Askı Pirinç", category: "Askılar", adetPerKutu: 2000, priceEUR: 45.00 },
+  { code: "504", name: "Yuvarlak Askı Çelik", category: "Askılar", adetPerKutu: 2000, priceEUR: 35.00 },
+  { code: "504 OT", name: "Yuvarlak Askı Pirinç", category: "Askılar", adetPerKutu: 2000, priceEUR: 45.00 },
+  { code: "539", name: "Tırtıklı Askı Çelik", category: "Askılar", adetPerKutu: 2000, priceEUR: 40.00 },
+  { code: "539 OT", name: "Tırtıklı Askı Pirinç", category: "Askılar", adetPerKutu: 2000, priceEUR: 50.00 },
+  { code: "530", name: "Üçgen Askı Çelik", category: "Askılar", adetPerKutu: 1000, priceEUR: 25.00 },
+  { code: "530 OT", name: "Üçgen Askı Pirinç", category: "Askılar", adetPerKutu: 1000, priceEUR: 32.00 },
+
+  // MENTEŞELER
+  { code: "520", name: "Menteşe 20mm Çelik", category: "Menteşeler", adetPerKutu: 1000, priceEUR: 30.00 },
+  { code: "520 OT", name: "Menteşe 20mm Pirinç", category: "Menteşeler", adetPerKutu: 1000, priceEUR: 40.00 },
+  { code: "525", name: "Menteşe 25mm Çelik", category: "Menteşeler", adetPerKutu: 1000, priceEUR: 32.00 },
+  { code: "525 OT", name: "Menteşe 25mm Pirinç", category: "Menteşeler", adetPerKutu: 1000, priceEUR: 42.00 },
+  { code: "532", name: "Menteşe 32mm Çelik", category: "Menteşeler", adetPerKutu: 500, priceEUR: 28.00 },
+  { code: "532 OT", name: "Menteşe 32mm Pirinç", category: "Menteşeler", adetPerKutu: 500, priceEUR: 36.00 },
+
+  // KLİPSLER
+  { code: "560", name: "Z Klips Çelik", category: "Klipsler", adetPerKutu: 4000, priceEUR: 45.00 },
+  { code: "560 OT", name: "Z Klips Pirinç", category: "Klipsler", adetPerKutu: 4000, priceEUR: 55.00 },
+  { code: "570", name: "Yaylı Klips Çelik", category: "Klipsler", adetPerKutu: 2000, priceEUR: 38.00 },
+  { code: "570 OT", name: "Yaylı Klips Pirinç", category: "Klipsler", adetPerKutu: 2000, priceEUR: 48.00 },
+
+  // ÇİVİLER
+  { code: "580", name: "Çivi 12mm", category: "Çiviler", adetPerKutu: 5000, priceEUR: 22.00 },
+  { code: "585", name: "Çivi 15mm", category: "Çiviler", adetPerKutu: 5000, priceEUR: 24.00 },
+  { code: "590", name: "Çivi 18mm", category: "Çiviler", adetPerKutu: 5000, priceEUR: 26.00 }
+];
+
+// Ürünleri kategoriye göre grupla
+function getTechnicalProductOptions() {
+  const categories = {};
+  TECHNICAL_PRODUCTS.forEach(p => {
+    if (!categories[p.category]) categories[p.category] = [];
+    categories[p.category].push(p);
+  });
+
+  let html = '<option value="">Ürün Seçiniz...</option>';
+  Object.keys(categories).forEach(cat => {
+    html += `<optgroup label="${cat}">`;
+    categories[cat].forEach(p => {
+      html += `<option value="${p.code}">${p.code} - ${p.name}</option>`;
+    });
+    html += '</optgroup>';
+  });
+  return html;
+}
+
+function getTechnicalProduct(code) {
+  return TECHNICAL_PRODUCTS.find(p => p.code === code);
+}
+
 function buildRows() {
   tbody.innerHTML = "";
   for (let i = 0; i < 15; i++) {
@@ -1291,6 +1421,7 @@ function buildRows() {
         <select class="kind">
           <option value="frame">Çerçeve Profili</option>
           <option value="glass">Cam</option>
+          <option value="technical">Teknik Malzeme</option>
           <option value="other">Diğer</option>
         </select>
       </td>
@@ -1303,6 +1434,11 @@ function buildRows() {
           </select>
           <select class="glassSize"></select>
         </div>
+        <div class="technical-selects hide">
+          <select class="technicalProduct">
+            <option value="">Ürün Seçiniz...</option>
+          </select>
+        </div>
         <div class="hint"></div>
       </td>
       <td class="col-unit">
@@ -1314,6 +1450,10 @@ function buildRows() {
         <div class="glass-plaka hide">
           <input type="number" class="plaka-adet" step="1" min="1" placeholder="Plaka Adedi" inputmode="numeric" value="1">
           <span class="plaka-m2"></span>
+        </div>
+        <div class="technical-box hide">
+          <input type="number" class="kutu-adet" step="1" min="1" placeholder="Kutu Adedi" inputmode="numeric" value="1">
+          <span class="kutu-info"></span>
         </div>
       </td>
       <td class="col-qty">
@@ -1328,6 +1468,13 @@ function buildRows() {
         </div>
         <div class="glass-price hide">
           <input type="number" class="m2-price" step="0.01" min="0" placeholder="m² Fiyatı (TL)" inputmode="decimal">
+        </div>
+        <div class="technical-price hide">
+          <div class="eur-price-box">
+            <input type="number" class="eur-price" step="0.01" min="0" placeholder="EUR" inputmode="decimal" readonly>
+            <span class="price-eq">=</span>
+            <input type="number" class="tl-from-eur" step="0.01" min="0" placeholder="TL" inputmode="decimal" readonly>
+          </div>
         </div>
         <div class="price-hint"></div>
       </td>
@@ -1359,6 +1506,14 @@ function wireRowEvents() {
     const glassSelectsEl = tr.querySelector(".glass-selects");
     const glassTypeEl = tr.querySelector(".glassType");
     const glassSizeEl = tr.querySelector(".glassSize");
+    const technicalSelectsEl = tr.querySelector(".technical-selects");
+    const technicalProductEl = tr.querySelector(".technicalProduct");
+    const technicalBoxEl = tr.querySelector(".technical-box");
+    const kutuAdetEl = tr.querySelector(".kutu-adet");
+    const kutuInfoEl = tr.querySelector(".kutu-info");
+    const technicalPriceEl = tr.querySelector(".technical-price");
+    const eurPriceEl = tr.querySelector(".eur-price");
+    const tlFromEurEl = tr.querySelector(".tl-from-eur");
     const unitEl = tr.querySelector(".unit");
     const glassPlakaEl = tr.querySelector(".glass-plaka");
     const plakaAdetEl = tr.querySelector(".plaka-adet");
@@ -1371,6 +1526,9 @@ function wireRowEvents() {
     const glassPriceEl = tr.querySelector(".glass-price");
     const priceBoxEl = tr.querySelector(".price-box");
     const hintEl = tr.querySelector(".hint");
+
+    // Initialize technical products dropdown
+    technicalProductEl.innerHTML = getTechnicalProductOptions();
 
     setPrevUnit(tr, unitEl.value);
     tr.dataset.prevBase = "";
@@ -1466,17 +1624,62 @@ function wireRowEvents() {
       // Show glass-specific elements
       codeEl.classList.add("hide");
       glassSelectsEl.classList.remove("hide");
+      technicalSelectsEl.classList.add("hide");
       unitEl.classList.add("hide");
       glassPlakaEl.classList.remove("hide");
+      technicalBoxEl.classList.add("hide");
       qtyEl.classList.add("hide");
       m2DisplayEl.classList.remove("hide");
       priceBoxEl.classList.add("hide");
       glassPriceEl.classList.remove("hide");
+      technicalPriceEl.classList.add("hide");
       hintEl.textContent = "";
       tr.querySelector(".price-hint").textContent = "";
 
       // Initialize glass dropdowns
       updateGlassSizes();
+    };
+
+    const applyTechnical = () => {
+      // Show technical materials specific elements
+      codeEl.classList.add("hide");
+      glassSelectsEl.classList.add("hide");
+      technicalSelectsEl.classList.remove("hide");
+      unitEl.classList.add("hide");
+      glassPlakaEl.classList.add("hide");
+      technicalBoxEl.classList.remove("hide");
+      qtyEl.classList.add("hide");
+      m2DisplayEl.classList.add("hide");
+      priceBoxEl.classList.add("hide");
+      glassPriceEl.classList.add("hide");
+      technicalPriceEl.classList.remove("hide");
+      hintEl.textContent = "";
+      tr.querySelector(".price-hint").textContent = "";
+
+      // Update product info
+      updateTechnicalInfo();
+    };
+
+    const updateTechnicalInfo = () => {
+      const product = getTechnicalProduct(technicalProductEl.value);
+      const euroRate = parseFloat(euroRateEl.value) || 0;
+
+      if (product) {
+        kutuInfoEl.textContent = `1 kutu = ${product.adetPerKutu} adet`;
+        eurPriceEl.value = f2(product.priceEUR);
+        tlFromEurEl.value = f2(product.priceEUR * euroRate);
+
+        const kutuAdet = parseInt(kutuAdetEl.value) || 0;
+        const totalAdet = kutuAdet * product.adetPerKutu;
+        hintEl.innerHTML = kutuAdet > 0
+          ? `<strong>${kutuAdet} kutu × ${product.adetPerKutu} = ${totalAdet.toLocaleString('tr-TR')} adet</strong>`
+          : "";
+      } else {
+        kutuInfoEl.textContent = "";
+        eurPriceEl.value = "";
+        tlFromEurEl.value = "";
+        hintEl.textContent = "";
+      }
     };
 
     const hideGlass = () => {
@@ -1489,6 +1692,13 @@ function wireRowEvents() {
       m2DisplayEl.classList.add("hide");
       priceBoxEl.classList.remove("hide");
       glassPriceEl.classList.add("hide");
+    };
+
+    const hideTechnical = () => {
+      // Hide technical materials specific elements
+      technicalSelectsEl.classList.add("hide");
+      technicalBoxEl.classList.add("hide");
+      technicalPriceEl.classList.add("hide");
     };
 
     const syncFromTL = () => {
@@ -1544,9 +1754,18 @@ function wireRowEvents() {
 
     const onKind = () => {
       if (kindEl.value === "glass") {
+        hideTechnical();
         applyGlass();
+      } else if (kindEl.value === "technical") {
+        hideGlass();
+        applyTechnical();
       } else {
         hideGlass();
+        hideTechnical();
+        codeEl.classList.remove("hide");
+        unitEl.classList.remove("hide");
+        qtyEl.classList.remove("hide");
+        priceBoxEl.classList.remove("hide");
         if (kindEl.value === "other") {
           applyOther();
         } else {
@@ -1629,11 +1848,23 @@ function wireRowEvents() {
       recalc();
     };
 
+    const onTechnicalProductChange = () => {
+      updateTechnicalInfo();
+      recalc();
+    };
+
+    const onKutuAdetChange = () => {
+      updateTechnicalInfo();
+      recalc();
+    };
+
     kindEl.addEventListener("change", onKind);
     codeEl.addEventListener("input", onCode);
     glassTypeEl.addEventListener("change", onGlassTypeChange);
     glassSizeEl.addEventListener("change", onGlassSizeChange);
     plakaAdetEl.addEventListener("input", onPlakaAdetChange);
+    technicalProductEl.addEventListener("change", onTechnicalProductChange);
+    kutuAdetEl.addEventListener("input", onKutuAdetChange);
     unitEl.addEventListener("change", onUnit);
     qtyEl.addEventListener("input", onQty);
     tlEl.addEventListener("input", syncFromTL);
@@ -1644,10 +1875,15 @@ function wireRowEvents() {
   });
 }
 
-// Update rate hint
+// Update rate hints
 function updateRateHint() {
   const r = parseFloat(rateEl.value) || 0;
   rateHint.textContent = `1 USD = ${TL(r)}`;
+}
+
+function updateEuroRateHint() {
+  const r = parseFloat(euroRateEl.value) || 0;
+  euroRateHint.textContent = `1 EUR = ${TL(r)}`;
 }
 
 rateEl.addEventListener("input", () => {
@@ -1664,7 +1900,28 @@ rateEl.addEventListener("input", () => {
   recalc();
 });
 
+euroRateEl.addEventListener("input", () => {
+  updateEuroRateHint();
+  // Update all technical material rows
+  tbody.querySelectorAll("tr").forEach(tr => {
+    const kind = tr.querySelector(".kind").value;
+    if (kind === "technical") {
+      const technicalProductEl = tr.querySelector(".technicalProduct");
+      const eurPriceEl = tr.querySelector(".eur-price");
+      const tlFromEurEl = tr.querySelector(".tl-from-eur");
+      const product = getTechnicalProduct(technicalProductEl.value);
+      const euroRate = parseFloat(euroRateEl.value) || 0;
+
+      if (product) {
+        tlFromEurEl.value = f2(product.priceEUR * euroRate);
+      }
+    }
+  });
+  recalc();
+});
+
 updateRateHint();
+updateEuroRateHint();
 
 // VAT and Discount listeners
 vatEl.addEventListener("change", recalc);
@@ -1712,6 +1969,25 @@ function recalc() {
         activeCount++;
       } else {
         tr.querySelector(".m2-display").textContent = "";
+        tr.querySelector(".price-hint").textContent = "";
+      }
+    } else if (kind === "technical") {
+      // Technical materials calculation - box based
+      const technicalProductEl = tr.querySelector(".technicalProduct");
+      const kutuAdet = parseInt(tr.querySelector(".kutu-adet").value) || 0;
+      const product = getTechnicalProduct(technicalProductEl.value);
+      const euroRate = parseFloat(euroRateEl.value) || 0;
+
+      if (product && kutuAdet > 0) {
+        const kutuPriceTL = round2(product.priceEUR * euroRate);
+        line = round2(kutuAdet * kutuPriceTL);
+
+        const totalAdet = kutuAdet * product.adetPerKutu;
+        tr.querySelector(".price-hint").textContent =
+          `${kutuAdet} kutu × ${TL(kutuPriceTL)}/kutu = ${totalAdet.toLocaleString('tr-TR')} adet`;
+
+        activeCount++;
+      } else {
         tr.querySelector(".price-hint").textContent = "";
       }
     } else if (kind === "frame" && code) {
@@ -1834,6 +2110,30 @@ document.getElementById("sendBtn").addEventListener("click", () => {
           unitPriceTL: m2Price
         });
       }
+    } else if (kind === "technical") {
+      const technicalProductEl = tr.querySelector(".technicalProduct");
+      const kutuAdet = parseInt(tr.querySelector(".kutu-adet").value) || 0;
+      const product = getTechnicalProduct(technicalProductEl.value);
+      const euroRate = parseFloat(euroRateEl.value) || 0;
+
+      if (product && kutuAdet > 0) {
+        const kutuPriceTL = round2(product.priceEUR * euroRate);
+        const totalAdet = kutuAdet * product.adetPerKutu;
+
+        rows.push({
+          kind: "technical",
+          code: product.code,
+          name: product.name,
+          category: product.category,
+          kutuAdet: kutuAdet,
+          adetPerKutu: product.adetPerKutu,
+          totalAdet: totalAdet,
+          priceEUR: product.priceEUR,
+          euroRate: euroRate,
+          kutuPriceTL: kutuPriceTL,
+          unitPriceTL: kutuPriceTL
+        });
+      }
     } else if (kind === "frame") {
       if (!code) return;
       let usdFinal = usdS;
@@ -1944,6 +2244,7 @@ document.getElementById("sendBtn").addEventListener("click", () => {
       customer,
       note,
       rate: t.rate,
+      euroRate: parseFloat(euroRateEl.value) || 0,
       vatApplied: t.vatApplied,
       discountPct: t.discountPct,
       rows
