@@ -145,6 +145,7 @@ function processOrder_(data){
         const productCode = String(row.code||"").trim();
         const productName = String(row.name||"").trim();
         const category = String(row.category||"Teknik Malzeme").trim();
+        const kartonKodu = String(row.kartonKodu||"").trim();
         const kutuAdet = Number(row.kutuAdet||0);
         const adetPerKutu = Number(row.adetPerKutu||0);
         const totalAdet = Number(row.totalAdet||0);
@@ -155,7 +156,10 @@ function processOrder_(data){
 
         if(kutuAdet <= 0) return;
 
-        const fullName = `${productCode} - ${productName}`;
+        // Karton kodu varsa ürün adına ekle
+        const fullName = kartonKodu
+          ? `${productName} (${kartonKodu})`
+          : productName;
         // TL veya EUR fiyat gösterimi
         const priceInfo = priceTL > 0 ? `₺${fmt(priceTL)}/kutu` : `€${fmt(priceEUR)}/kutu`;
         const unitText = `${kutuAdet} kutu × ${adetPerKutu} = ${totalAdet} adt (${priceInfo})`;
