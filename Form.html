@@ -294,6 +294,14 @@
     padding: 12px;
   }
 
+  select optgroup {
+    background: #e0e0e0;
+    color: #000000;
+    font-weight: 700;
+    font-style: normal;
+    padding: 8px;
+  }
+
   textarea {
     min-height: 100px;
     resize: vertical;
@@ -565,20 +573,23 @@
   .eur-price-box {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
     justify-content: center;
   }
 
   .eur-price-box input {
-    width: 70px;
-    min-width: 70px;
+    width: 90px;
+    min-width: 90px;
     text-align: center;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 10px 8px;
   }
 
   .eur-price-box input[readonly] {
-    background: rgba(37, 99, 235, 0.1);
-    border-color: rgba(37, 99, 235, 0.3);
-    color: var(--text-primary);
+    background: rgba(37, 99, 235, 0.15);
+    border-color: rgba(37, 99, 235, 0.4);
+    color: #ffffff;
   }
 
   /* Price Box */
@@ -1501,7 +1512,7 @@ function getTechnicalProductOptions() {
   Object.keys(categories).forEach(cat => {
     html += `<optgroup label="${cat}">`;
     categories[cat].forEach(p => {
-      html += `<option value="${p.code}">${p.code} - ${p.name}</option>`;
+      html += `<option value="${p.code}">${p.name}</option>`;
     });
     html += '</optgroup>';
   });
