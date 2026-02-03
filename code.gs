@@ -149,13 +149,16 @@ function processOrder_(data){
         const adetPerKutu = Number(row.adetPerKutu||0);
         const totalAdet = Number(row.totalAdet||0);
         const priceEUR = round2(Number(row.priceEUR||0));
+        const priceTL = round2(Number(row.priceTL||0));
         const euroRate = Number(row.euroRate||0);
         const kutuPriceTL = round2(Number(row.kutuPriceTL||0));
 
         if(kutuAdet <= 0) return;
 
         const fullName = `${productCode} - ${productName}`;
-        const unitText = `${kutuAdet} kutu × ${adetPerKutu} = ${totalAdet} adt (€${fmt(priceEUR)}/kutu)`;
+        // TL veya EUR fiyat gösterimi
+        const priceInfo = priceTL > 0 ? `₺${fmt(priceTL)}/kutu` : `€${fmt(priceEUR)}/kutu`;
+        const unitText = `${kutuAdet} kutu × ${adetPerKutu} = ${totalAdet} adt (${priceInfo})`;
         const lineTotal = round2(kutuAdet * kutuPriceTL);
 
         lineNo++; gross = round2(gross + lineTotal);

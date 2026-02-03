@@ -1355,38 +1355,138 @@ const GLASS_SIZES = {
   ]
 };
 
-// Teknik Malzeme Ürün Kataloğu (POZZI-GHISLANZONI)
-// adetPerKutu: Kutudaki adet sayısı
-// priceEUR: Kutu fiyatı EUR
+// Teknik Malzeme Ürün Kataloğu
+// priceEUR: Euro fiyatlı ürünler için kutu fiyatı
+// priceTL: TL fiyatlı ürünler için kutu fiyatı (OLGA)
 const TECHNICAL_PRODUCTS = [
-  // ASKILAR
-  { code: "501", name: "Düz Askı Çelik", category: "Askılar", adetPerKutu: 2000, priceEUR: 35.00 },
-  { code: "501 OT", name: "Düz Askı Pirinç", category: "Askılar", adetPerKutu: 2000, priceEUR: 45.00 },
-  { code: "504", name: "Yuvarlak Askı Çelik", category: "Askılar", adetPerKutu: 2000, priceEUR: 35.00 },
-  { code: "504 OT", name: "Yuvarlak Askı Pirinç", category: "Askılar", adetPerKutu: 2000, priceEUR: 45.00 },
-  { code: "539", name: "Tırtıklı Askı Çelik", category: "Askılar", adetPerKutu: 2000, priceEUR: 40.00 },
-  { code: "539 OT", name: "Tırtıklı Askı Pirinç", category: "Askılar", adetPerKutu: 2000, priceEUR: 50.00 },
-  { code: "530", name: "Üçgen Askı Çelik", category: "Askılar", adetPerKutu: 1000, priceEUR: 25.00 },
-  { code: "530 OT", name: "Üçgen Askı Pirinç", category: "Askılar", adetPerKutu: 1000, priceEUR: 32.00 },
+  // ==================== POZZİ ====================
+  { code: "NO1-UC", name: "NO: 1 Üçgen Askı", category: "Pozzi", adetPerKutu: 1000, priceEUR: 17.50 },
+  { code: "NO2-UC", name: "NO: 2 Üçgen Askı", category: "Pozzi", adetPerKutu: 1000, priceEUR: 21.00 },
+  { code: "NO3-UC", name: "NO: 3 Üçgen Askı", category: "Pozzi", adetPerKutu: 500, priceEUR: 17.50 },
+  { code: "CIFT-MENT", name: "Çiftli Menteşe", category: "Pozzi", adetPerKutu: 1000, priceEUR: 55.00 },
+  { code: "KUC-YUV", name: "Küçük Yuvarlak Askı", category: "Pozzi", adetPerKutu: 500, priceEUR: 15.50 },
+  { code: "BUY-YUV", name: "Büyük Yuvarlak Askı", category: "Pozzi", adetPerKutu: 250, priceEUR: 14.50 },
+  { code: "VID-TIRT", name: "Vidalı Tırtıllı Askı", category: "Pozzi", adetPerKutu: 250, priceEUR: 12.00 },
+  { code: "BUY-CIV-TIRT", name: "Büyük Çivili Tırtıllı Askı", category: "Pozzi", adetPerKutu: 250, priceEUR: 12.00 },
+  { code: "KUC-CIV-TIRT", name: "Küçük Çivili Tırtıllı Askı", category: "Pozzi", adetPerKutu: 500, priceEUR: 20.00 },
+  { code: "CIVI-20", name: "20 mm Çivi", category: "Pozzi", adetPerKutu: 100, priceEUR: 4.25 },
+  { code: "CIVI-25", name: "25 mm Çivi", category: "Pozzi", adetPerKutu: 100, priceEUR: 4.50 },
+  { code: "CIVI-30", name: "30 mm Çivi", category: "Pozzi", adetPerKutu: 100, priceEUR: 4.75 },
+  { code: "PULLU-CIVI", name: "Pullu Çivi - Duvar Çivisi", category: "Pozzi", adetPerKutu: 1, priceEUR: 10.00 },
+  { code: "TEK-DEL-BUY", name: "Tek Delikli Büyük Askı", category: "Pozzi", adetPerKutu: 100, priceEUR: 15.00 },
+  { code: "CIFT-DEL-BUY", name: "Çift Delikli Büyük Askı", category: "Pozzi", adetPerKutu: 100, priceEUR: 19.50 },
+  { code: "UC-DEL-BUY", name: "Üç Delikli Büyük Askı", category: "Pozzi", adetPerKutu: 50, priceEUR: 16.50 },
+  { code: "ARKALIK-KLIPS", name: "Arkalık Klipsi", category: "Pozzi", adetPerKutu: 100, priceEUR: 5.25 },
+  { code: "FOTOBLOK-ASKI", name: "Fotoblok Askısı", category: "Pozzi", adetPerKutu: 500, priceEUR: 50.00 },
+  { code: "BUY-CAM-KLIPS", name: "Büyük Cam Klipsi", category: "Pozzi", adetPerKutu: 500, priceEUR: 55.00 },
+  { code: "KUC-CAM-KLIPS", name: "Küçük Cam Klipsi", category: "Pozzi", adetPerKutu: 1000, priceEUR: 65.00 },
 
-  // MENTEŞELER
-  { code: "520", name: "Menteşe 20mm Çelik", category: "Menteşeler", adetPerKutu: 1000, priceEUR: 30.00 },
-  { code: "520 OT", name: "Menteşe 20mm Pirinç", category: "Menteşeler", adetPerKutu: 1000, priceEUR: 40.00 },
-  { code: "525", name: "Menteşe 25mm Çelik", category: "Menteşeler", adetPerKutu: 1000, priceEUR: 32.00 },
-  { code: "525 OT", name: "Menteşe 25mm Pirinç", category: "Menteşeler", adetPerKutu: 1000, priceEUR: 42.00 },
-  { code: "532", name: "Menteşe 32mm Çelik", category: "Menteşeler", adetPerKutu: 500, priceEUR: 28.00 },
-  { code: "532 OT", name: "Menteşe 32mm Pirinç", category: "Menteşeler", adetPerKutu: 500, priceEUR: 36.00 },
+  // ==================== ALFAMACCHINE ====================
+  { code: "ALFA-5", name: "Alfa 5'lik Agraf", category: "Alfamacchine", adetPerKutu: 5000, priceEUR: 16.50 },
+  { code: "ALFA-7", name: "Alfa 7'lik Agraf", category: "Alfamacchine", adetPerKutu: 4000, priceEUR: 13.50 },
+  { code: "ALFA-10", name: "Alfa 10'luk Agraf", category: "Alfamacchine", adetPerKutu: 3000, priceEUR: 10.50 },
+  { code: "ALFA-12", name: "Alfa 12'lik Agraf", category: "Alfamacchine", adetPerKutu: 3000, priceEUR: 12.50 },
+  { code: "ALFA-15", name: "Alfa 15'lik Agraf", category: "Alfamacchine", adetPerKutu: 2000, priceEUR: 10.00 },
+  { code: "ESNER-CIVI", name: "Esner Çivi", category: "Alfamacchine", adetPerKutu: 12000, priceEUR: 33.00 },
+  { code: "YEDEK-PEDAL", name: "Yedek Pedal", category: "Alfamacchine", adetPerKutu: 1, priceEUR: 250.00 },
+  { code: "MINIGRAF-U200", name: "Minigraf U200", category: "Alfamacchine", adetPerKutu: 1, priceEUR: 1500.00 },
+  { code: "ALFA-U200P", name: "Alfa U-200P", category: "Alfamacchine", adetPerKutu: 1, priceEUR: 2000.00 },
+  { code: "ALFA-U300P", name: "Alfa U300P", category: "Alfamacchine", adetPerKutu: 1, priceEUR: 2400.00 },
+  { code: "T-200", name: "T-200", category: "Alfamacchine", adetPerKutu: 1, priceEUR: 16500.00 },
+  { code: "T-400", name: "T-400", category: "Alfamacchine", adetPerKutu: 1, priceEUR: 16500.00 },
 
-  // KLİPSLER
-  { code: "560", name: "Z Klips Çelik", category: "Klipsler", adetPerKutu: 4000, priceEUR: 45.00 },
-  { code: "560 OT", name: "Z Klips Pirinç", category: "Klipsler", adetPerKutu: 4000, priceEUR: 55.00 },
-  { code: "570", name: "Yaylı Klips Çelik", category: "Klipsler", adetPerKutu: 2000, priceEUR: 38.00 },
-  { code: "570 OT", name: "Yaylı Klips Pirinç", category: "Klipsler", adetPerKutu: 2000, priceEUR: 48.00 },
+  // ==================== CASSASE ====================
+  { code: "CASS-5", name: "Cassase 5'lik Agraf", category: "Cassase", adetPerKutu: 8000, priceEUR: 35.00 },
+  { code: "CASS-7", name: "Cassase 7'lik Agraf", category: "Cassase", adetPerKutu: 8000, priceEUR: 35.00 },
+  { code: "CASS-10", name: "Cassase 10'luk Agraf", category: "Cassase", adetPerKutu: 8000, priceEUR: 35.00 },
+  { code: "CASS-12", name: "Cassase 12'lik Agraf", category: "Cassase", adetPerKutu: 8000, priceEUR: 45.00 },
+  { code: "CASS-15", name: "Cassase 15'lik Agraf", category: "Cassase", adetPerKutu: 8000, priceEUR: 60.00 },
+  { code: "CASS-F15-ESNER", name: "Cassase F-15 Esner Çivi", category: "Cassase", adetPerKutu: 15000, priceEUR: 45.00 },
+  { code: "CASS-F15-TAB", name: "Cassase F-15 Tabanca", category: "Cassase", adetPerKutu: 1, priceEUR: 100.00 },
+  { code: "CASS-5-KART", name: "Cassase 5'lik Agraf Kartuşlu", category: "Cassase", adetPerKutu: 6, priceEUR: 24.00 },
+  { code: "CASS-7-KART", name: "Cassase 7'lik Agraf Kartuşlu", category: "Cassase", adetPerKutu: 6, priceEUR: 25.00 },
+  { code: "CASS-10-KART", name: "Cassase 10'luk Agraf Kartuşlu", category: "Cassase", adetPerKutu: 6, priceEUR: 28.00 },
+  { code: "CASS-12-KART", name: "Cassase 12'lik Agraf Kartuşlu", category: "Cassase", adetPerKutu: 6, priceEUR: 30.00 },
+  { code: "CASS-15-KART", name: "Cassase 15'lik Agraf Kartuşlu", category: "Cassase", adetPerKutu: 6, priceEUR: 32.00 },
+  { code: "MORSO-GIYOTIN", name: "Morso-F Giyotin", category: "Cassase", adetPerKutu: 1, priceEUR: 4000.00 },
 
-  // ÇİVİLER
-  { code: "580", name: "Çivi 12mm", category: "Çiviler", adetPerKutu: 5000, priceEUR: 22.00 },
-  { code: "585", name: "Çivi 15mm", category: "Çiviler", adetPerKutu: 5000, priceEUR: 24.00 },
-  { code: "590", name: "Çivi 18mm", category: "Çiviler", adetPerKutu: 5000, priceEUR: 26.00 }
+  // ==================== DANLIST ====================
+  { code: "MORSO-BICAK", name: "Morso Yedek Bıçak", category: "Danlist", adetPerKutu: 1, priceEUR: 350.00 },
+
+  // ==================== RO-MA MAESTRİ ====================
+  { code: "F18-MEK", name: "F-18 Çivi Tabancası Mekanik", category: "Ro-ma Maestri", adetPerKutu: 1, priceEUR: 110.00 },
+  { code: "F18-HAV", name: "F-18 Çivi Tabancası Havalı", category: "Ro-ma Maestri", adetPerKutu: 1, priceEUR: 200.00 },
+  { code: "F15-MEK", name: "F-15 Çivi Tabancası Mekanik", category: "Ro-ma Maestri", adetPerKutu: 1, priceEUR: 110.00 },
+  { code: "F15-HAV", name: "F-15 Çivi Tabancası Havalı", category: "Ro-ma Maestri", adetPerKutu: 1, priceEUR: 200.00 },
+  { code: "F15-ELEK", name: "Elektrikli F-15 Çivi Tabancası", category: "Ro-ma Maestri", adetPerKutu: 1, priceEUR: 200.00 },
+  { code: "DUOFIX-P53", name: "DUOFIX P53", category: "Ro-ma Maestri", adetPerKutu: 1, priceEUR: 30.00 },
+  { code: "ELET-F18-5K", name: "Elet.F/-18 Sert Çivi 5000", category: "Ro-ma Maestri", adetPerKutu: 5000, priceEUR: 11.00 },
+  { code: "ELET-F18-10K", name: "Elet.F/-18 Sert Çivi 10000", category: "Ro-ma Maestri", adetPerKutu: 10000, priceEUR: 22.00 },
+
+  // ==================== SCAPPİ CARTONİ ====================
+  { code: "SCAPPI-DUZ", name: "Scappi Düz Renkler", category: "Scappi Cartoni", adetPerKutu: 1, priceEUR: 5.50 },
+  { code: "SCAPPI-DAMARLI", name: "Scappi Damarlı Renkler", category: "Scappi Cartoni", adetPerKutu: 1, priceEUR: 8.50 },
+  { code: "SCAPPI-ALTIN", name: "Scappi Altın-Gümüş", category: "Scappi Cartoni", adetPerKutu: 1, priceEUR: 13.50 },
+  { code: "SCAPPI-KADIFE", name: "Scappi Kadife", category: "Scappi Cartoni", adetPerKutu: 1, priceEUR: 20.00 },
+  { code: "SCAPPI-TELALI", name: "Scappi Telalı", category: "Scappi Cartoni", adetPerKutu: 1, priceEUR: 20.00 },
+  { code: "SCAPPI-DOKULU", name: "Scappi Dokulu", category: "Scappi Cartoni", adetPerKutu: 1, priceEUR: 14.00 },
+  { code: "SCAPPI-YALDIZ", name: "Scappi Yaldız Dokulu", category: "Scappi Cartoni", adetPerKutu: 1, priceEUR: 15.00 },
+  { code: "SCAPPI-DAM-KART", name: "Scappi Damarlı Karton", category: "Scappi Cartoni", adetPerKutu: 1, priceEUR: 7.00 },
+  { code: "SCAPPI-JUMBO", name: "Scappi Jumbo Karton", category: "Scappi Cartoni", adetPerKutu: 1, priceEUR: 18.00 },
+  { code: "FOTOBLOK-5MM", name: "Fotoblok 5mm (101x152cm)", category: "Scappi Cartoni", adetPerKutu: 1, priceEUR: 18.00 },
+
+  // ==================== OLGA (TL FİYATLI) ====================
+  { code: "ASKI-TELI", name: "Askı Teli", category: "OLGA", adetPerKutu: 1, priceTL: 750 },
+  { code: "YERLI-TIRT", name: "Yerli Tırtıllı Askı", category: "OLGA", adetPerKutu: 500, priceTL: 650 },
+  { code: "BUY-YERLI-DEP", name: "Büyük Yerli Deprem Askı", category: "OLGA", adetPerKutu: 500, priceTL: 900 },
+  { code: "YUKSUK", name: "Yüksük", category: "OLGA", adetPerKutu: 1000, priceTL: 750 },
+  { code: "STRECH", name: "Strech", category: "OLGA", adetPerKutu: 1, priceTL: 50 },
+  { code: "STRECH-TOP", name: "Strech Topağı", category: "OLGA", adetPerKutu: 1, priceTL: 100 },
+  { code: "OLUKLU-MUK", name: "Oluklu Mukavva", category: "OLGA", adetPerKutu: 1, priceTL: 135 },
+  { code: "YUZUKSUZ-ASKI", name: "Yüzüksüz Askı", category: "OLGA", adetPerKutu: 500, priceTL: 500 },
+  { code: "KUC-YERLI-DEP", name: "Küçük Yerli Deprem", category: "OLGA", adetPerKutu: 500, priceTL: 800 },
+  { code: "ITHAL-5-AGRAF", name: "İthal 5'lik Agraf", category: "OLGA", adetPerKutu: 12000, priceTL: 1900 },
+  { code: "ITHAL-7-AGRAF", name: "İthal 7'lik Agraf", category: "OLGA", adetPerKutu: 6000, priceTL: 950 },
+  { code: "ITHAL-10-AGRAF", name: "İthal 10'luk Agraf", category: "OLGA", adetPerKutu: 6000, priceTL: 950 },
+  { code: "ITHAL-12-AGRAF", name: "İthal 12'lik Agraf", category: "OLGA", adetPerKutu: 6000, priceTL: 950 },
+  { code: "ITHAL-15-AGRAF", name: "İthal 15'lik Agraf", category: "OLGA", adetPerKutu: 6000, priceTL: 950 },
+  { code: "ITHAL-F15-TAB", name: "İthal F-15 Tabanca", category: "OLGA", adetPerKutu: 1, priceTL: 6500 },
+  { code: "ITHAL-F15-ESNER", name: "İthal F-15 Esner Çivi", category: "OLGA", adetPerKutu: 10000, priceTL: 950 },
+  { code: "ZIMBA-TELI", name: "Zımba Teli", category: "OLGA", adetPerKutu: 1, priceTL: 100 },
+  { code: "GAZLI-ELMA", name: "Gazlı Elma", category: "OLGA", adetPerKutu: 1, priceTL: 600 },
+  { code: "ITHAL-NO1-ASKI", name: "İthal No:1 Askı", category: "OLGA", adetPerKutu: 1000, priceTL: 750 },
+  { code: "KUC-CIV-TIRT-OLGA", name: "Küçük Çivili Tırtıllı Askı", category: "OLGA", adetPerKutu: 1000, priceTL: 1300 },
+  { code: "TIRTILLI-ASKI", name: "Tırtıllı Askı", category: "OLGA", adetPerKutu: 500, priceTL: 650 },
+  { code: "BUY-TIRT-VID", name: "Büyük Tırtıllı Askı Vidalı", category: "OLGA", adetPerKutu: 300, priceTL: 600 },
+  { code: "KUC-TIRT-VID", name: "Küçük Tırtıllı Askı Vidalı", category: "OLGA", adetPerKutu: 500, priceTL: 700 },
+  { code: "ITHAL-TEK-DEL-BUY", name: "İthal Tek Delikli Büyük Askı", category: "OLGA", adetPerKutu: 100, priceTL: 550 },
+  { code: "ITHAL-CIFT-DEL-BUY", name: "İthal Çift Delikli Büyük Askı", category: "OLGA", adetPerKutu: 100, priceTL: 650 },
+  { code: "ITHAL-UC-DEL-BUY", name: "İthal Üç Delikli Büyük Askı", category: "OLGA", adetPerKutu: 50, priceTL: 550 },
+  { code: "ITHAL-TEK-DEL-KUC", name: "İthal Tek Delikli Küçük Askı", category: "OLGA", adetPerKutu: 100, priceTL: 300 },
+  { code: "ITHAL-CIFT-DEL-KUC", name: "İthal Çift Delikli Küçük Askı", category: "OLGA", adetPerKutu: 100, priceTL: 350 },
+  { code: "KUC-VIDA-1KG", name: "Küçük Vida (1kg)", category: "OLGA", adetPerKutu: 1, priceTL: 350 },
+  { code: "BUY-VIDA-1KG", name: "Büyük Vida (1kg)", category: "OLGA", adetPerKutu: 1, priceTL: 350 },
+  { code: "KAGIT-BANT", name: "Kağıt Bant (3,6cm)", category: "OLGA", adetPerKutu: 1, priceTL: 125 },
+  { code: "CIFT-TAR-BANT", name: "Çift Taraflı Bant (1,5cm)", category: "OLGA", adetPerKutu: 1, priceTL: 60 },
+  { code: "KOLI-BANTI", name: "Koli Bantı", category: "OLGA", adetPerKutu: 1, priceTL: 150 },
+  { code: "SIYAH-KRAFT", name: "Siyah Kraft Bant (6cm)", category: "OLGA", adetPerKutu: 1, priceTL: 125 },
+  { code: "TUVAL-PENS", name: "Tuval Pensesi", category: "OLGA", adetPerKutu: 1, priceTL: 650 },
+  { code: "KUC-DUVAR-ASKI", name: "Küçük Duvar Askı Aparatı", category: "OLGA", adetPerKutu: 100, priceTL: 250 },
+  { code: "ORTA-DUVAR-ASKI", name: "Orta Duvar Askı Aparatı", category: "OLGA", adetPerKutu: 50, priceTL: 400 },
+  { code: "BUY-DUVAR-ASKI", name: "Büyük Duvar Askı Aparatı", category: "OLGA", adetPerKutu: 50, priceTL: 450 },
+  { code: "BUY-MAKET", name: "Büyük Maket Bıçağı", category: "OLGA", adetPerKutu: 1, priceTL: 90 },
+  { code: "BUY-MAKET-UCU", name: "Büyük Maket Bıçağı Ucu", category: "OLGA", adetPerKutu: 1, priceTL: 150 },
+  { code: "KUC-MAKET", name: "Küçük Maket Bıçağı", category: "OLGA", adetPerKutu: 1, priceTL: 75 },
+  { code: "KUC-MAKET-UCU", name: "Küçük Maket Bıçağı Ucu", category: "OLGA", adetPerKutu: 1, priceTL: 125 },
+  { code: "ITHAL-FOTOBLOK-ASKI", name: "İthal Fotoblok Askısı", category: "OLGA", adetPerKutu: 100, priceTL: 600 },
+  { code: "NS-KARTON-DUZ", name: "NS Karton Düz", category: "OLGA", adetPerKutu: 1, priceTL: 175 },
+  { code: "NS-KARTON-ALTIN", name: "NS Karton Altın-Gümüş", category: "OLGA", adetPerKutu: 1, priceTL: 350 },
+  { code: "NS-KARTON-KADIFE", name: "NS Karton Kadife", category: "OLGA", adetPerKutu: 1, priceTL: 600 },
+  { code: "KOMPRESOR-KON", name: "Kompresör Konnektörü", category: "OLGA", adetPerKutu: 1, priceTL: 200 },
+  { code: "MDF-ARKALIK", name: "MDF Arkalık Askısı", category: "OLGA", adetPerKutu: 100, priceTL: 100 },
+  { code: "KOSE-5X3", name: "Plastik Köşe Koruyucu (5x3cm)", category: "OLGA", adetPerKutu: 1, priceTL: 7.50 },
+  { code: "KOSE-6X4", name: "Plastik Köşe Koruyucu (6x4cm)", category: "OLGA", adetPerKutu: 1, priceTL: 8.00 },
+  { code: "KOSE-6X5", name: "Plastik Köşe Koruyucu (6x5cm)", category: "OLGA", adetPerKutu: 1, priceTL: 8.00 }
 ];
 
 // Ürünleri kategoriye göre grupla
@@ -1666,8 +1766,17 @@ function wireRowEvents() {
 
       if (product) {
         kutuInfoEl.textContent = `1 kutu = ${product.adetPerKutu} adet`;
-        eurPriceEl.value = f2(product.priceEUR);
-        tlFromEurEl.value = f2(product.priceEUR * euroRate);
+
+        // TL veya EUR fiyat kontrolü
+        if (product.priceTL) {
+          // TL fiyatlı ürün (OLGA)
+          eurPriceEl.value = "TL";
+          tlFromEurEl.value = f2(product.priceTL);
+        } else {
+          // EUR fiyatlı ürün
+          eurPriceEl.value = f2(product.priceEUR);
+          tlFromEurEl.value = f2(product.priceEUR * euroRate);
+        }
 
         const kutuAdet = parseInt(kutuAdetEl.value) || 0;
         const totalAdet = kutuAdet * product.adetPerKutu;
@@ -1913,7 +2022,11 @@ euroRateEl.addEventListener("input", () => {
       const euroRate = parseFloat(euroRateEl.value) || 0;
 
       if (product) {
-        tlFromEurEl.value = f2(product.priceEUR * euroRate);
+        if (product.priceTL) {
+          tlFromEurEl.value = f2(product.priceTL);
+        } else {
+          tlFromEurEl.value = f2(product.priceEUR * euroRate);
+        }
       }
     }
   });
@@ -1979,12 +2092,20 @@ function recalc() {
       const euroRate = parseFloat(euroRateEl.value) || 0;
 
       if (product && kutuAdet > 0) {
-        const kutuPriceTL = round2(product.priceEUR * euroRate);
+        // TL veya EUR fiyat kontrolü
+        const kutuPriceTL = product.priceTL
+          ? round2(product.priceTL)
+          : round2(product.priceEUR * euroRate);
+
         line = round2(kutuAdet * kutuPriceTL);
 
         const totalAdet = kutuAdet * product.adetPerKutu;
+        const priceInfo = product.priceTL
+          ? `${TL(product.priceTL)}/kutu`
+          : `€${f2(product.priceEUR)} × ${TL(euroRate)} = ${TL(kutuPriceTL)}/kutu`;
+
         tr.querySelector(".price-hint").textContent =
-          `${kutuAdet} kutu × ${TL(kutuPriceTL)}/kutu = ${totalAdet.toLocaleString('tr-TR')} adet`;
+          `${kutuAdet} kutu × ${priceInfo} = ${totalAdet.toLocaleString('tr-TR')} adet`;
 
         activeCount++;
       } else {
@@ -2117,7 +2238,10 @@ document.getElementById("sendBtn").addEventListener("click", () => {
       const euroRate = parseFloat(euroRateEl.value) || 0;
 
       if (product && kutuAdet > 0) {
-        const kutuPriceTL = round2(product.priceEUR * euroRate);
+        // TL veya EUR fiyat kontrolü
+        const kutuPriceTL = product.priceTL
+          ? round2(product.priceTL)
+          : round2(product.priceEUR * euroRate);
         const totalAdet = kutuAdet * product.adetPerKutu;
 
         rows.push({
@@ -2128,7 +2252,8 @@ document.getElementById("sendBtn").addEventListener("click", () => {
           kutuAdet: kutuAdet,
           adetPerKutu: product.adetPerKutu,
           totalAdet: totalAdet,
-          priceEUR: product.priceEUR,
+          priceEUR: product.priceEUR || 0,
+          priceTL: product.priceTL || 0,
           euroRate: euroRate,
           kutuPriceTL: kutuPriceTL,
           unitPriceTL: kutuPriceTL
