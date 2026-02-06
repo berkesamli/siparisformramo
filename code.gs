@@ -9,7 +9,7 @@ const EMAIL_TO        = "olgacercevee@gmail.com";
 const ORDERS_SHEET    = "Siparişler";
 const ITEMS_SHEET     = "Sipariş Kalemleri";
 const DAILY_SHEET     = "Günlük";
-const CATALOG_SHEET   = "ÇERÇEVE BİLGİLER";
+const CATALOG_SHEET   = "çerçeve bilgiler";
 const TIMEZONE        = "Europe/Istanbul";
 
 const SPREADSHEET_ID  = "1rpNqKUc2yeaIncJ5SSoxFYPF3NSSxqHQviXPcn2qZjA";
@@ -23,7 +23,7 @@ const HEADER_BG       = "#f7f3ef";
 /** Spreadsheet erişimi: önce getActive, sonra openById dener */
 function getSS_(){
   try { const ss = SpreadsheetApp.getActiveSpreadsheet(); if(ss) return ss; } catch(e){}
-  return getSS_();
+  return SpreadsheetApp.openById(SPREADSHEET_ID);
 }
 
 function hasUi_(){ try{ SpreadsheetApp.getUi(); return true; }catch(e){ return false; } }
