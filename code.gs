@@ -1,31 +1,41 @@
-function myFunction() {
-  
-}
 // ==============================
-// File: Code.gs  (Google Apps Script)
+// Container-bound Script for Olga Çerçeve
 // ==============================
 
 const EMAIL_TO        = "olgacercevee@gmail.com";
-const SPREADSHEET_ID  = ""; // ← Buraya spreadsheet ID'nizi yazın!
 const ORDERS_SHEET    = "Siparişler";
 const ITEMS_SHEET     = "Sipariş Kalemleri";
 const DAILY_SHEET     = "Günlük";
 const CATALOG_SHEET   = "ÇERÇEVE BİLGİLER";
 const TIMEZONE        = "Europe/Istanbul";
 
-// Spreadsheet'i al (ID varsa openById, yoksa getActiveSpreadsheet)
-function getSpreadsheet_() {
-  if (SPREADSHEET_ID && SPREADSHEET_ID.length > 10) {
-    return SpreadsheetApp.openById(SPREADSHEET_ID);
-  }
-  return SpreadsheetApp.getActiveSpreadsheet();
-}
-
 const ORDER_PREFIX    = "OLG";
 const ORDER_PAD       = 5;
 const PDF_FOLDER_NAME = "Sipariş PDF";
 const BRAND_COLOR     = "#8b4b00";
 const HEADER_BG       = "#f7f3ef";
+
+// Spreadsheet ID - Web App için gerekli
+const SPREADSHEET_ID = "1ywrsmWp2ciXksy7tTOK9B0FiBbCdHuLlk8JaD1XA_0w";
+
+function getSpreadsheet_() {
+  return SpreadsheetApp.openById(SPREADSHEET_ID);
+}
+
+// Bu fonksiyonu bir kere çalıştırın - yetkilendirme için!
+function authorizeScript() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+  Logger.log("Spreadsheet: " + ss.getName());
+
+  const doc = DocumentApp.create("Test");
+  DriveApp.getFileById(doc.getId()).setTrashed(true);
+  Logger.log("Drive & Docs OK");
+
+  MailApp.getRemainingDailyQuota();
+  Logger.log("Mail OK");
+
+  Logger.log("TÜM YETKİLER TAMAM!");
+}
 
 function hasUi_(){ try{ SpreadsheetApp.getUi(); return true; }catch(e){ return false; } }
 
