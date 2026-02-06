@@ -12,7 +12,7 @@ const DAILY_SHEET     = "Günlük";
 const CATALOG_SHEET   = "çerçeve bilgiler";
 const TIMEZONE        = "Europe/Istanbul";
 
-const SPREADSHEET_ID  = "1rpNqKUc2yeaIncJ5SSoxFYPF3NSSxqHQviXPcn2qZjA";
+const SPREADSHEET_ID  = "100HzXJ10QXAC2yOUCKktDei-OmQariJYLKw7qKPzp_w";
 
 const ORDER_PREFIX    = "OLG";
 const ORDER_PAD       = 5;
