@@ -1,5 +1,8 @@
+function myFunction() {
+  
+}
 // ==============================
-// Container-bound Script for Olga Çerçeve
+// File: Code.gs  (Google Apps Script)
 // ==============================
 
 const EMAIL_TO        = "olgacercevee@gmail.com";
@@ -14,28 +17,6 @@ const ORDER_PAD       = 5;
 const PDF_FOLDER_NAME = "Sipariş PDF";
 const BRAND_COLOR     = "#8b4b00";
 const HEADER_BG       = "#f7f3ef";
-
-// Spreadsheet ID - Web App için gerekli
-const SPREADSHEET_ID = "1ywrsmWp2ciXksy7tTOK9B0FiBbCdHuLlk8JaD1XA_0w";
-
-function getSpreadsheet_() {
-  return SpreadsheetApp.openById(SPREADSHEET_ID);
-}
-
-// Bu fonksiyonu bir kere çalıştırın - yetkilendirme için!
-function authorizeScript() {
-  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-  Logger.log("Spreadsheet: " + ss.getName());
-
-  const doc = DocumentApp.create("Test");
-  DriveApp.getFileById(doc.getId()).setTrashed(true);
-  Logger.log("Drive & Docs OK");
-
-  MailApp.getRemainingDailyQuota();
-  Logger.log("Mail OK");
-
-  Logger.log("TÜM YETKİLER TAMAM!");
-}
 
 function hasUi_(){ try{ SpreadsheetApp.getUi(); return true; }catch(e){ return false; } }
 
@@ -75,7 +56,7 @@ function doGet(){
 function submitFromHtml(data){ return processOrder_(data); }
 
 function getCatalog(){
-  const ss = getSpreadsheet_();
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sh = ss.getSheetByName(CATALOG_SHEET);
   if(!sh) throw new Error('Katalog sekmesi yok: ' + CATALOG_SHEET);
   const last = sh.getLastRow(); if(last < 2) return {};
@@ -269,7 +250,7 @@ function buildEmailBody_(orderId, ts, data, itemRows, gross, discount, vatApplie
 }
 
 function ensureSheets_(){
-  const ss = getSpreadsheet_();
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
   let orders = ss.getSheetByName(ORDERS_SHEET);
   if(!orders){
     orders = ss.insertSheet(ORDERS_SHEET);
