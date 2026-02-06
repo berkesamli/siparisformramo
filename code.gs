@@ -6,7 +6,7 @@ function myFunction() {
 // ==============================
 
 const EMAIL_TO        = "olgacercevee@gmail.com";
-const SPREADSHEET_ID  = ""; // ← Buraya spreadsheet ID'nizi yazın!
+const SPREADSHEET_ID  = "1ywrsmWp2ciXksy7tTOK9B0FiBbCdHuLlk8JaD1XA_0w";
 const ORDERS_SHEET    = "Siparişler";
 const ITEMS_SHEET     = "Sipariş Kalemleri";
 const DAILY_SHEET     = "Günlük";
