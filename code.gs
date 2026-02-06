@@ -6,11 +6,20 @@ function myFunction() {
 // ==============================
 
 const EMAIL_TO        = "olgacercevee@gmail.com";
+const SPREADSHEET_ID  = ""; // ← Buraya spreadsheet ID'nizi yazın!
 const ORDERS_SHEET    = "Siparişler";
 const ITEMS_SHEET     = "Sipariş Kalemleri";
 const DAILY_SHEET     = "Günlük";
 const CATALOG_SHEET   = "ÇERÇEVE BİLGİLER";
 const TIMEZONE        = "Europe/Istanbul";
+
+// Spreadsheet'i al (ID varsa openById, yoksa getActiveSpreadsheet)
+function getSpreadsheet_() {
+  if (SPREADSHEET_ID && SPREADSHEET_ID.length > 10) {
+    return SpreadsheetApp.openById(SPREADSHEET_ID);
+  }
+  return SpreadsheetApp.getActiveSpreadsheet();
+}
 
 const ORDER_PREFIX    = "OLG";
 const ORDER_PAD       = 5;
@@ -56,7 +65,7 @@ function doGet(){
 function submitFromHtml(data){ return processOrder_(data); }
 
 function getCatalog(){
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = getSpreadsheet_();
   const sh = ss.getSheetByName(CATALOG_SHEET);
   if(!sh) throw new Error('Katalog sekmesi yok: ' + CATALOG_SHEET);
   const last = sh.getLastRow(); if(last < 2) return {};
@@ -145,6 +154,7 @@ function processOrder_(data){
         const productCode = String(row.code||"").trim();
         const productName = String(row.name||"").trim();
         const category = String(row.category||"Teknik Malzeme").trim();
+        const kartonKodu = String(row.kartonKodu||"").trim();
         const kutuAdet = Number(row.kutuAdet||0);
         const adetPerKutu = Number(row.adetPerKutu||0);
         const totalAdet = Number(row.totalAdet||0);
@@ -155,7 +165,10 @@ function processOrder_(data){
 
         if(kutuAdet <= 0) return;
 
-        const fullName = `${productCode} - ${productName}`;
+        // Karton kodu varsa ürün adına ekle
+        const fullName = kartonKodu
+          ? `${productName} (${kartonKodu})`
+          : productName;
         // TL veya EUR fiyat gösterimi
         const priceInfo = priceTL > 0 ? `₺${fmt(priceTL)}/kutu` : `€${fmt(priceEUR)}/kutu`;
         const unitText = `${kutuAdet} kutu × ${adetPerKutu} = ${totalAdet} adt (${priceInfo})`;
@@ -246,7 +259,7 @@ function buildEmailBody_(orderId, ts, data, itemRows, gross, discount, vatApplie
 }
 
 function ensureSheets_(){
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = getSpreadsheet_();
   let orders = ss.getSheetByName(ORDERS_SHEET);
   if(!orders){
     orders = ss.insertSheet(ORDERS_SHEET);

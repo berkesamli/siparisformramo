@@ -548,6 +548,19 @@
     width: 100%;
   }
 
+  .karton-kodu {
+    width: 100%;
+    text-align: center;
+    font-weight: 600;
+    background: rgba(245, 158, 11, 0.15);
+    border-color: rgba(245, 158, 11, 0.4);
+    color: #ffffff;
+  }
+
+  .karton-kodu::placeholder {
+    color: rgba(245, 158, 11, 0.7);
+  }
+
   .technical-box {
     display: flex;
     flex-direction: column;
@@ -1164,8 +1177,8 @@
           Dolar Kuru (TL/USD)
         </label>
         <div class="rate-display">
-          <input id="rate" type="number" step="0.0001" min="0" value="42.0000" inputmode="decimal">
-          <div class="rate-hint" id="rateHint">1 USD = ₺42,00</div>
+          <input id="rate" type="number" step="0.0001" min="0" value="43.8000" inputmode="decimal">
+          <div class="rate-hint" id="rateHint">1 USD = ₺43,80</div>
         </div>
       </div>
 
@@ -1175,8 +1188,8 @@
           Euro Kuru (TL/EUR)
         </label>
         <div class="rate-display">
-          <input id="euroRate" type="number" step="0.0001" min="0" value="45.0000" inputmode="decimal">
-          <div class="rate-hint rate-hint-euro" id="euroRateHint">1 EUR = ₺45,00</div>
+          <input id="euroRate" type="number" step="0.0001" min="0" value="51.8000" inputmode="decimal">
+          <div class="rate-hint rate-hint-euro" id="euroRateHint">1 EUR = ₺51,80</div>
         </div>
       </div>
     </section>
@@ -1419,9 +1432,9 @@ const TECHNICAL_PRODUCTS = [
   { code: "CASS-10-KART", name: "Cassase 10'luk Agraf Kartuşlu", category: "Cassase", adetPerKutu: 6, priceEUR: 28.00 },
   { code: "CASS-12-KART", name: "Cassase 12'lik Agraf Kartuşlu", category: "Cassase", adetPerKutu: 6, priceEUR: 30.00 },
   { code: "CASS-15-KART", name: "Cassase 15'lik Agraf Kartuşlu", category: "Cassase", adetPerKutu: 6, priceEUR: 32.00 },
-  { code: "MORSO-GIYOTIN", name: "Morso-F Giyotin", category: "Cassase", adetPerKutu: 1, priceEUR: 4000.00 },
 
   // ==================== DANLIST ====================
+  { code: "MORSO-GIYOTIN", name: "Morso-F Giyotin", category: "Danlist", adetPerKutu: 1, priceEUR: 4000.00 },
   { code: "MORSO-BICAK", name: "Morso Yedek Bıçak", category: "Danlist", adetPerKutu: 1, priceEUR: 350.00 },
 
   // ==================== RO-MA MAESTRİ ====================
@@ -1434,16 +1447,16 @@ const TECHNICAL_PRODUCTS = [
   { code: "ELET-F18-5K", name: "Elet.F/-18 Sert Çivi 5000", category: "Ro-ma Maestri", adetPerKutu: 5000, priceEUR: 11.00 },
   { code: "ELET-F18-10K", name: "Elet.F/-18 Sert Çivi 10000", category: "Ro-ma Maestri", adetPerKutu: 10000, priceEUR: 22.00 },
 
-  // ==================== SCAPPİ CARTONİ ====================
-  { code: "SCAPPI-DUZ", name: "Scappi Düz Renkler", category: "Scappi Cartoni", adetPerKutu: 1, priceEUR: 5.50 },
-  { code: "SCAPPI-DAMARLI", name: "Scappi Damarlı Renkler", category: "Scappi Cartoni", adetPerKutu: 1, priceEUR: 8.50 },
-  { code: "SCAPPI-ALTIN", name: "Scappi Altın-Gümüş", category: "Scappi Cartoni", adetPerKutu: 1, priceEUR: 13.50 },
-  { code: "SCAPPI-KADIFE", name: "Scappi Kadife", category: "Scappi Cartoni", adetPerKutu: 1, priceEUR: 20.00 },
-  { code: "SCAPPI-TELALI", name: "Scappi Telalı", category: "Scappi Cartoni", adetPerKutu: 1, priceEUR: 20.00 },
-  { code: "SCAPPI-DOKULU", name: "Scappi Dokulu", category: "Scappi Cartoni", adetPerKutu: 1, priceEUR: 14.00 },
-  { code: "SCAPPI-YALDIZ", name: "Scappi Yaldız Dokulu", category: "Scappi Cartoni", adetPerKutu: 1, priceEUR: 15.00 },
-  { code: "SCAPPI-DAM-KART", name: "Scappi Damarlı Karton", category: "Scappi Cartoni", adetPerKutu: 1, priceEUR: 7.00 },
-  { code: "SCAPPI-JUMBO", name: "Scappi Jumbo Karton", category: "Scappi Cartoni", adetPerKutu: 1, priceEUR: 18.00 },
+  // ==================== SCAPPİ CARTONİ (KARTON KODU GEREKLİ) ====================
+  { code: "SCAPPI-DUZ", name: "Scappi Düz Renkler", category: "Scappi Cartoni", adetPerKutu: 1, priceEUR: 5.50, isKarton: true },
+  { code: "SCAPPI-DAMARLI", name: "Scappi Damarlı Renkler", category: "Scappi Cartoni", adetPerKutu: 1, priceEUR: 8.50, isKarton: true },
+  { code: "SCAPPI-ALTIN", name: "Scappi Altın-Gümüş", category: "Scappi Cartoni", adetPerKutu: 1, priceEUR: 13.50, isKarton: true },
+  { code: "SCAPPI-KADIFE", name: "Scappi Kadife", category: "Scappi Cartoni", adetPerKutu: 1, priceEUR: 20.00, isKarton: true },
+  { code: "SCAPPI-TELALI", name: "Scappi Telalı", category: "Scappi Cartoni", adetPerKutu: 1, priceEUR: 20.00, isKarton: true },
+  { code: "SCAPPI-DOKULU", name: "Scappi Dokulu", category: "Scappi Cartoni", adetPerKutu: 1, priceEUR: 14.00, isKarton: true },
+  { code: "SCAPPI-YALDIZ", name: "Scappi Yaldız Dokulu", category: "Scappi Cartoni", adetPerKutu: 1, priceEUR: 15.00, isKarton: true },
+  { code: "SCAPPI-DAM-KART", name: "Scappi Damarlı Karton", category: "Scappi Cartoni", adetPerKutu: 1, priceEUR: 7.00, isKarton: true },
+  { code: "SCAPPI-JUMBO", name: "Scappi Jumbo Karton", category: "Scappi Cartoni", adetPerKutu: 1, priceEUR: 18.00, isKarton: true },
   { code: "FOTOBLOK-5MM", name: "Fotoblok 5mm (101x152cm)", category: "Scappi Cartoni", adetPerKutu: 1, priceEUR: 18.00 },
 
   // ==================== OLGA (TL FİYATLI) ====================
@@ -1490,10 +1503,12 @@ const TECHNICAL_PRODUCTS = [
   { code: "KUC-MAKET", name: "Küçük Maket Bıçağı", category: "OLGA", adetPerKutu: 1, priceTL: 75 },
   { code: "KUC-MAKET-UCU", name: "Küçük Maket Bıçağı Ucu", category: "OLGA", adetPerKutu: 1, priceTL: 125 },
   { code: "ITHAL-FOTOBLOK-ASKI", name: "İthal Fotoblok Askısı", category: "OLGA", adetPerKutu: 100, priceTL: 600 },
-  { code: "NS-KARTON-DUZ", name: "NS Karton Düz", category: "OLGA", adetPerKutu: 1, priceTL: 175 },
-  { code: "NS-KARTON-ALTIN", name: "NS Karton Altın-Gümüş", category: "OLGA", adetPerKutu: 1, priceTL: 350 },
-  { code: "NS-KARTON-KADIFE", name: "NS Karton Kadife", category: "OLGA", adetPerKutu: 1, priceTL: 600 },
   { code: "KOMPRESOR-KON", name: "Kompresör Konnektörü", category: "OLGA", adetPerKutu: 1, priceTL: 200 },
+
+  // ==================== NS SERİSİ (TL FİYATLI - KARTON KODU GEREKLİ) ====================
+  { code: "NS-KARTON-DUZ", name: "NS Karton Düz", category: "NS Serisi", adetPerKutu: 1, priceTL: 175, isKarton: true },
+  { code: "NS-KARTON-ALTIN", name: "NS Karton Altın-Gümüş", category: "NS Serisi", adetPerKutu: 1, priceTL: 350, isKarton: true },
+  { code: "NS-KARTON-KADIFE", name: "NS Karton Kadife", category: "NS Serisi", adetPerKutu: 1, priceTL: 600, isKarton: true },
   { code: "MDF-ARKALIK", name: "MDF Arkalık Askısı", category: "OLGA", adetPerKutu: 100, priceTL: 100 },
   { code: "KOSE-5X3", name: "Plastik Köşe Koruyucu (5x3cm)", category: "OLGA", adetPerKutu: 1, priceTL: 7.50 },
   { code: "KOSE-6X4", name: "Plastik Köşe Koruyucu (6x4cm)", category: "OLGA", adetPerKutu: 1, priceTL: 8.00 },
@@ -1549,6 +1564,7 @@ function buildRows() {
           <select class="technicalProduct">
             <option value="">Ürün Seçiniz...</option>
           </select>
+          <input type="text" class="karton-kodu hide" placeholder="Karton Kodu (W109, 650...)" maxlength="20">
         </div>
         <div class="hint"></div>
       </td>
@@ -1619,6 +1635,7 @@ function wireRowEvents() {
     const glassSizeEl = tr.querySelector(".glassSize");
     const technicalSelectsEl = tr.querySelector(".technical-selects");
     const technicalProductEl = tr.querySelector(".technicalProduct");
+    const kartonKoduEl = tr.querySelector(".karton-kodu");
     const technicalBoxEl = tr.querySelector(".technical-box");
     const kutuAdetEl = tr.querySelector(".kutu-adet");
     const kutuInfoEl = tr.querySelector(".kutu-info");
@@ -1780,13 +1797,21 @@ function wireRowEvents() {
 
         // TL veya EUR fiyat kontrolü
         if (product.priceTL) {
-          // TL fiyatlı ürün (OLGA)
+          // TL fiyatlı ürün (OLGA, NS Serisi)
           eurPriceEl.value = "TL";
           tlFromEurEl.value = f2(product.priceTL);
         } else {
           // EUR fiyatlı ürün
           eurPriceEl.value = f2(product.priceEUR);
           tlFromEurEl.value = f2(product.priceEUR * euroRate);
+        }
+
+        // Karton ürünü ise karton kodu alanını göster
+        if (product.isKarton) {
+          kartonKoduEl.classList.remove("hide");
+        } else {
+          kartonKoduEl.classList.add("hide");
+          kartonKoduEl.value = "";
         }
 
         const kutuAdet = parseInt(kutuAdetEl.value) || 0;
@@ -1799,6 +1824,8 @@ function wireRowEvents() {
         eurPriceEl.value = "";
         tlFromEurEl.value = "";
         hintEl.textContent = "";
+        kartonKoduEl.classList.add("hide");
+        kartonKoduEl.value = "";
       }
     };
 
@@ -2244,9 +2271,11 @@ document.getElementById("sendBtn").addEventListener("click", () => {
       }
     } else if (kind === "technical") {
       const technicalProductEl = tr.querySelector(".technicalProduct");
+      const kartonKoduEl = tr.querySelector(".karton-kodu");
       const kutuAdet = parseInt(tr.querySelector(".kutu-adet").value) || 0;
       const product = getTechnicalProduct(technicalProductEl.value);
       const euroRate = parseFloat(euroRateEl.value) || 0;
+      const kartonKodu = (kartonKoduEl.value || "").trim();
 
       if (product && kutuAdet > 0) {
         // TL veya EUR fiyat kontrolü
@@ -2267,7 +2296,9 @@ document.getElementById("sendBtn").addEventListener("click", () => {
           priceTL: product.priceTL || 0,
           euroRate: euroRate,
           kutuPriceTL: kutuPriceTL,
-          unitPriceTL: kutuPriceTL
+          unitPriceTL: kutuPriceTL,
+          kartonKodu: kartonKodu,
+          isKarton: product.isKarton || false
         });
       }
     } else if (kind === "frame") {
@@ -2389,3 +2420,4 @@ document.getElementById("sendBtn").addEventListener("click", () => {
 </script>
 </body>
 </html>
+
