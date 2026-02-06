@@ -117,7 +117,12 @@ function processOrder_(data){
         }
         metres = round2(metres);
 
-        const unitText = `${fmt(metres)} mt`;
+        // Boy hesaplama: metre / boyLength
+        let unitText = `${fmt(metres)} mt`;
+        if(c?.boyLength > 0 && metres > 0){
+          const boyCount = Math.round(metres / c.boyLength * 10) / 10;
+          unitText = `${fmt(metres)} mt (${boyCount} boy)`;
+        }
         const lineTotal = round2(metres * unitPriceTL);
 
         lineNo++; gross = round2(gross + lineTotal);
@@ -139,6 +144,23 @@ function processOrder_(data){
 
         lineNo++; gross = round2(gross + lineTotal);
         itemRows.push([orderId, lineNo, glassName, unitText, m2Price, lineTotal]);
+
+      }else if(kind==="ayna"){
+        // Ayna işleme - plaka bazlı (cam ile aynı mantık)
+        const aynaName = String(row.name||"Ayna").trim();
+        const sizeLabel = String(row.sizeLabel||"").trim();
+        const plakaAdet = Number(row.plakaAdet||0);
+        const m2PerPlaka = round2(Number(row.m2PerPlaka||0));
+        const m2 = round2(Number(row.m2||0));
+        const m2Price = round2(Number(row.m2Price||0));
+
+        if(m2 <= 0 || plakaAdet <= 0) return;
+
+        const unitText = `${plakaAdet} plaka × ${fmt(m2PerPlaka)} m² = ${fmt(m2)} m² (${sizeLabel})`;
+        const lineTotal = round2(m2 * m2Price);
+
+        lineNo++; gross = round2(gross + lineTotal);
+        itemRows.push([orderId, lineNo, aynaName, unitText, m2Price, lineTotal]);
 
       }else if(kind==="technical"){
         // Teknik malzeme işleme - kutu bazlı

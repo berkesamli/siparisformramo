@@ -9,33 +9,39 @@
 <link href="https://cdn.jsdelivr.net/npm/lucide-static@0.263.1/font/lucide.min.css" rel="stylesheet">
 <style>
   :root {
-    --brand: #7c3aed;
+    --brand: #6d28d9;
     --brand-light: #a78bfa;
-    --brand-dark: #5b21b6;
+    --brand-dark: #4c1d95;
+    --brand-glow: rgba(109, 40, 217, 0.35);
     --accent: #f59e0b;
+    --accent-light: #fbbf24;
     --success: #10b981;
     --error: #ef4444;
     --warning: #f59e0b;
-    --bg-primary: #0f0f23;
-    --bg-secondary: #1a1a2e;
-    --bg-card: rgba(26, 26, 46, 0.8);
-    --bg-input: rgba(255, 255, 255, 0.05);
-    --text-primary: #ffffff;
-    --text-secondary: #a0a0b2;
-    --text-muted: #6b6b80;
-    --border: rgba(255, 255, 255, 0.1);
-    --border-focus: rgba(124, 58, 237, 0.5);
+    --info: #3b82f6;
+    --bg-primary: #080818;
+    --bg-secondary: #12122a;
+    --bg-card: rgba(18, 18, 42, 0.85);
+    --bg-card-hover: rgba(24, 24, 52, 0.9);
+    --bg-input: rgba(255, 255, 255, 0.04);
+    --bg-input-hover: rgba(255, 255, 255, 0.07);
+    --text-primary: #f0f0f8;
+    --text-secondary: #9898b0;
+    --text-muted: #5c5c78;
+    --border: rgba(255, 255, 255, 0.08);
+    --border-focus: rgba(109, 40, 217, 0.6);
     --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
-    --shadow-md: 0 8px 32px rgba(0, 0, 0, 0.4);
-    --shadow-lg: 0 16px 64px rgba(0, 0, 0, 0.5);
-    --shadow-glow: 0 0 40px rgba(124, 58, 237, 0.3);
-    --radius-sm: 8px;
-    --radius-md: 12px;
-    --radius-lg: 16px;
-    --radius-xl: 24px;
-    --transition-fast: 0.15s ease;
-    --transition-normal: 0.3s ease;
-    --transition-slow: 0.5s ease;
+    --shadow-md: 0 8px 32px rgba(0, 0, 0, 0.45);
+    --shadow-lg: 0 20px 60px rgba(0, 0, 0, 0.55);
+    --shadow-glow: 0 0 60px rgba(109, 40, 217, 0.25);
+    --shadow-glow-sm: 0 0 20px rgba(109, 40, 217, 0.15);
+    --radius-sm: 10px;
+    --radius-md: 14px;
+    --radius-lg: 18px;
+    --radius-xl: 28px;
+    --transition-fast: 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-normal: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-slow: 0.5s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   * {
@@ -76,15 +82,29 @@
     left: -50%;
     width: 200%;
     height: 200%;
-    background: radial-gradient(ellipse at center, rgba(124, 58, 237, 0.15) 0%, transparent 50%),
-                radial-gradient(ellipse at 80% 20%, rgba(167, 139, 250, 0.1) 0%, transparent 40%),
-                radial-gradient(ellipse at 20% 80%, rgba(245, 158, 11, 0.08) 0%, transparent 40%);
-    animation: bgPulse 15s ease-in-out infinite;
+    background: radial-gradient(ellipse at 30% 20%, rgba(109, 40, 217, 0.18) 0%, transparent 45%),
+                radial-gradient(ellipse at 70% 60%, rgba(167, 139, 250, 0.12) 0%, transparent 40%),
+                radial-gradient(ellipse at 20% 80%, rgba(59, 130, 246, 0.08) 0%, transparent 40%),
+                radial-gradient(ellipse at 80% 10%, rgba(245, 158, 11, 0.06) 0%, transparent 35%);
+    animation: bgPulse 20s ease-in-out infinite;
+  }
+
+  .bg-animation::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.015'/%3E%3C/svg%3E");
+    opacity: 0.4;
+    pointer-events: none;
   }
 
   @keyframes bgPulse {
-    0%, 100% { transform: translate(0, 0) scale(1); }
-    50% { transform: translate(-2%, -2%) scale(1.05); }
+    0%, 100% { transform: translate(0, 0) scale(1); opacity: 1; }
+    33% { transform: translate(-1%, -1%) scale(1.03); opacity: 0.9; }
+    66% { transform: translate(1%, -0.5%) scale(1.01); opacity: 0.95; }
   }
 
   /* Main Container */
@@ -99,23 +119,35 @@
   /* Glass Card */
   .card {
     background: var(--bg-card);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    backdrop-filter: blur(24px) saturate(1.2);
+    -webkit-backdrop-filter: blur(24px) saturate(1.2);
     border: 1px solid var(--border);
     border-radius: var(--radius-xl);
-    box-shadow: var(--shadow-lg);
-    padding: 32px;
-    animation: cardSlideIn 0.6s ease-out;
+    box-shadow: var(--shadow-lg), var(--shadow-glow-sm);
+    padding: 36px;
+    animation: cardSlideIn 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+  }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(167, 139, 250, 0.3), rgba(109, 40, 217, 0.5), rgba(167, 139, 250, 0.3), transparent);
+    border-radius: var(--radius-xl) var(--radius-xl) 0 0;
   }
 
   @keyframes cardSlideIn {
     from {
       opacity: 0;
-      transform: translateY(30px);
+      transform: translateY(40px) scale(0.98);
     }
     to {
       opacity: 1;
-      transform: translateY(0);
+      transform: translateY(0) scale(1);
     }
   }
 
@@ -138,21 +170,39 @@
   }
 
   .brand-icon {
-    width: 48px;
-    height: 48px;
+    width: 52px;
+    height: 52px;
     background: linear-gradient(135deg, var(--brand) 0%, var(--brand-dark) 100%);
     border-radius: var(--radius-md);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 24px;
-    box-shadow: var(--shadow-glow);
+    font-size: 26px;
+    box-shadow: var(--shadow-glow), 0 4px 16px rgba(0, 0, 0, 0.3);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .brand-icon::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(45deg, transparent 40%, rgba(255,255,255,0.1) 50%, transparent 60%);
+    animation: shimmer 3s ease-in-out infinite;
+  }
+
+  @keyframes shimmer {
+    0%, 100% { transform: translateX(-100%) rotate(45deg); }
+    50% { transform: translateX(100%) rotate(45deg); }
   }
 
   .brand-text h1 {
-    font-size: 24px;
+    font-size: 26px;
     font-weight: 800;
-    background: linear-gradient(135deg, var(--brand-light) 0%, var(--brand) 100%);
+    background: linear-gradient(135deg, var(--brand-light) 0%, #c4b5fd 50%, var(--brand) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -177,12 +227,19 @@
     background: var(--bg-input);
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
-    padding: 8px 16px;
+    padding: 10px 18px;
     font-size: 13px;
     color: var(--text-secondary);
     display: flex;
     align-items: center;
     gap: 8px;
+    backdrop-filter: blur(10px);
+    transition: all var(--transition-fast);
+  }
+
+  .date-badge:hover {
+    border-color: rgba(255, 255, 255, 0.15);
+    background: var(--bg-input-hover);
   }
 
   .date-badge i {
@@ -252,8 +309,9 @@
     font-size: 15px;
     font-family: inherit;
     color: var(--text-primary);
-    transition: all var(--transition-fast);
+    transition: all var(--transition-normal);
     outline: none;
+    backdrop-filter: blur(4px);
   }
 
   .input-wrapper input,
@@ -262,13 +320,14 @@
   }
 
   input:hover, select:hover, textarea:hover {
-    border-color: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.18);
+    background: var(--bg-input-hover);
   }
 
   input:focus, select:focus, textarea:focus {
     border-color: var(--brand);
-    background: rgba(124, 58, 237, 0.05);
-    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.15);
+    background: rgba(109, 40, 217, 0.06);
+    box-shadow: 0 0 0 3px rgba(109, 40, 217, 0.15), 0 0 20px rgba(109, 40, 217, 0.08);
   }
 
   .input-wrapper:focus-within i {
@@ -325,31 +384,34 @@
 
   .rate-hint {
     background: linear-gradient(135deg, var(--brand) 0%, var(--brand-dark) 100%);
-    padding: 8px 14px;
+    padding: 10px 16px;
     border-radius: var(--radius-md);
     font-size: 12px;
-    font-weight: 600;
+    font-weight: 700;
     color: white;
     white-space: nowrap;
-    box-shadow: var(--shadow-sm);
+    box-shadow: var(--shadow-sm), 0 0 16px rgba(109, 40, 217, 0.2);
+    letter-spacing: 0.3px;
   }
 
   .rate-hint-euro {
     background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    box-shadow: var(--shadow-sm), 0 0 16px rgba(37, 99, 235, 0.2);
   }
 
   /* Info Banner */
   .info-banner {
-    background: rgba(124, 58, 237, 0.1);
-    border: 1px solid rgba(124, 58, 237, 0.2);
+    background: linear-gradient(135deg, rgba(109, 40, 217, 0.08) 0%, rgba(59, 130, 246, 0.06) 100%);
+    border: 1px solid rgba(109, 40, 217, 0.18);
     border-radius: var(--radius-md);
-    padding: 12px 16px;
+    padding: 14px 18px;
     margin-bottom: 24px;
     display: flex;
     align-items: center;
     gap: 12px;
     font-size: 13px;
     color: var(--text-secondary);
+    backdrop-filter: blur(8px);
   }
 
   .info-banner i {
@@ -397,10 +459,11 @@
 
   /* Table Container */
   .table-container {
-    background: rgba(0, 0, 0, 0.2);
+    background: rgba(0, 0, 0, 0.25);
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
     overflow: hidden;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
   }
 
   .table-scroll {
@@ -429,31 +492,32 @@
   }
 
   thead {
-    background: rgba(124, 58, 237, 0.15);
+    background: linear-gradient(180deg, rgba(109, 40, 217, 0.18) 0%, rgba(109, 40, 217, 0.1) 100%);
   }
 
   th {
-    padding: 14px 12px;
+    padding: 16px 12px;
     text-align: center;
     font-size: 11px;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.5px;
+    letter-spacing: 0.8px;
     color: var(--brand-light);
-    border-bottom: 1px solid var(--border);
+    border-bottom: 1px solid rgba(109, 40, 217, 0.2);
     white-space: nowrap;
   }
 
   tbody tr {
-    transition: background var(--transition-fast);
+    transition: all var(--transition-fast);
   }
 
   tbody tr:hover {
-    background: rgba(124, 58, 237, 0.05);
+    background: rgba(109, 40, 217, 0.06);
+    box-shadow: inset 3px 0 0 var(--brand);
   }
 
   tbody tr:not(:last-child) td {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.035);
   }
 
   td {
@@ -521,15 +585,27 @@
 
   .m2-display {
     font-size: 12px;
-    color: var(--accent);
+    color: var(--accent-light);
     font-weight: 700;
     margin-top: 4px;
-    padding: 4px 8px;
-    background: rgba(245, 158, 11, 0.1);
+    padding: 6px 10px;
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(251, 191, 36, 0.08) 100%);
+    border: 1px solid rgba(245, 158, 11, 0.15);
     border-radius: var(--radius-sm);
   }
 
   .glassType, .glassSize {
+    width: 100%;
+  }
+
+  /* Ayna styles */
+  .ayna-selects {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .ayna-selects select {
     width: 100%;
   }
 
@@ -600,9 +676,21 @@
   }
 
   .eur-price-box input[readonly] {
-    background: rgba(37, 99, 235, 0.15);
-    border-color: rgba(37, 99, 235, 0.4);
+    background: rgba(37, 99, 235, 0.12);
+    border-color: rgba(37, 99, 235, 0.3);
+    color: rgba(255, 255, 255, 0.7);
+    cursor: default;
+  }
+
+  .eur-price-box input:not([readonly]) {
+    background: rgba(37, 99, 235, 0.08);
+    border-color: rgba(37, 99, 235, 0.25);
     color: #ffffff;
+  }
+
+  .eur-price-box input:not([readonly]):focus {
+    border-color: var(--info);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
   }
 
   /* Price Box */
@@ -651,20 +739,24 @@
     font-size: 14px;
     color: var(--text-primary);
     font-variant-numeric: tabular-nums;
+    padding: 4px 8px;
+    border-radius: var(--radius-sm);
+    transition: all var(--transition-fast);
   }
 
   /* Footer Section */
   tfoot {
-    background: rgba(0, 0, 0, 0.3);
+    background: linear-gradient(180deg, rgba(0, 0, 0, 0.35) 0%, rgba(0, 0, 0, 0.25) 100%);
   }
 
   tfoot td {
-    padding: 12px 16px;
+    padding: 14px 16px;
     border-top: 1px solid var(--border);
   }
 
   tfoot tr:first-child td {
-    padding-top: 20px;
+    padding-top: 24px;
+    border-top: 2px solid rgba(109, 40, 217, 0.2);
   }
 
   .footer-label {
@@ -684,13 +776,15 @@
 
   .footer-grand .footer-label {
     color: var(--accent);
-    font-size: 14px;
+    font-size: 15px;
+    font-weight: 700;
   }
 
   .footer-grand .footer-value {
-    font-size: 18px;
+    font-size: 20px;
     color: var(--accent);
-    text-shadow: 0 0 20px rgba(245, 158, 11, 0.5);
+    text-shadow: 0 0 30px rgba(245, 158, 11, 0.5), 0 0 10px rgba(245, 158, 11, 0.3);
+    letter-spacing: 0.5px;
   }
 
   /* Discount Input */
@@ -752,17 +846,19 @@
   }
 
   .switch input:checked + .slider {
-    background: var(--brand);
+    background: linear-gradient(135deg, var(--brand) 0%, var(--brand-dark) 100%);
     border-color: var(--brand);
+    box-shadow: 0 0 12px rgba(109, 40, 217, 0.3);
   }
 
   .switch input:checked + .slider:before {
     transform: translateX(24px);
     background: white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   }
 
   .switch input:focus + .slider {
-    box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.2);
+    box-shadow: 0 0 0 3px rgba(109, 40, 217, 0.2);
   }
 
   /* Bottom Section */
@@ -790,20 +886,21 @@
   .btn-submit {
     display: inline-flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
     background: linear-gradient(135deg, var(--brand) 0%, var(--brand-dark) 100%);
     color: white;
     border: none;
     border-radius: var(--radius-md);
-    padding: 16px 32px;
-    font-size: 15px;
+    padding: 18px 36px;
+    font-size: 16px;
     font-weight: 700;
     font-family: inherit;
     cursor: pointer;
     transition: all var(--transition-normal);
-    box-shadow: 0 4px 20px rgba(124, 58, 237, 0.4);
+    box-shadow: 0 4px 24px rgba(109, 40, 217, 0.4), 0 0 0 1px rgba(109, 40, 217, 0.2);
     position: relative;
     overflow: hidden;
+    letter-spacing: 0.3px;
   }
 
   .btn-submit::before {
@@ -813,8 +910,8 @@
     left: -100%;
     width: 100%;
     height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-    transition: left 0.5s ease;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+    transition: left 0.6s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .btn-submit:hover::before {
@@ -822,18 +919,19 @@
   }
 
   .btn-submit:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 30px rgba(124, 58, 237, 0.5);
+    transform: translateY(-3px) scale(1.01);
+    box-shadow: 0 12px 40px rgba(109, 40, 217, 0.5), 0 0 0 1px rgba(109, 40, 217, 0.3);
   }
 
   .btn-submit:active {
-    transform: translateY(0);
+    transform: translateY(-1px) scale(0.99);
   }
 
   .btn-submit:disabled {
-    opacity: 0.6;
+    opacity: 0.5;
     cursor: not-allowed;
     transform: none;
+    filter: grayscale(0.3);
   }
 
   .btn-submit i {
@@ -907,17 +1005,17 @@
 
   .toast {
     background: var(--bg-card);
-    backdrop-filter: blur(20px);
+    backdrop-filter: blur(24px) saturate(1.2);
     border: 1px solid var(--border);
     border-radius: var(--radius-md);
-    padding: 16px 20px;
-    box-shadow: var(--shadow-lg);
+    padding: 18px 22px;
+    box-shadow: var(--shadow-lg), 0 0 0 1px rgba(255, 255, 255, 0.05);
     display: flex;
     align-items: center;
     gap: 12px;
-    min-width: 300px;
-    max-width: 450px;
-    animation: toastIn 0.4s ease;
+    min-width: 320px;
+    max-width: 460px;
+    animation: toastIn 0.5s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .toast.toast-out {
@@ -1376,8 +1474,18 @@ const GLASS_SIZES = {
     { label: "122 × 183 cm", en: 122, boy: 183 },
     { label: "121 × 161 cm", en: 121, boy: 161 },
     { label: "91,4 × 122 cm", en: 91.4, boy: 122 }
+  ],
+  muze: [
+    { label: "122 × 172,5 cm", en: 122, boy: 172.5 }
   ]
 };
+
+// Ayna plaka ölçüleri (cm)
+const AYNA_SIZES = [
+  { label: "91,4 × 122 cm — 2mm", en: 91.4, boy: 122, mm: 2 },
+  { label: "122 × 183 cm — 3mm", en: 122, boy: 183, mm: 3 },
+  { label: "122 × 183 cm — 4mm", en: 122, boy: 183, mm: 4 }
+];
 
 // Teknik Malzeme Ürün Kataloğu
 // priceEUR: Euro fiyatlı ürünler için kutu fiyatı
@@ -1547,6 +1655,7 @@ function buildRows() {
         <select class="kind">
           <option value="frame">Çerçeve Profili</option>
           <option value="glass">Cam</option>
+          <option value="ayna">Ayna</option>
           <option value="technical">Teknik Malzeme</option>
           <option value="other">Diğer</option>
         </select>
@@ -1557,8 +1666,12 @@ function buildRows() {
           <select class="glassType">
             <option value="duz">Düz Cam</option>
             <option value="mat">Mat Cam</option>
+            <option value="muze">Müze Camı</option>
           </select>
           <select class="glassSize"></select>
+        </div>
+        <div class="ayna-selects hide">
+          <select class="aynaSize"></select>
         </div>
         <div class="technical-selects hide">
           <select class="technicalProduct">
@@ -1600,7 +1713,7 @@ function buildRows() {
           <div class="eur-price-box">
             <input type="number" class="eur-price" step="0.01" min="0" placeholder="EUR" inputmode="decimal" readonly>
             <span class="price-eq">=</span>
-            <input type="number" class="tl-from-eur" step="0.01" min="0" placeholder="TL" inputmode="decimal" readonly>
+            <input type="number" class="tl-from-eur" step="0.01" min="0" placeholder="TL" inputmode="decimal">
           </div>
         </div>
         <div class="price-hint"></div>
@@ -1642,6 +1755,8 @@ function wireRowEvents() {
     const technicalPriceEl = tr.querySelector(".technical-price");
     const eurPriceEl = tr.querySelector(".eur-price");
     const tlFromEurEl = tr.querySelector(".tl-from-eur");
+    const aynaSelectsEl = tr.querySelector(".ayna-selects");
+    const aynaSizeEl = tr.querySelector(".aynaSize");
     const unitEl = tr.querySelector(".unit");
     const glassPlakaEl = tr.querySelector(".glass-plaka");
     const plakaAdetEl = tr.querySelector(".plaka-adet");
@@ -1661,6 +1776,14 @@ function wireRowEvents() {
     setPrevUnit(tr, unitEl.value);
     tr.dataset.prevBase = "";
 
+    // Populate ayna size options
+    const updateAynaSizes = () => {
+      aynaSizeEl.innerHTML = AYNA_SIZES.map((s, i) =>
+        `<option value="${i}">${s.label}</option>`
+      ).join("");
+      updatePlakaInfo();
+    };
+
     // Populate glass size options based on type
     const updateGlassSizes = () => {
       const type = glassTypeEl.value;
@@ -1668,27 +1791,45 @@ function wireRowEvents() {
       glassSizeEl.innerHTML = sizes.map((s, i) =>
         `<option value="${i}">${s.label}</option>`
       ).join("");
+      // Müze camı için EUR placeholder
+      if (type === 'muze') {
+        m2PriceEl.placeholder = "m² Fiyatı (EUR)";
+      } else {
+        m2PriceEl.placeholder = "m² Fiyatı (TL)";
+      }
       updatePlakaInfo();
     };
 
     // Update plaka m² info
     const updatePlakaInfo = () => {
-      const type = glassTypeEl.value;
-      const sizeIdx = parseInt(glassSizeEl.value) || 0;
-      const sizes = GLASS_SIZES[type] || [];
-      const size = sizes[sizeIdx];
+      let size = null;
+      if (kindEl.value === 'ayna') {
+        const sizeIdx = parseInt(aynaSizeEl.value) || 0;
+        size = AYNA_SIZES[sizeIdx];
+      } else {
+        const type = glassTypeEl.value;
+        const sizeIdx = parseInt(glassSizeEl.value) || 0;
+        const sizes = GLASS_SIZES[type] || [];
+        size = sizes[sizeIdx];
+      }
       if (size) {
         const m2PerPlaka = round2((size.en * size.boy) / 10000);
         plakaM2El.textContent = `1 plaka = ${f2(m2PerPlaka)} m²`;
       }
     };
 
-    // Calculate total m² for glass
+    // Calculate total m² for glass/ayna
     const calcGlassM2 = () => {
-      const type = glassTypeEl.value;
-      const sizeIdx = parseInt(glassSizeEl.value) || 0;
-      const sizes = GLASS_SIZES[type] || [];
-      const size = sizes[sizeIdx];
+      let size = null;
+      if (kindEl.value === 'ayna') {
+        const sizeIdx = parseInt(aynaSizeEl.value) || 0;
+        size = AYNA_SIZES[sizeIdx];
+      } else {
+        const type = glassTypeEl.value;
+        const sizeIdx = parseInt(glassSizeEl.value) || 0;
+        const sizes = GLASS_SIZES[type] || [];
+        size = sizes[sizeIdx];
+      }
       const plakaAdet = parseInt(plakaAdetEl.value) || 0;
 
       if (size && plakaAdet > 0) {
@@ -1702,7 +1843,7 @@ function wireRowEvents() {
     };
 
     const setHintAndPrice = () => {
-      if (kindEl.value === "glass") return; // Glass has its own display
+      if (kindEl.value === "glass" || kindEl.value === "ayna") return; // Glass/Ayna has its own display
 
       const rate = parseFloat(rateEl.value) || 0;
       const usd = parseFloat(usdEl.value) || 0;
@@ -1752,6 +1893,7 @@ function wireRowEvents() {
       // Show glass-specific elements
       codeEl.classList.add("hide");
       glassSelectsEl.classList.remove("hide");
+      aynaSelectsEl.classList.add("hide");
       technicalSelectsEl.classList.add("hide");
       unitEl.classList.add("hide");
       glassPlakaEl.classList.remove("hide");
@@ -1766,6 +1908,28 @@ function wireRowEvents() {
 
       // Initialize glass dropdowns
       updateGlassSizes();
+    };
+
+    const applyAyna = () => {
+      // Show ayna-specific elements
+      codeEl.classList.add("hide");
+      glassSelectsEl.classList.add("hide");
+      aynaSelectsEl.classList.remove("hide");
+      technicalSelectsEl.classList.add("hide");
+      unitEl.classList.add("hide");
+      glassPlakaEl.classList.remove("hide");
+      technicalBoxEl.classList.add("hide");
+      qtyEl.classList.add("hide");
+      m2DisplayEl.classList.remove("hide");
+      priceBoxEl.classList.add("hide");
+      glassPriceEl.classList.remove("hide");
+      technicalPriceEl.classList.add("hide");
+      m2PriceEl.placeholder = "m² Fiyatı (TL)";
+      hintEl.textContent = "";
+      tr.querySelector(".price-hint").textContent = "";
+
+      // Initialize ayna dropdowns
+      updateAynaSizes();
     };
 
     const applyTechnical = () => {
@@ -1833,6 +1997,7 @@ function wireRowEvents() {
       // Hide glass-specific elements
       codeEl.classList.remove("hide");
       glassSelectsEl.classList.add("hide");
+      aynaSelectsEl.classList.add("hide");
       unitEl.classList.remove("hide");
       glassPlakaEl.classList.add("hide");
       qtyEl.classList.remove("hide");
@@ -1849,7 +2014,7 @@ function wireRowEvents() {
     };
 
     const syncFromTL = () => {
-      if (syncing || kindEl.value === "glass") return;
+      if (syncing || kindEl.value === "glass" || kindEl.value === "ayna") return;
       syncing = true;
       const r = parseFloat(rateEl.value) || 0;
       const t = parseFloat(tlEl.value) || 0;
@@ -1860,7 +2025,7 @@ function wireRowEvents() {
     };
 
     const syncFromUSD = () => {
-      if (syncing || kindEl.value === "glass") return;
+      if (syncing || kindEl.value === "glass" || kindEl.value === "ayna") return;
       syncing = true;
       const r = parseFloat(rateEl.value) || 0;
       const u = parseFloat(usdEl.value) || 0;
@@ -1903,6 +2068,9 @@ function wireRowEvents() {
       if (kindEl.value === "glass") {
         hideTechnical();
         applyGlass();
+      } else if (kindEl.value === "ayna") {
+        hideTechnical();
+        applyAyna();
       } else if (kindEl.value === "technical") {
         hideGlass();
         applyTechnical();
@@ -1937,7 +2105,7 @@ function wireRowEvents() {
         return;
       }
 
-      if (kindEl.value === "glass") {
+      if (kindEl.value === "glass" || kindEl.value === "ayna") {
         recalc();
         return;
       }
@@ -1974,6 +2142,12 @@ function wireRowEvents() {
       recalc();
     };
 
+    const onAynaSizeChange = () => {
+      updatePlakaInfo();
+      calcGlassM2();
+      recalc();
+    };
+
     const onGlassTypeChange = () => {
       updateGlassSizes();
       calcGlassM2();
@@ -2005,13 +2179,19 @@ function wireRowEvents() {
       recalc();
     };
 
+    const onTlFromEurManual = () => {
+      recalc();
+    };
+
     kindEl.addEventListener("change", onKind);
     codeEl.addEventListener("input", onCode);
     glassTypeEl.addEventListener("change", onGlassTypeChange);
     glassSizeEl.addEventListener("change", onGlassSizeChange);
+    aynaSizeEl.addEventListener("change", onAynaSizeChange);
     plakaAdetEl.addEventListener("input", onPlakaAdetChange);
     technicalProductEl.addEventListener("change", onTechnicalProductChange);
     kutuAdetEl.addEventListener("input", onKutuAdetChange);
+    tlFromEurEl.addEventListener("input", onTlFromEurManual);
     unitEl.addEventListener("change", onUnit);
     qtyEl.addEventListener("input", onQty);
     tlEl.addEventListener("input", syncFromTL);
@@ -2049,7 +2229,7 @@ rateEl.addEventListener("input", () => {
 
 euroRateEl.addEventListener("input", () => {
   updateEuroRateHint();
-  // Update all technical material rows
+  // Update all technical material rows and müze camı rows
   tbody.querySelectorAll("tr").forEach(tr => {
     const kind = tr.querySelector(".kind").value;
     if (kind === "technical") {
@@ -2112,6 +2292,41 @@ function recalc() {
         tr.querySelector(".plaka-m2").textContent = `1 plaka = ${f2(m2PerPlaka)} m²`;
         tr.querySelector(".m2-display").textContent = `${f2(totalM2)} m²`;
 
+        // Müze camı EUR bazlı, diğerleri TL bazlı
+        if (glassType === 'muze') {
+          const eurRate = parseFloat(euroRateEl.value) || 0;
+          const m2PriceTL = round2(m2Price * eurRate);
+          line = round2(totalM2 * m2PriceTL);
+          tr.querySelector(".price-hint").textContent = m2Price > 0
+            ? `${plakaAdet} plaka × ${f2(m2PerPlaka)} m² × €${f2(m2Price)}/m² × ${TL(eurRate)}`
+            : "";
+        } else {
+          line = round2(totalM2 * m2Price);
+          tr.querySelector(".price-hint").textContent = m2Price > 0
+            ? `${plakaAdet} plaka × ${f2(m2PerPlaka)} m² × ${TL(m2Price)}/m²`
+            : "";
+        }
+
+        activeCount++;
+      } else {
+        tr.querySelector(".m2-display").textContent = "";
+        tr.querySelector(".price-hint").textContent = "";
+      }
+    } else if (kind === "ayna") {
+      // Ayna calculation - plaka based (same as glass, always TL)
+      const sizeIdx = parseInt(tr.querySelector(".aynaSize").value) || 0;
+      const plakaAdet = parseInt(tr.querySelector(".plaka-adet").value) || 0;
+      const m2Price = parseFloat(tr.querySelector(".m2-price").value) || 0;
+
+      const size = AYNA_SIZES[sizeIdx];
+
+      if (size && plakaAdet > 0) {
+        const m2PerPlaka = round2((size.en * size.boy) / 10000);
+        const totalM2 = round2(m2PerPlaka * plakaAdet);
+
+        tr.querySelector(".plaka-m2").textContent = `1 plaka = ${f2(m2PerPlaka)} m²`;
+        tr.querySelector(".m2-display").textContent = `${f2(totalM2)} m²`;
+
         line = round2(totalM2 * m2Price);
         tr.querySelector(".price-hint").textContent = m2Price > 0
           ? `${plakaAdet} plaka × ${f2(m2PerPlaka)} m² × ${TL(m2Price)}/m²`
@@ -2123,27 +2338,18 @@ function recalc() {
         tr.querySelector(".price-hint").textContent = "";
       }
     } else if (kind === "technical") {
-      // Technical materials calculation - box based
+      // Technical materials calculation - box based (read kutuPriceTL from input for manual override)
       const technicalProductEl = tr.querySelector(".technicalProduct");
       const kutuAdet = parseInt(tr.querySelector(".kutu-adet").value) || 0;
       const product = getTechnicalProduct(technicalProductEl.value);
-      const euroRate = parseFloat(euroRateEl.value) || 0;
+      const kutuPriceTL = round2(parseFloat(tr.querySelector(".tl-from-eur").value) || 0);
 
       if (product && kutuAdet > 0) {
-        // TL veya EUR fiyat kontrolü
-        const kutuPriceTL = product.priceTL
-          ? round2(product.priceTL)
-          : round2(product.priceEUR * euroRate);
-
         line = round2(kutuAdet * kutuPriceTL);
 
         const totalAdet = kutuAdet * product.adetPerKutu;
-        const priceInfo = product.priceTL
-          ? `${TL(product.priceTL)}/kutu`
-          : `€${f2(product.priceEUR)} × ${TL(euroRate)} = ${TL(kutuPriceTL)}/kutu`;
-
         tr.querySelector(".price-hint").textContent =
-          `${kutuAdet} kutu × ${priceInfo} = ${totalAdet.toLocaleString('tr-TR')} adet`;
+          `${kutuAdet} kutu × ${TL(kutuPriceTL)}/kutu = ${totalAdet.toLocaleString('tr-TR')} adet`;
 
         activeCount++;
       } else {
@@ -2253,12 +2459,45 @@ document.getElementById("sendBtn").addEventListener("click", () => {
       if (size && plakaAdet > 0) {
         const m2PerPlaka = round2((size.en * size.boy) / 10000);
         const totalM2 = round2(m2PerPlaka * plakaAdet);
-        const glassName = glassType === "mat" ? "Mat Cam" : "Düz Cam";
+        const glassNames = { mat: "Mat Cam", duz: "Düz Cam", muze: "Müze Camı" };
+        const glassName = glassNames[glassType] || "Cam";
+
+        // Müze camı EUR bazlı, TL'ye çevir
+        let actualM2Price = m2Price;
+        if (glassType === 'muze') {
+          const eurRate = parseFloat(euroRateEl.value) || 0;
+          actualM2Price = round2(m2Price * eurRate);
+        }
 
         rows.push({
           kind: "glass",
           name: glassName,
           glassType: glassType,
+          sizeLabel: size.label,
+          en: size.en,
+          boy: size.boy,
+          plakaAdet: plakaAdet,
+          m2PerPlaka: m2PerPlaka,
+          m2: totalM2,
+          m2Price: actualM2Price,
+          unitPriceTL: actualM2Price
+        });
+      }
+    } else if (kind === "ayna") {
+      const sizeIdx = parseInt(tr.querySelector(".aynaSize").value) || 0;
+      const plakaAdet = parseInt(tr.querySelector(".plaka-adet").value) || 0;
+      const m2Price = parseFloat(tr.querySelector(".m2-price").value) || 0;
+
+      const size = AYNA_SIZES[sizeIdx];
+
+      if (size && plakaAdet > 0) {
+        const m2PerPlaka = round2((size.en * size.boy) / 10000);
+        const totalM2 = round2(m2PerPlaka * plakaAdet);
+        const aynaName = `Ayna ${size.mm}mm`;
+
+        rows.push({
+          kind: "ayna",
+          name: aynaName,
           sizeLabel: size.label,
           en: size.en,
           boy: size.boy,
@@ -2276,12 +2515,10 @@ document.getElementById("sendBtn").addEventListener("click", () => {
       const product = getTechnicalProduct(technicalProductEl.value);
       const euroRate = parseFloat(euroRateEl.value) || 0;
       const kartonKodu = (kartonKoduEl.value || "").trim();
+      // Manuel düzenlenen fiyatı kullan
+      const kutuPriceTL = round2(parseFloat(tr.querySelector(".tl-from-eur").value) || 0);
 
       if (product && kutuAdet > 0) {
-        // TL veya EUR fiyat kontrolü
-        const kutuPriceTL = product.priceTL
-          ? round2(product.priceTL)
-          : round2(product.priceEUR * euroRate);
         const totalAdet = kutuAdet * product.adetPerKutu;
 
         rows.push({
