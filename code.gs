@@ -9,8 +9,10 @@ const EMAIL_TO        = "olgacercevee@gmail.com";
 const ORDERS_SHEET    = "Siparişler";
 const ITEMS_SHEET     = "Sipariş Kalemleri";
 const DAILY_SHEET     = "Günlük";
-const CATALOG_SHEET   = "ÇERÇEVE BİLGİLER";
+const CATALOG_SHEET   = "çerçeve bilgiler";
 const TIMEZONE        = "Europe/Istanbul";
+
+const SPREADSHEET_ID  = "113SwuC5QNJBvVjlQ247mk_GzjegMKmb7MLaTn-9v_2I";
 
 const ORDER_PREFIX    = "OLG";
 const ORDER_PAD       = 5;
@@ -18,7 +20,21 @@ const PDF_FOLDER_NAME = "Sipariş PDF";
 const BRAND_COLOR     = "#8b4b00";
 const HEADER_BG       = "#f7f3ef";
 
+/** Spreadsheet erişimi: önce getActive, sonra openById dener */
+function getSS_(){
+  try { const ss = SpreadsheetApp.getActiveSpreadsheet(); if(ss) return ss; } catch(e){}
+  return SpreadsheetApp.openById(SPREADSHEET_ID);
+}
+
 function hasUi_(){ try{ SpreadsheetApp.getUi(); return true; }catch(e){ return false; } }
+
+/** Apps Script editöründen çalıştırıp yetkilendirme izni almak için */
+function testErisim(){
+  const ss = getSS_();
+  Logger.log("Spreadsheet adı: " + ss.getName());
+  Logger.log("Sheet sayısı: " + ss.getSheets().length);
+  ss.getSheets().forEach(s => Logger.log("  - " + s.getName()));
+}
 
 function onOpen(){
   if(!hasUi_()) return;
@@ -56,7 +72,7 @@ function doGet(){
 function submitFromHtml(data){ return processOrder_(data); }
 
 function getCatalog(){
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = getSS_();
   const sh = ss.getSheetByName(CATALOG_SHEET);
   if(!sh) throw new Error('Katalog sekmesi yok: ' + CATALOG_SHEET);
   const last = sh.getLastRow(); if(last < 2) return {};
@@ -272,7 +288,7 @@ function buildEmailBody_(orderId, ts, data, itemRows, gross, discount, vatApplie
 }
 
 function ensureSheets_(){
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = getSS_();
   let orders = ss.getSheetByName(ORDERS_SHEET);
   if(!orders){
     orders = ss.insertSheet(ORDERS_SHEET);
