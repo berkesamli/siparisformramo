@@ -12,6 +12,8 @@ const DAILY_SHEET     = "Günlük";
 const CATALOG_SHEET   = "ÇERÇEVE BİLGİLER";
 const TIMEZONE        = "Europe/Istanbul";
 
+const SPREADSHEET_ID  = "1rpNqKUc2yeaIncJ5SSoxFYPF3NSSxqHQviXPcn2qZjA";
+
 const ORDER_PREFIX    = "OLG";
 const ORDER_PAD       = 5;
 const PDF_FOLDER_NAME = "Sipariş PDF";
@@ -56,7 +58,7 @@ function doGet(){
 function submitFromHtml(data){ return processOrder_(data); }
 
 function getCatalog(){
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   const sh = ss.getSheetByName(CATALOG_SHEET);
   if(!sh) throw new Error('Katalog sekmesi yok: ' + CATALOG_SHEET);
   const last = sh.getLastRow(); if(last < 2) return {};
@@ -272,7 +274,7 @@ function buildEmailBody_(orderId, ts, data, itemRows, gross, discount, vatApplie
 }
 
 function ensureSheets_(){
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
   let orders = ss.getSheetByName(ORDERS_SHEET);
   if(!orders){
     orders = ss.insertSheet(ORDERS_SHEET);
