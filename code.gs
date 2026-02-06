@@ -1,31 +1,24 @@
-function myFunction() {
-  
-}
 // ==============================
-// File: Code.gs  (Google Apps Script)
+// Container-bound Script for Olga Çerçeve
 // ==============================
 
 const EMAIL_TO        = "olgacercevee@gmail.com";
-const SPREADSHEET_ID  = "1ywrsmWp2ciXksy7tTOK9B0FiBbCdHuLlk8JaD1XA_0w";
 const ORDERS_SHEET    = "Siparişler";
 const ITEMS_SHEET     = "Sipariş Kalemleri";
 const DAILY_SHEET     = "Günlük";
 const CATALOG_SHEET   = "ÇERÇEVE BİLGİLER";
 const TIMEZONE        = "Europe/Istanbul";
 
-// Spreadsheet'i al (ID varsa openById, yoksa getActiveSpreadsheet)
-function getSpreadsheet_() {
-  if (SPREADSHEET_ID && SPREADSHEET_ID.length > 10) {
-    return SpreadsheetApp.openById(SPREADSHEET_ID);
-  }
-  return SpreadsheetApp.getActiveSpreadsheet();
-}
-
 const ORDER_PREFIX    = "OLG";
 const ORDER_PAD       = 5;
 const PDF_FOLDER_NAME = "Sipariş PDF";
 const BRAND_COLOR     = "#8b4b00";
 const HEADER_BG       = "#f7f3ef";
+
+// Container-bound script - direkt çalışır
+function getSpreadsheet_() {
+  return SpreadsheetApp.getActiveSpreadsheet();
+}
 
 function hasUi_(){ try{ SpreadsheetApp.getUi(); return true; }catch(e){ return false; } }
 
