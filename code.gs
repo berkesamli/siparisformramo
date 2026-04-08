@@ -199,8 +199,8 @@ function processOrder_(data){
           ? `${productName} (${kartonKodu})`
           : productName;
         // TL veya EUR fiyat gösterimi
-        const priceInfo = priceTL > 0 ? `₺${fmt(priceTL)}/kutu` : `€${fmt(priceEUR)}/kutu`;
-        const unitText = `${kutuAdet} kutu × ${adetPerKutu} = ${totalAdet} adt (${priceInfo})`;
+        const priceInfo = priceTL > 0 ? `₺${fmt(priceTL)}/adet` : `€${fmt(priceEUR)}/adet`;
+        const unitText = `${kutuAdet} adet × ${adetPerKutu} = ${totalAdet} adt (${priceInfo})`;
         const lineTotal = round2(kutuAdet * kutuPriceTL);
 
         lineNo++; gross = round2(gross + lineTotal);
