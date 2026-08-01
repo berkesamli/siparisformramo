@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { FRAME_PROFILES, SERIES_ORDER, boyLength } from "@/data/catalog";
 import { TECHNICAL_PRODUCTS } from "@/data/technical";
+import StockSearch from "./StockSearch";
 
 const fmt = (n: number, d = 2) =>
   n.toLocaleString("tr-TR", { minimumFractionDigits: d, maximumFractionDigits: d });
@@ -14,7 +15,7 @@ const STOCK_LABEL: Record<string, string> = {
 };
 
 export default function ProductBrowser() {
-  const [tab, setTab] = useState<"frame" | "technical">("frame");
+  const [tab, setTab] = useState<"stock" | "frame" | "technical">("stock");
   const [series, setSeries] = useState("all");
   const [query, setQuery] = useState("");
 
@@ -40,6 +41,12 @@ export default function ProductBrowser() {
   return (
     <div className="card">
       <div style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
+        <button
+          className={`btn small ${tab === "stock" ? "" : "secondary"}`}
+          onClick={() => setTab("stock")}
+        >
+          🔍 Güncel Stok Sorgula
+        </button>
         <button
           className={`btn small ${tab === "frame" ? "" : "secondary"}`}
           onClick={() => setTab("frame")}
@@ -67,15 +74,19 @@ export default function ProductBrowser() {
             ))}
           </select>
         )}
-        <input
-          style={{ width: 220 }}
-          placeholder="Ara…"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
+        {tab !== "stock" && (
+          <input
+            style={{ width: 220 }}
+            placeholder="Ara…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+        )}
       </div>
 
-      {tab === "frame" ? (
+      {tab === "stock" && <StockSearch />}
+
+      {tab === "frame" && (
         <div style={{ overflowX: "auto" }}>
           <table>
             <thead>
@@ -113,7 +124,9 @@ export default function ProductBrowser() {
             </tbody>
           </table>
         </div>
-      ) : (
+      )}
+
+      {tab === "technical" && (
         <div style={{ overflowX: "auto" }}>
           <table>
             <thead>

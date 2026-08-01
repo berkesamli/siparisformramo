@@ -1,0 +1,2751 @@
+{
+ "updatedAt": "2026-08-01T13:05:40.564Z",
+ "sourceName": "01.08.2026 GÜNCEL STOK.xls",
+ "items": [
+  {
+   "code": "010-7456",
+   "ankaraMt": 0,
+   "istanbulMt": 49.3
+  },
+  {
+   "code": "1015-01-04E",
+   "ankaraMt": 0,
+   "istanbulMt": 551
+  },
+  {
+   "code": "1015-SILVER",
+   "ankaraMt": 191.4,
+   "istanbulMt": 707.6
+  },
+  {
+   "code": "1111-03",
+   "ankaraMt": 0,
+   "istanbulMt": 2.9
+  },
+  {
+   "code": "1114-TD1",
+   "ankaraMt": 1548.6,
+   "istanbulMt": 0
+  },
+  {
+   "code": "1114-TD3",
+   "ankaraMt": 988.9,
+   "istanbulMt": 0
+  },
+  {
+   "code": "1114S-A79",
+   "ankaraMt": 1255.7,
+   "istanbulMt": 223.3
+  },
+  {
+   "code": "1123-V31",
+   "ankaraMt": 0,
+   "istanbulMt": 2.9
+  },
+  {
+   "code": "1165-04",
+   "ankaraMt": 0,
+   "istanbulMt": 8.7
+  },
+  {
+   "code": "1165-K30",
+   "ankaraMt": 0,
+   "istanbulMt": 5.8
+  },
+  {
+   "code": "1165-P40",
+   "ankaraMt": 0,
+   "istanbulMt": 5.8
+  },
+  {
+   "code": "1171(S)-01",
+   "ankaraMt": 0,
+   "istanbulMt": 174
+  },
+  {
+   "code": "1215-104",
+   "ankaraMt": 0,
+   "istanbulMt": 34.8
+  },
+  {
+   "code": "1232-101",
+   "ankaraMt": 0,
+   "istanbulMt": 63.8
+  },
+  {
+   "code": "1241-106",
+   "ankaraMt": 43.5,
+   "istanbulMt": 246.5
+  },
+  {
+   "code": "1241-622",
+   "ankaraMt": 0,
+   "istanbulMt": 58
+  },
+  {
+   "code": "1263-62",
+   "ankaraMt": 0,
+   "istanbulMt": 75.4
+  },
+  {
+   "code": "1266-01",
+   "ankaraMt": 179.8,
+   "istanbulMt": 664.1
+  },
+  {
+   "code": "1266-02",
+   "ankaraMt": 307.4,
+   "istanbulMt": 696
+  },
+  {
+   "code": "1266-07",
+   "ankaraMt": 84.1,
+   "istanbulMt": 2088
+  },
+  {
+   "code": "1266-24",
+   "ankaraMt": 0,
+   "istanbulMt": 1113.6
+  },
+  {
+   "code": "1266-30",
+   "ankaraMt": 0,
+   "istanbulMt": 459.1
+  },
+  {
+   "code": "1266-44",
+   "ankaraMt": 0,
+   "istanbulMt": 803.3
+  },
+  {
+   "code": "1266-613",
+   "ankaraMt": 0,
+   "istanbulMt": 974.4
+  },
+  {
+   "code": "1266-615",
+   "ankaraMt": 124.7,
+   "istanbulMt": 922.2
+  },
+  {
+   "code": "1266-616",
+   "ankaraMt": 124.7,
+   "istanbulMt": 606.1
+  },
+  {
+   "code": "1266-623",
+   "ankaraMt": 116,
+   "istanbulMt": 153.7
+  },
+  {
+   "code": "1276-01",
+   "ankaraMt": 0,
+   "istanbulMt": 107.3
+  },
+  {
+   "code": "1276-04",
+   "ankaraMt": 40.6,
+   "istanbulMt": 313.2
+  },
+  {
+   "code": "1276-07",
+   "ankaraMt": 8.7,
+   "istanbulMt": 0
+  },
+  {
+   "code": "1276-08",
+   "ankaraMt": 0,
+   "istanbulMt": 181.5
+  },
+  {
+   "code": "1285-GLDR1",
+   "ankaraMt": 0,
+   "istanbulMt": 8.7
+  },
+  {
+   "code": "1285-WHITE",
+   "ankaraMt": 0,
+   "istanbulMt": 23.2
+  },
+  {
+   "code": "1302-01",
+   "ankaraMt": 0,
+   "istanbulMt": 5.8
+  },
+  {
+   "code": "1314-312",
+   "ankaraMt": 0,
+   "istanbulMt": 281.5
+  },
+  {
+   "code": "1314-CMP1",
+   "ankaraMt": 0,
+   "istanbulMt": 78.3
+  },
+  {
+   "code": "1319-04",
+   "ankaraMt": 182.7,
+   "istanbulMt": 1049.8
+  },
+  {
+   "code": "1319-07",
+   "ankaraMt": 75.4,
+   "istanbulMt": 414.7
+  },
+  {
+   "code": "1319-08",
+   "ankaraMt": 63.8,
+   "istanbulMt": 1009.2
+  },
+  {
+   "code": "1319-20",
+   "ankaraMt": 0,
+   "istanbulMt": 124.7
+  },
+  {
+   "code": "1319-252G",
+   "ankaraMt": 8.7,
+   "istanbulMt": 4785
+  },
+  {
+   "code": "1319-62",
+   "ankaraMt": 34.8,
+   "istanbulMt": 626.4
+  },
+  {
+   "code": "1319-63",
+   "ankaraMt": 197.2,
+   "istanbulMt": 1307.9
+  },
+  {
+   "code": "1319-65",
+   "ankaraMt": 156.6,
+   "istanbulMt": 739.5
+  },
+  {
+   "code": "1319-88",
+   "ankaraMt": 60.9,
+   "istanbulMt": 0
+  },
+  {
+   "code": "1327-04",
+   "ankaraMt": 0,
+   "istanbulMt": 20.3
+  },
+  {
+   "code": "1328-PINK-1",
+   "ankaraMt": 14.5,
+   "istanbulMt": 0
+  },
+  {
+   "code": "1328-WHITE",
+   "ankaraMt": 87,
+   "istanbulMt": 0
+  },
+  {
+   "code": "1328-YELLOW",
+   "ankaraMt": 156.6,
+   "istanbulMt": 0
+  },
+  {
+   "code": "1330-115",
+   "ankaraMt": 0,
+   "istanbulMt": 336.4
+  },
+  {
+   "code": "1334-04",
+   "ankaraMt": 0,
+   "istanbulMt": 92.8
+  },
+  {
+   "code": "1352-40",
+   "ankaraMt": 0,
+   "istanbulMt": 11.6
+  },
+  {
+   "code": "1369-553",
+   "ankaraMt": 63.8,
+   "istanbulMt": 1299.2
+  },
+  {
+   "code": "1375-40",
+   "ankaraMt": 0,
+   "istanbulMt": 107.3
+  },
+  {
+   "code": "1513-04",
+   "ankaraMt": 0,
+   "istanbulMt": 391.5
+  },
+  {
+   "code": "1537-WHITE+SILVER",
+   "ankaraMt": 0,
+   "istanbulMt": 60.9
+  },
+  {
+   "code": "1710-07",
+   "ankaraMt": 23.2,
+   "istanbulMt": 678.6
+  },
+  {
+   "code": "1730-G26",
+   "ankaraMt": 20.3,
+   "istanbulMt": 0
+  },
+  {
+   "code": "1964-S",
+   "ankaraMt": 5.8,
+   "istanbulMt": 174
+  },
+  {
+   "code": "205-126",
+   "ankaraMt": 0,
+   "istanbulMt": 2.9
+  },
+  {
+   "code": "207-1",
+   "ankaraMt": 98.6,
+   "istanbulMt": 0
+  },
+  {
+   "code": "207-3",
+   "ankaraMt": 98.6,
+   "istanbulMt": 0
+  },
+  {
+   "code": "2120-TD1",
+   "ankaraMt": 1919.8,
+   "istanbulMt": 0
+  },
+  {
+   "code": "2120-TD3",
+   "ankaraMt": 2856.5,
+   "istanbulMt": 0
+  },
+  {
+   "code": "2120-X85",
+   "ankaraMt": 901.9,
+   "istanbulMt": 0
+  },
+  {
+   "code": "2120-Y85",
+   "ankaraMt": 3103,
+   "istanbulMt": 0
+  },
+  {
+   "code": "2120S-Y75",
+   "ankaraMt": 3187.1,
+   "istanbulMt": 0
+  },
+  {
+   "code": "2231-D1Y",
+   "ankaraMt": 113.1,
+   "istanbulMt": 0
+  },
+  {
+   "code": "2231-F81",
+   "ankaraMt": 298.7,
+   "istanbulMt": 0
+  },
+  {
+   "code": "2231-R80",
+   "ankaraMt": 60.9,
+   "istanbulMt": 0
+  },
+  {
+   "code": "2315S-C75",
+   "ankaraMt": 95.7,
+   "istanbulMt": 0
+  },
+  {
+   "code": "2315S-D1",
+   "ankaraMt": 92.8,
+   "istanbulMt": 0
+  },
+  {
+   "code": "2315S-L90",
+   "ankaraMt": 145,
+   "istanbulMt": 0
+  },
+  {
+   "code": "2315S-N90",
+   "ankaraMt": 66.7,
+   "istanbulMt": 0
+  },
+  {
+   "code": "245E-02",
+   "ankaraMt": 5.8,
+   "istanbulMt": 0
+  },
+  {
+   "code": "245E-543",
+   "ankaraMt": 26.1,
+   "istanbulMt": 466.9
+  },
+  {
+   "code": "245E-988",
+   "ankaraMt": 29,
+   "istanbulMt": 362.5
+  },
+  {
+   "code": "250-04",
+   "ankaraMt": 0,
+   "istanbulMt": 5.8
+  },
+  {
+   "code": "3127-TD1",
+   "ankaraMt": 4129.6,
+   "istanbulMt": 0
+  },
+  {
+   "code": "3127-TD3",
+   "ankaraMt": 1829.9,
+   "istanbulMt": 0
+  },
+  {
+   "code": "3127S-A79",
+   "ankaraMt": 1307.9,
+   "istanbulMt": 121.8
+  },
+  {
+   "code": "3127S-G60",
+   "ankaraMt": 2905.8,
+   "istanbulMt": 0
+  },
+  {
+   "code": "3127S-Y1",
+   "ankaraMt": 2926.1,
+   "istanbulMt": 121.8
+  },
+  {
+   "code": "3154S-G79",
+   "ankaraMt": 2123.8,
+   "istanbulMt": 75.4
+  },
+  {
+   "code": "3154S-L64Y",
+   "ankaraMt": 2192.4,
+   "istanbulMt": 0
+  },
+  {
+   "code": "3154S-U78M",
+   "ankaraMt": 2540.4,
+   "istanbulMt": 0
+  },
+  {
+   "code": "3154S-V78G",
+   "ankaraMt": 2262,
+   "istanbulMt": 0
+  },
+  {
+   "code": "3154S-Y79Y",
+   "ankaraMt": 2206.9,
+   "istanbulMt": 75.4
+  },
+  {
+   "code": "3215A-2LP",
+   "ankaraMt": 0,
+   "istanbulMt": 237.8
+  },
+  {
+   "code": "3215A-6W",
+   "ankaraMt": 0,
+   "istanbulMt": 2030
+  },
+  {
+   "code": "3248S-N78",
+   "ankaraMt": 174,
+   "istanbulMt": 0
+  },
+  {
+   "code": "3248S-P78",
+   "ankaraMt": 261,
+   "istanbulMt": 0
+  },
+  {
+   "code": "3248S-S85Y",
+   "ankaraMt": 159.5,
+   "istanbulMt": 0
+  },
+  {
+   "code": "3248S-X81G",
+   "ankaraMt": 174,
+   "istanbulMt": 0
+  },
+  {
+   "code": "3745-4BZ",
+   "ankaraMt": 0,
+   "istanbulMt": 156.6
+  },
+  {
+   "code": "3745-5",
+   "ankaraMt": 60.9,
+   "istanbulMt": 504.6
+  },
+  {
+   "code": "3745-6",
+   "ankaraMt": 0,
+   "istanbulMt": 98.6
+  },
+  {
+   "code": "410-12",
+   "ankaraMt": 14.5,
+   "istanbulMt": 142.1
+  },
+  {
+   "code": "4118-5",
+   "ankaraMt": 69.6,
+   "istanbulMt": 0
+  },
+  {
+   "code": "4214-2GR",
+   "ankaraMt": 66.7,
+   "istanbulMt": 530.7
+  },
+  {
+   "code": "4214-5BR",
+   "ankaraMt": 0,
+   "istanbulMt": 1061.4
+  },
+  {
+   "code": "4214-6W",
+   "ankaraMt": 92.8,
+   "istanbulMt": 414.7
+  },
+  {
+   "code": "4256A-C65",
+   "ankaraMt": 1502.2,
+   "istanbulMt": 139.2
+  },
+  {
+   "code": "4256A-W90",
+   "ankaraMt": 765.6,
+   "istanbulMt": 69.6
+  },
+  {
+   "code": "4313S-N78",
+   "ankaraMt": 1461.6,
+   "istanbulMt": 0
+  },
+  {
+   "code": "4313S-P78",
+   "ankaraMt": 2482.4,
+   "istanbulMt": 0
+  },
+  {
+   "code": "4501S-A79",
+   "ankaraMt": 55.1,
+   "istanbulMt": 0
+  },
+  {
+   "code": "4501S-N68",
+   "ankaraMt": 31.9,
+   "istanbulMt": 0
+  },
+  {
+   "code": "4501S-Y55",
+   "ankaraMt": 58,
+   "istanbulMt": 0
+  },
+  {
+   "code": "4919-1GR",
+   "ankaraMt": 0,
+   "istanbulMt": 101.5
+  },
+  {
+   "code": "5019-55",
+   "ankaraMt": 72.5,
+   "istanbulMt": 678.6
+  },
+  {
+   "code": "511(75)-01",
+   "ankaraMt": 0,
+   "istanbulMt": 5.8
+  },
+  {
+   "code": "5285-G",
+   "ankaraMt": 34.8,
+   "istanbulMt": 185.6
+  },
+  {
+   "code": "5285-S",
+   "ankaraMt": 63.8,
+   "istanbulMt": 255.2
+  },
+  {
+   "code": "537-23",
+   "ankaraMt": 72.5,
+   "istanbulMt": 609
+  },
+  {
+   "code": "537-24",
+   "ankaraMt": 60.9,
+   "istanbulMt": 580
+  },
+  {
+   "code": "537-25",
+   "ankaraMt": 171.1,
+   "istanbulMt": 162.4
+  },
+  {
+   "code": "537-26",
+   "ankaraMt": 20.3,
+   "istanbulMt": 110.2
+  },
+  {
+   "code": "539-2",
+   "ankaraMt": 0,
+   "istanbulMt": 34.8
+  },
+  {
+   "code": "547-1",
+   "ankaraMt": 0,
+   "istanbulMt": 843.9
+  },
+  {
+   "code": "547-2",
+   "ankaraMt": 0,
+   "istanbulMt": 304.5
+  },
+  {
+   "code": "550-26",
+   "ankaraMt": 66.7,
+   "istanbulMt": 284.2
+  },
+  {
+   "code": "550-27",
+   "ankaraMt": 0,
+   "istanbulMt": 139.2
+  },
+  {
+   "code": "551-2",
+   "ankaraMt": 69.6,
+   "istanbulMt": 118.9
+  },
+  {
+   "code": "556-5",
+   "ankaraMt": 0,
+   "istanbulMt": 150.8
+  },
+  {
+   "code": "557-2",
+   "ankaraMt": 23.2,
+   "istanbulMt": 838.1
+  },
+  {
+   "code": "557-3",
+   "ankaraMt": 26.1,
+   "istanbulMt": 0
+  },
+  {
+   "code": "557-4",
+   "ankaraMt": 17.4,
+   "istanbulMt": 121.8
+  },
+  {
+   "code": "558-11",
+   "ankaraMt": 8.7,
+   "istanbulMt": 0
+  },
+  {
+   "code": "558-12",
+   "ankaraMt": 95.7,
+   "istanbulMt": 696
+  },
+  {
+   "code": "558-2",
+   "ankaraMt": 89.8,
+   "istanbulMt": 159.5
+  },
+  {
+   "code": "558-4",
+   "ankaraMt": 11.6,
+   "istanbulMt": 356.7
+  },
+  {
+   "code": "560(S)-21",
+   "ankaraMt": 11.6,
+   "istanbulMt": 203
+  },
+  {
+   "code": "560(S)-22",
+   "ankaraMt": 40.6,
+   "istanbulMt": 1029.5
+  },
+  {
+   "code": "560(S)-26",
+   "ankaraMt": 29,
+   "istanbulMt": 377
+  },
+  {
+   "code": "560(S)-5",
+   "ankaraMt": 20.3,
+   "istanbulMt": 742.4
+  },
+  {
+   "code": "6317S-G87",
+   "ankaraMt": 1189,
+   "istanbulMt": 87
+  },
+  {
+   "code": "6317S-H87",
+   "ankaraMt": 551,
+   "istanbulMt": 58
+  },
+  {
+   "code": "6403-KR01",
+   "ankaraMt": 11.6,
+   "istanbulMt": 0
+  },
+  {
+   "code": "6403-KR02",
+   "ankaraMt": 20.3,
+   "istanbulMt": 0
+  },
+  {
+   "code": "7030B-2",
+   "ankaraMt": 0,
+   "istanbulMt": 29
+  },
+  {
+   "code": "7030B-5",
+   "ankaraMt": 0,
+   "istanbulMt": 5.8
+  },
+  {
+   "code": "70910-1",
+   "ankaraMt": 133.4,
+   "istanbulMt": 0
+  },
+  {
+   "code": "70910-3",
+   "ankaraMt": 133.4,
+   "istanbulMt": 0
+  },
+  {
+   "code": "70910-4",
+   "ankaraMt": 133.4,
+   "istanbulMt": 0
+  },
+  {
+   "code": "750-13",
+   "ankaraMt": 43.5,
+   "istanbulMt": 556.8
+  },
+  {
+   "code": "750-14",
+   "ankaraMt": 43.5,
+   "istanbulMt": 121.8
+  },
+  {
+   "code": "7501-P87",
+   "ankaraMt": 574.2,
+   "istanbulMt": 0
+  },
+  {
+   "code": "7501-Q87",
+   "ankaraMt": 797.5,
+   "istanbulMt": 0
+  },
+  {
+   "code": "756-1",
+   "ankaraMt": 49.3,
+   "istanbulMt": 0
+  },
+  {
+   "code": "756-2",
+   "ankaraMt": 26.1,
+   "istanbulMt": 0
+  },
+  {
+   "code": "756-3",
+   "ankaraMt": 26.1,
+   "istanbulMt": 0
+  },
+  {
+   "code": "794-2",
+   "ankaraMt": 0,
+   "istanbulMt": 785.9
+  },
+  {
+   "code": "800-76",
+   "ankaraMt": 379.9,
+   "istanbulMt": 0
+  },
+  {
+   "code": "800-B25-00",
+   "ankaraMt": 49.3,
+   "istanbulMt": 0
+  },
+  {
+   "code": "800-WHITE-00",
+   "ankaraMt": 194.3,
+   "istanbulMt": 0
+  },
+  {
+   "code": "8010C-008S",
+   "ankaraMt": 243.6,
+   "istanbulMt": 0
+  },
+  {
+   "code": "803A-1",
+   "ankaraMt": 34.8,
+   "istanbulMt": 0
+  },
+  {
+   "code": "803A-2",
+   "ankaraMt": 75.4,
+   "istanbulMt": 0
+  },
+  {
+   "code": "8458-1RT",
+   "ankaraMt": 0,
+   "istanbulMt": 2.9
+  },
+  {
+   "code": "8501S-G87",
+   "ankaraMt": 887.4,
+   "istanbulMt": 17.4
+  },
+  {
+   "code": "8501S-H87",
+   "ankaraMt": 530.7,
+   "istanbulMt": 17.4
+  },
+  {
+   "code": "858-1",
+   "ankaraMt": 168.2,
+   "istanbulMt": 0
+  },
+  {
+   "code": "858-2",
+   "ankaraMt": 179.8,
+   "istanbulMt": 0
+  },
+  {
+   "code": "858-3",
+   "ankaraMt": 168.2,
+   "istanbulMt": 0
+  },
+  {
+   "code": "858-4",
+   "ankaraMt": 168.2,
+   "istanbulMt": 0
+  },
+  {
+   "code": "8770-3",
+   "ankaraMt": 142.1,
+   "istanbulMt": 0
+  },
+  {
+   "code": "8770-4",
+   "ankaraMt": 142.1,
+   "istanbulMt": 0
+  },
+  {
+   "code": "887-1",
+   "ankaraMt": 191.4,
+   "istanbulMt": 0
+  },
+  {
+   "code": "887-2",
+   "ankaraMt": 200.1,
+   "istanbulMt": 0
+  },
+  {
+   "code": "887-3",
+   "ankaraMt": 200.1,
+   "istanbulMt": 0
+  },
+  {
+   "code": "913-03",
+   "ankaraMt": 0,
+   "istanbulMt": 194.3
+  },
+  {
+   "code": "930-24",
+   "ankaraMt": 0,
+   "istanbulMt": 40.6
+  },
+  {
+   "code": "AH-07",
+   "ankaraMt": 182.7,
+   "istanbulMt": 1876.3
+  },
+  {
+   "code": "AH-516",
+   "ankaraMt": 0,
+   "istanbulMt": 380.2
+  },
+  {
+   "code": "AH-WT",
+   "ankaraMt": 313.2,
+   "istanbulMt": 2589.7
+  },
+  {
+   "code": "AH3-112",
+   "ankaraMt": 0,
+   "istanbulMt": 43.5
+  },
+  {
+   "code": "BP3-F04",
+   "ankaraMt": 0,
+   "istanbulMt": 211.7
+  },
+  {
+   "code": "FA015-025S",
+   "ankaraMt": 81.2,
+   "istanbulMt": 0
+  },
+  {
+   "code": "FA015-1160S",
+   "ankaraMt": 58,
+   "istanbulMt": 0
+  },
+  {
+   "code": "FA015-1162S",
+   "ankaraMt": 136.3,
+   "istanbulMt": 0
+  },
+  {
+   "code": "FA015-330S",
+   "ankaraMt": 174,
+   "istanbulMt": 0
+  },
+  {
+   "code": "FA019-025S",
+   "ankaraMt": 200.1,
+   "istanbulMt": 0
+  },
+  {
+   "code": "FA019-1162S",
+   "ankaraMt": 400.2,
+   "istanbulMt": 0
+  },
+  {
+   "code": "FA019-1232S",
+   "ankaraMt": 298.7,
+   "istanbulMt": 0
+  },
+  {
+   "code": "FA019-693S",
+   "ankaraMt": 327.7,
+   "istanbulMt": 0
+  },
+  {
+   "code": "FB002-014S",
+   "ankaraMt": 81.2,
+   "istanbulMt": 0
+  },
+  {
+   "code": "FB014-014",
+   "ankaraMt": 118.9,
+   "istanbulMt": 0
+  },
+  {
+   "code": "FB014-330",
+   "ankaraMt": 31.9,
+   "istanbulMt": 0
+  },
+  {
+   "code": "FB027-595S",
+   "ankaraMt": 116,
+   "istanbulMt": 0
+  },
+  {
+   "code": "FB037-014S",
+   "ankaraMt": 46.4,
+   "istanbulMt": 0
+  },
+  {
+   "code": "FB037-303S",
+   "ankaraMt": 133.4,
+   "istanbulMt": 0
+  },
+  {
+   "code": "FB037-327S",
+   "ankaraMt": 37.7,
+   "istanbulMt": 0
+  },
+  {
+   "code": "FB037-355S",
+   "ankaraMt": 495.9,
+   "istanbulMt": 0
+  },
+  {
+   "code": "FB037-576",
+   "ankaraMt": 43.5,
+   "istanbulMt": 0
+  },
+  {
+   "code": "FB037-576S",
+   "ankaraMt": 81.2,
+   "istanbulMt": 0
+  },
+  {
+   "code": "FB053-959",
+   "ankaraMt": 46.4,
+   "istanbulMt": 0
+  },
+  {
+   "code": "FB053-962S",
+   "ankaraMt": 5.8,
+   "istanbulMt": 0
+  },
+  {
+   "code": "FB053-963S",
+   "ankaraMt": 11.6,
+   "istanbulMt": 0
+  },
+  {
+   "code": "FB053-964",
+   "ankaraMt": 92.8,
+   "istanbulMt": 0
+  },
+  {
+   "code": "FB056-014",
+   "ankaraMt": 17.4,
+   "istanbulMt": 0
+  },
+  {
+   "code": "FB063-014S",
+   "ankaraMt": 452.4,
+   "istanbulMt": 0
+  },
+  {
+   "code": "FB063-025S",
+   "ankaraMt": 455.3,
+   "istanbulMt": 0
+  },
+  {
+   "code": "FB063-038S",
+   "ankaraMt": 455.3,
+   "istanbulMt": 0
+  },
+  {
+   "code": "FC062-489S",
+   "ankaraMt": 168.2,
+   "istanbulMt": 0
+  },
+  {
+   "code": "FC062-917S",
+   "ankaraMt": 220.4,
+   "istanbulMt": 0
+  },
+  {
+   "code": "FC062-918S",
+   "ankaraMt": 281.3,
+   "istanbulMt": 0
+  },
+  {
+   "code": "FC062-919S",
+   "ankaraMt": 92.8,
+   "istanbulMt": 0
+  },
+  {
+   "code": "FC077-1070B",
+   "ankaraMt": 145,
+   "istanbulMt": 0
+  },
+  {
+   "code": "FC077-1072B",
+   "ankaraMt": 118.9,
+   "istanbulMt": 0
+  },
+  {
+   "code": "FC077-1074B",
+   "ankaraMt": 234.9,
+   "istanbulMt": 0
+  },
+  {
+   "code": "FC077-1076B",
+   "ankaraMt": 208.8,
+   "istanbulMt": 0
+  },
+  {
+   "code": "FC083-479S",
+   "ankaraMt": 223.3,
+   "istanbulMt": 0
+  },
+  {
+   "code": "FC083-486S",
+   "ankaraMt": 40.6,
+   "istanbulMt": 0
+  },
+  {
+   "code": "FC091-1193B",
+   "ankaraMt": 26.1,
+   "istanbulMt": 0
+  },
+  {
+   "code": "FC091-1195B",
+   "ankaraMt": 174,
+   "istanbulMt": 0
+  },
+  {
+   "code": "FC091-198B",
+   "ankaraMt": 87,
+   "istanbulMt": 0
+  },
+  {
+   "code": "FD051-079S",
+   "ankaraMt": 17.4,
+   "istanbulMt": 0
+  },
+  {
+   "code": "FD051-487S",
+   "ankaraMt": 29,
+   "istanbulMt": 0
+  },
+  {
+   "code": "FD057-1002XS",
+   "ankaraMt": 31.9,
+   "istanbulMt": 0
+  },
+  {
+   "code": "FD069-1252S",
+   "ankaraMt": 147.9,
+   "istanbulMt": 0
+  },
+  {
+   "code": "FD070-025",
+   "ankaraMt": 17.4,
+   "istanbulMt": 0
+  },
+  {
+   "code": "FD070-1002",
+   "ankaraMt": 66.7,
+   "istanbulMt": 0
+  },
+  {
+   "code": "FD070-1570",
+   "ankaraMt": 136.3,
+   "istanbulMt": 0
+  },
+  {
+   "code": "FD070-355",
+   "ankaraMt": 98.6,
+   "istanbulMt": 0
+  },
+  {
+   "code": "FD070-760",
+   "ankaraMt": 34.8,
+   "istanbulMt": 17.4
+  },
+  {
+   "code": "FE046-359",
+   "ankaraMt": 14.5,
+   "istanbulMt": 0
+  },
+  {
+   "code": "FF018-025XS",
+   "ankaraMt": 20.3,
+   "istanbulMt": 0
+  },
+  {
+   "code": "FF018-303XS",
+   "ankaraMt": 2.9,
+   "istanbulMt": 0
+  },
+  {
+   "code": "FF018-355XS",
+   "ankaraMt": 11.6,
+   "istanbulMt": 0
+  },
+  {
+   "code": "FF019-280ST",
+   "ankaraMt": 26.1,
+   "istanbulMt": 0
+  },
+  {
+   "code": "FF019-365ST",
+   "ankaraMt": 29,
+   "istanbulMt": 0
+  },
+  {
+   "code": "FF019-738ST",
+   "ankaraMt": 29,
+   "istanbulMt": 0
+  },
+  {
+   "code": "FG012-876B",
+   "ankaraMt": 26.1,
+   "istanbulMt": 0
+  },
+  {
+   "code": "FG015-365ST",
+   "ankaraMt": 40.6,
+   "istanbulMt": 0
+  },
+  {
+   "code": "FG015-738ST",
+   "ankaraMt": 34.8,
+   "istanbulMt": 0
+  },
+  {
+   "code": "GA002-011BX",
+   "ankaraMt": 957,
+   "istanbulMt": 0
+  },
+  {
+   "code": "GA002-022BX",
+   "ankaraMt": 1887.9,
+   "istanbulMt": 0
+  },
+  {
+   "code": "GA002-1542BX",
+   "ankaraMt": 1157.1,
+   "istanbulMt": 1322.4
+  },
+  {
+   "code": "GA002-2211BX",
+   "ankaraMt": 1264.4,
+   "istanbulMt": 0
+  },
+  {
+   "code": "GA002-3037T",
+   "ankaraMt": 1606.6,
+   "istanbulMt": 794.6
+  },
+  {
+   "code": "GA002-3038T",
+   "ankaraMt": 1067.2,
+   "istanbulMt": 655.4
+  },
+  {
+   "code": "GA028-011",
+   "ankaraMt": 432.1,
+   "istanbulMt": 0
+  },
+  {
+   "code": "GA028-1762",
+   "ankaraMt": 0,
+   "istanbulMt": 481.4
+  },
+  {
+   "code": "GA028-2145",
+   "ankaraMt": 0,
+   "istanbulMt": 89.9
+  },
+  {
+   "code": "GA028-864",
+   "ankaraMt": 1974.9,
+   "istanbulMt": 1296.3
+  },
+  {
+   "code": "GA039-011C",
+   "ankaraMt": 1505.1,
+   "istanbulMt": 417.6
+  },
+  {
+   "code": "GA039-2211C",
+   "ankaraMt": 1162.9,
+   "istanbulMt": 864.2
+  },
+  {
+   "code": "GA039-3037C",
+   "ankaraMt": 893.2,
+   "istanbulMt": 194.3
+  },
+  {
+   "code": "GA039-3038C1",
+   "ankaraMt": 0,
+   "istanbulMt": 2172.1
+  },
+  {
+   "code": "GA057-011BC",
+   "ankaraMt": 872.9,
+   "istanbulMt": 1264.4
+  },
+  {
+   "code": "GA057-3026BC",
+   "ankaraMt": 208.8,
+   "istanbulMt": 1537
+  },
+  {
+   "code": "GA057-3028BC",
+   "ankaraMt": 98.6,
+   "istanbulMt": 1513.2
+  },
+  {
+   "code": "GA057-4110BC",
+   "ankaraMt": 2018.4,
+   "istanbulMt": 26.1
+  },
+  {
+   "code": "GA061-3781",
+   "ankaraMt": 3349.5,
+   "istanbulMt": 1176
+  },
+  {
+   "code": "GA061-3785",
+   "ankaraMt": 6177,
+   "istanbulMt": 1044
+  },
+  {
+   "code": "GA081-011Y",
+   "ankaraMt": 1487.7,
+   "istanbulMt": 0
+  },
+  {
+   "code": "GA081-3260Y",
+   "ankaraMt": 562.6,
+   "istanbulMt": 0
+  },
+  {
+   "code": "GA081-3920Y",
+   "ankaraMt": 1325.3,
+   "istanbulMt": 0
+  },
+  {
+   "code": "GB022-011BX",
+   "ankaraMt": 116,
+   "istanbulMt": 374.1
+  },
+  {
+   "code": "GB022-030BX",
+   "ankaraMt": 1064.3,
+   "istanbulMt": 11.6
+  },
+  {
+   "code": "GB022-1542BX",
+   "ankaraMt": 0,
+   "istanbulMt": 11.6
+  },
+  {
+   "code": "GB022-298BX",
+   "ankaraMt": 1128.1,
+   "istanbulMt": 319
+  },
+  {
+   "code": "GB022-500NY",
+   "ankaraMt": 2525.9,
+   "istanbulMt": 1618.2
+  },
+  {
+   "code": "GB022-501NY",
+   "ankaraMt": 2302.6,
+   "istanbulMt": 69.6
+  },
+  {
+   "code": "GB066-2211",
+   "ankaraMt": 87,
+   "istanbulMt": 2247.5
+  },
+  {
+   "code": "GB066-2725",
+   "ankaraMt": 84.1,
+   "istanbulMt": 0
+  },
+  {
+   "code": "GB066-4147",
+   "ankaraMt": 104.4,
+   "istanbulMt": 1409.4
+  },
+  {
+   "code": "GB085-1490B",
+   "ankaraMt": 1948.8,
+   "istanbulMt": 649.6
+  },
+  {
+   "code": "GB085-1633B",
+   "ankaraMt": 2233,
+   "istanbulMt": 0
+  },
+  {
+   "code": "GB108-011",
+   "ankaraMt": 69.6,
+   "istanbulMt": 1107.8
+  },
+  {
+   "code": "GB108-017",
+   "ankaraMt": 23.2,
+   "istanbulMt": 197.2
+  },
+  {
+   "code": "GB108-033",
+   "ankaraMt": 0,
+   "istanbulMt": 1322.4
+  },
+  {
+   "code": "GB108-1489BC",
+   "ankaraMt": 20.3,
+   "istanbulMt": 1600.8
+  },
+  {
+   "code": "GB108-2211B",
+   "ankaraMt": 92.8,
+   "istanbulMt": 362.5
+  },
+  {
+   "code": "GB119-2475T",
+   "ankaraMt": 98.6,
+   "istanbulMt": 1044
+  },
+  {
+   "code": "GB119-2476",
+   "ankaraMt": 78.3,
+   "istanbulMt": 896.1
+  },
+  {
+   "code": "GB119-2496T",
+   "ankaraMt": 162.4,
+   "istanbulMt": 835.2
+  },
+  {
+   "code": "GB119-2498",
+   "ankaraMt": 0,
+   "istanbulMt": 1070.1
+  },
+  {
+   "code": "GB138-011B2",
+   "ankaraMt": 571.3,
+   "istanbulMt": 168.2
+  },
+  {
+   "code": "GB138-2211B2",
+   "ankaraMt": 1890.8,
+   "istanbulMt": 40.6
+  },
+  {
+   "code": "GB139-1211T",
+   "ankaraMt": 0,
+   "istanbulMt": 2.9
+  },
+  {
+   "code": "GB139-1921T",
+   "ankaraMt": 127.6,
+   "istanbulMt": 2302.6
+  },
+  {
+   "code": "GB139-2964TA",
+   "ankaraMt": 3030.5,
+   "istanbulMt": 0
+  },
+  {
+   "code": "GB139-2967T",
+   "ankaraMt": 162.4,
+   "istanbulMt": 1948.8
+  },
+  {
+   "code": "GB147-4013B",
+   "ankaraMt": 127.6,
+   "istanbulMt": 803.3
+  },
+  {
+   "code": "GB147-4014B",
+   "ankaraMt": 432.1,
+   "istanbulMt": 396
+  },
+  {
+   "code": "GB147-4016B",
+   "ankaraMt": 551,
+   "istanbulMt": 1000.5
+  },
+  {
+   "code": "GB147-4017B",
+   "ankaraMt": 0,
+   "istanbulMt": 1513.8
+  },
+  {
+   "code": "GB147-4147",
+   "ankaraMt": 52.2,
+   "istanbulMt": 469.8
+  },
+  {
+   "code": "GB185-011B",
+   "ankaraMt": 994.7,
+   "istanbulMt": 0
+  },
+  {
+   "code": "GB185-1842B",
+   "ankaraMt": 864.2,
+   "istanbulMt": 0
+  },
+  {
+   "code": "GB185-3920B",
+   "ankaraMt": 974.4,
+   "istanbulMt": 0
+  },
+  {
+   "code": "GB185-4110P",
+   "ankaraMt": 1084.6,
+   "istanbulMt": 0
+  },
+  {
+   "code": "GB195-3642",
+   "ankaraMt": 188.5,
+   "istanbulMt": 3758.4
+  },
+  {
+   "code": "GB195-4193",
+   "ankaraMt": 150.8,
+   "istanbulMt": 5220
+  },
+  {
+   "code": "GB211-011B",
+   "ankaraMt": 1531.2,
+   "istanbulMt": 0
+  },
+  {
+   "code": "GB211-2211B",
+   "ankaraMt": 2427.3,
+   "istanbulMt": 0
+  },
+  {
+   "code": "GB211-3920B",
+   "ankaraMt": 1461.6,
+   "istanbulMt": 49.3
+  },
+  {
+   "code": "GB211-4013B",
+   "ankaraMt": 1218,
+   "istanbulMt": 58
+  },
+  {
+   "code": "GB211-4014B",
+   "ankaraMt": 751.1,
+   "istanbulMt": 31.9
+  },
+  {
+   "code": "GB211-4016B",
+   "ankaraMt": 1000.5,
+   "istanbulMt": 37.7
+  },
+  {
+   "code": "GB211-4017B",
+   "ankaraMt": 382.8,
+   "istanbulMt": 92.8
+  },
+  {
+   "code": "GB211-4110B",
+   "ankaraMt": 1229.6,
+   "istanbulMt": 63.8
+  },
+  {
+   "code": "GB211-4229B",
+   "ankaraMt": 1827.5,
+   "istanbulMt": 63.8
+  },
+  {
+   "code": "GC004-1542B",
+   "ankaraMt": 31.9,
+   "istanbulMt": 203
+  },
+  {
+   "code": "GC004-2211BX",
+   "ankaraMt": 0,
+   "istanbulMt": 600.3
+  },
+  {
+   "code": "GC017-2934A",
+   "ankaraMt": 20.3,
+   "istanbulMt": 31.9
+  },
+  {
+   "code": "GC017-2935A",
+   "ankaraMt": 8.7,
+   "istanbulMt": 722.1
+  },
+  {
+   "code": "GC017-707A",
+   "ankaraMt": 8.7,
+   "istanbulMt": 0
+  },
+  {
+   "code": "GC047-2000T",
+   "ankaraMt": 153.7,
+   "istanbulMt": 452.4
+  },
+  {
+   "code": "GC047-2022T",
+   "ankaraMt": 87,
+   "istanbulMt": 0
+  },
+  {
+   "code": "GC047-917BX",
+   "ankaraMt": 84.1,
+   "istanbulMt": 0
+  },
+  {
+   "code": "GC047-927BX",
+   "ankaraMt": 17.4,
+   "istanbulMt": 0
+  },
+  {
+   "code": "GC056-1110B",
+   "ankaraMt": 11.6,
+   "istanbulMt": 40.6
+  },
+  {
+   "code": "GC056-843B",
+   "ankaraMt": 31.9,
+   "istanbulMt": 406
+  },
+  {
+   "code": "GC065-1473BX",
+   "ankaraMt": 87,
+   "istanbulMt": 1595
+  },
+  {
+   "code": "GC065-1515BX",
+   "ankaraMt": 43.5,
+   "istanbulMt": 1160
+  },
+  {
+   "code": "GC116-2213C",
+   "ankaraMt": 89.9,
+   "istanbulMt": 591.6
+  },
+  {
+   "code": "GC116-2214C",
+   "ankaraMt": 0,
+   "istanbulMt": 591.6
+  },
+  {
+   "code": "GC138-2274B",
+   "ankaraMt": 725,
+   "istanbulMt": 0
+  },
+  {
+   "code": "GC138-3312B",
+   "ankaraMt": 1067.2,
+   "istanbulMt": 0
+  },
+  {
+   "code": "GC148-1565A",
+   "ankaraMt": 66.7,
+   "istanbulMt": 95.7
+  },
+  {
+   "code": "GC148-2145A",
+   "ankaraMt": 179.8,
+   "istanbulMt": 391.5
+  },
+  {
+   "code": "GC148-2211A",
+   "ankaraMt": 443.7,
+   "istanbulMt": 1928.5
+  },
+  {
+   "code": "GC153-011A",
+   "ankaraMt": 5.8,
+   "istanbulMt": 124.4
+  },
+  {
+   "code": "GC153-2116A",
+   "ankaraMt": 52.2,
+   "istanbulMt": 400.2
+  },
+  {
+   "code": "GC153-2926A",
+   "ankaraMt": 43.5,
+   "istanbulMt": 78.3
+  },
+  {
+   "code": "GC153-2927A",
+   "ankaraMt": 2.9,
+   "istanbulMt": 359.6
+  },
+  {
+   "code": "GC154-2928T",
+   "ankaraMt": 0,
+   "istanbulMt": 72.5
+  },
+  {
+   "code": "GC176-3288",
+   "ankaraMt": 1383.3,
+   "istanbulMt": 1624
+  },
+  {
+   "code": "GC176-3289",
+   "ankaraMt": 0,
+   "istanbulMt": 2807.2
+  },
+  {
+   "code": "GC242-3922",
+   "ankaraMt": 797.5,
+   "istanbulMt": 34.8
+  },
+  {
+   "code": "GC242-3925",
+   "ankaraMt": 1473.2,
+   "istanbulMt": 34.8
+  },
+  {
+   "code": "GD004-011BX",
+   "ankaraMt": 29,
+   "istanbulMt": 20.3
+  },
+  {
+   "code": "GD004-017",
+   "ankaraMt": 0,
+   "istanbulMt": 759.8
+  },
+  {
+   "code": "GD004-031",
+   "ankaraMt": 0,
+   "istanbulMt": 710.5
+  },
+  {
+   "code": "GD077-1541B",
+   "ankaraMt": 0,
+   "istanbulMt": 40.6
+  },
+  {
+   "code": "GD138-2841B",
+   "ankaraMt": 11.6,
+   "istanbulMt": 475.6
+  },
+  {
+   "code": "GD138-2842B",
+   "ankaraMt": 890.3,
+   "istanbulMt": 0
+  },
+  {
+   "code": "GD138-2845B",
+   "ankaraMt": 951.2,
+   "istanbulMt": 0
+  },
+  {
+   "code": "GD138-2997B",
+   "ankaraMt": 1168.7,
+   "istanbulMt": 0
+  },
+  {
+   "code": "GD151-3096B",
+   "ankaraMt": 81.2,
+   "istanbulMt": 661.2
+  },
+  {
+   "code": "GD151-3159B",
+   "ankaraMt": 130.5,
+   "istanbulMt": 327.7
+  },
+  {
+   "code": "GD154-3427BA",
+   "ankaraMt": 1287.6,
+   "istanbulMt": 0
+  },
+  {
+   "code": "GD154-4313BA",
+   "ankaraMt": 1716.8,
+   "istanbulMt": 0
+  },
+  {
+   "code": "GD191-4223",
+   "ankaraMt": 716.3,
+   "istanbulMt": 0
+  },
+  {
+   "code": "GD191-4238",
+   "ankaraMt": 591.6,
+   "istanbulMt": 26.1
+  },
+  {
+   "code": "GE015-1863BX",
+   "ankaraMt": 63.8,
+   "istanbulMt": 939.6
+  },
+  {
+   "code": "GE015-2013BX",
+   "ankaraMt": 0,
+   "istanbulMt": 556.8
+  },
+  {
+   "code": "GE015-480BX",
+   "ankaraMt": 58,
+   "istanbulMt": 408.9
+  },
+  {
+   "code": "GE015-481BX",
+   "ankaraMt": 142.1,
+   "istanbulMt": 1203.5
+  },
+  {
+   "code": "GE070-1038B",
+   "ankaraMt": 884.5,
+   "istanbulMt": 0
+  },
+  {
+   "code": "GE070-1039B",
+   "ankaraMt": 698.9,
+   "istanbulMt": 313.2
+  },
+  {
+   "code": "GE070-1210",
+   "ankaraMt": 533.6,
+   "istanbulMt": 8.7
+  },
+  {
+   "code": "GE070-633B",
+   "ankaraMt": 582.9,
+   "istanbulMt": 0
+  },
+  {
+   "code": "GE070-81467B",
+   "ankaraMt": 72.5,
+   "istanbulMt": 501.7
+  },
+  {
+   "code": "GE072-1541B",
+   "ankaraMt": 8.7,
+   "istanbulMt": 0
+  },
+  {
+   "code": "GE099-2499B",
+   "ankaraMt": 284.2,
+   "istanbulMt": 0
+  },
+  {
+   "code": "GE099-2500B",
+   "ankaraMt": 809.1,
+   "istanbulMt": 0
+  },
+  {
+   "code": "GE128-2411",
+   "ankaraMt": 104.4,
+   "istanbulMt": 1479
+  },
+  {
+   "code": "GE128-2421",
+   "ankaraMt": 1647.2,
+   "istanbulMt": 0
+  },
+  {
+   "code": "GE147-3358A",
+   "ankaraMt": 0,
+   "istanbulMt": 1635.6
+  },
+  {
+   "code": "GE147-3426BA",
+   "ankaraMt": 0,
+   "istanbulMt": 997.6
+  },
+  {
+   "code": "GE147-3428BA",
+   "ankaraMt": 0,
+   "istanbulMt": 1061.4
+  },
+  {
+   "code": "GE147-4189A",
+   "ankaraMt": 0,
+   "istanbulMt": 1044
+  },
+  {
+   "code": "GE169-3110P",
+   "ankaraMt": 200.1,
+   "istanbulMt": 0
+  },
+  {
+   "code": "GE169-3115P",
+   "ankaraMt": 319,
+   "istanbulMt": 0
+  },
+  {
+   "code": "GE169-4132P",
+   "ankaraMt": 406,
+   "istanbulMt": 0
+  },
+  {
+   "code": "GE169-4133P",
+   "ankaraMt": 136.3,
+   "istanbulMt": 0
+  },
+  {
+   "code": "GE184-3944B",
+   "ankaraMt": 208.8,
+   "istanbulMt": 304.5
+  },
+  {
+   "code": "GE184-4417B",
+   "ankaraMt": 37.7,
+   "istanbulMt": 258.1
+  },
+  {
+   "code": "GE184-4446B",
+   "ankaraMt": 246.5,
+   "istanbulMt": 316.1
+  },
+  {
+   "code": "GF082-1863T",
+   "ankaraMt": 43.5,
+   "istanbulMt": 40.6
+  },
+  {
+   "code": "GF105-1565A",
+   "ankaraMt": 835.2,
+   "istanbulMt": 0
+  },
+  {
+   "code": "GF105-2145A",
+   "ankaraMt": 1044,
+   "istanbulMt": 0
+  },
+  {
+   "code": "GF105-2211A",
+   "ankaraMt": 17.4,
+   "istanbulMt": 574.2
+  },
+  {
+   "code": "GF105-2701A",
+   "ankaraMt": 783,
+   "istanbulMt": 0
+  },
+  {
+   "code": "GF133-3986P",
+   "ankaraMt": 40.6,
+   "istanbulMt": 701.8
+  },
+  {
+   "code": "GF133-3987P",
+   "ankaraMt": 20.3,
+   "istanbulMt": 817.8
+  },
+  {
+   "code": "GF148-1842Y",
+   "ankaraMt": 23.2,
+   "istanbulMt": 829.4
+  },
+  {
+   "code": "GF148-2924Y",
+   "ankaraMt": 0,
+   "istanbulMt": 1247
+  },
+  {
+   "code": "GF148-4330Y",
+   "ankaraMt": 1067.2,
+   "istanbulMt": 0
+  },
+  {
+   "code": "GG044-1863BX",
+   "ankaraMt": 0,
+   "istanbulMt": 809.1
+  },
+  {
+   "code": "GG044-2013BX",
+   "ankaraMt": 220.4,
+   "istanbulMt": 475.6
+  },
+  {
+   "code": "GG048-1039B",
+   "ankaraMt": 29,
+   "istanbulMt": 0
+  },
+  {
+   "code": "GG090-2850T",
+   "ankaraMt": 34.8,
+   "istanbulMt": 379.9
+  },
+  {
+   "code": "GG090-2851T",
+   "ankaraMt": 34.8,
+   "istanbulMt": 626.4
+  },
+  {
+   "code": "GG099-3426BA",
+   "ankaraMt": 925.1,
+   "istanbulMt": 23.2
+  },
+  {
+   "code": "GG099-3428BA",
+   "ankaraMt": 614.8,
+   "istanbulMt": 188.5
+  },
+  {
+   "code": "GG128-3110P",
+   "ankaraMt": 26.1,
+   "istanbulMt": 0
+  },
+  {
+   "code": "GG128-4346BY",
+   "ankaraMt": 365.4,
+   "istanbulMt": 20.3
+  },
+  {
+   "code": "GH025-1690B",
+   "ankaraMt": 5.8,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS1512-BROWN",
+   "ankaraMt": 72.5,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS1512-SILVER",
+   "ankaraMt": 89.9,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS1512-WOODEN",
+   "ankaraMt": 17.4,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS1914-5225-7",
+   "ankaraMt": 5376.6,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS1914-5228-4",
+   "ankaraMt": 4547.2,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS1914-BROWN",
+   "ankaraMt": 255.2,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS1914-GOLD",
+   "ankaraMt": 69.6,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS1914-SILVER",
+   "ankaraMt": 156.6,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS2012B-BLACK",
+   "ankaraMt": 110.2,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS2012B-BLUE",
+   "ankaraMt": 11.6,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS2012B-GOLD",
+   "ankaraMt": 72.5,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS2012B-GREEN",
+   "ankaraMt": 142.1,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS2012B-WHITE",
+   "ankaraMt": 435,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS2019-BLACK",
+   "ankaraMt": 11.6,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS2019-BLUE",
+   "ankaraMt": 92.8,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS2019-GREEN",
+   "ankaraMt": 92.8,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS2019-PINK",
+   "ankaraMt": 92.8,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS2019-WHITE",
+   "ankaraMt": 92.8,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS2030-SHINING",
+   "ankaraMt": 55.1,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS2124-1817",
+   "ankaraMt": 162.4,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS2124-1818",
+   "ankaraMt": 232,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS2124-5228-4",
+   "ankaraMt": 72.5,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS2124-BLACK",
+   "ankaraMt": 237.8,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS2124-BROWN",
+   "ankaraMt": 237.8,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS2124-GOLD",
+   "ankaraMt": 52.2,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS2318-SILVER",
+   "ankaraMt": 43.5,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS2413-SILVER",
+   "ankaraMt": 43.5,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS2619-ANT",
+   "ankaraMt": 60.9,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS2619-GREEN",
+   "ankaraMt": 55.1,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS2619-RED",
+   "ankaraMt": 29,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS2714-5395",
+   "ankaraMt": 63.8,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS2714-BROWN",
+   "ankaraMt": 133.4,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS2740-WHITE",
+   "ankaraMt": 26.1,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS2814-BLUE",
+   "ankaraMt": 26.1,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS2814-BROWN",
+   "ankaraMt": 17.4,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS2814-GREEN",
+   "ankaraMt": 11.6,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS2814-YELLOW",
+   "ankaraMt": 150.8,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS2822-2",
+   "ankaraMt": 60.9,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS2822-3",
+   "ankaraMt": 20.3,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS2822-4",
+   "ankaraMt": 34.8,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS2914-BLACK",
+   "ankaraMt": 20.3,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS2914-BROWN",
+   "ankaraMt": 72.5,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS2914-WHITE",
+   "ankaraMt": 29,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS2915-ANT",
+   "ankaraMt": 37.7,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS2915-WHITE",
+   "ankaraMt": 133.4,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS3021-ANT",
+   "ankaraMt": 185.6,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS3021-BLUE",
+   "ankaraMt": 829.4,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS3021-SILVER",
+   "ankaraMt": 290,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS3021-WHITE",
+   "ankaraMt": 855.5,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS3022-BROWN",
+   "ankaraMt": 5.8,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS3022-WOODEN",
+   "ankaraMt": 26.1,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS3215E-YB",
+   "ankaraMt": 26.1,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS3217-5",
+   "ankaraMt": 87,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS3217-SHINNING",
+   "ankaraMt": 55.1,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS3221-BROWN",
+   "ankaraMt": 78.3,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS3324L-GOLD",
+   "ankaraMt": 469.8,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS3324L-SILVER",
+   "ankaraMt": 208.8,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS3420-BROWN",
+   "ankaraMt": 1832.8,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS3420-GOLD",
+   "ankaraMt": 136.3,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS3420-SILVER",
+   "ankaraMt": 1870.5,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS3420-WHITE",
+   "ankaraMt": 3120.4,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS3514-ANT",
+   "ankaraMt": 725,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS3514-BLACK",
+   "ankaraMt": 1676.2,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS3514-GOLD",
+   "ankaraMt": 365.4,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS3514-KOREA",
+   "ankaraMt": 2148.9,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS3514-SILVER",
+   "ankaraMt": 1818.3,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS3519-5",
+   "ankaraMt": 101.5,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS3520-ANTİQUE",
+   "ankaraMt": 95.7,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS3520-GRAY",
+   "ankaraMt": 37.7,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS3523-ANTİQUE",
+   "ankaraMt": 350.9,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS3523-BLACK",
+   "ankaraMt": 60.9,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS3816-ANTİQUE",
+   "ankaraMt": 60.9,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS3816-BROWN",
+   "ankaraMt": 60.9,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS3816-GOLD",
+   "ankaraMt": 60.9,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS3821-SILVER",
+   "ankaraMt": 43.5,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS4020-BLACK",
+   "ankaraMt": 197.2,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS4020-GREEN",
+   "ankaraMt": 2.9,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS4020-RED",
+   "ankaraMt": 1992.3,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS4020-WHITE",
+   "ankaraMt": 145,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS4022-BIG",
+   "ankaraMt": 113.1,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS4022-BİG",
+   "ankaraMt": 4068.7,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS4022-BLACK",
+   "ankaraMt": 37.7,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS4022-BROWN",
+   "ankaraMt": 107.3,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS4022-GREEN",
+   "ankaraMt": 31.9,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS4022-SILVER",
+   "ankaraMt": 23.2,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS4022-WHITE",
+   "ankaraMt": 75.4,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS4040-GOLD",
+   "ankaraMt": 5.8,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS4117-GRAY",
+   "ankaraMt": 55.1,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS4117-WHITE",
+   "ankaraMt": 55.1,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS4220-WHITE",
+   "ankaraMt": 5.8,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS4322-RED",
+   "ankaraMt": 20.3,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS4330-1",
+   "ankaraMt": 11.6,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS4330-4",
+   "ankaraMt": 37.7,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS4438-SILVER",
+   "ankaraMt": 31.9,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS4438-WHITE",
+   "ankaraMt": 2.9,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS4521-4",
+   "ankaraMt": 46.4,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS4521-ANT",
+   "ankaraMt": 89.9,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS4521-BLACK",
+   "ankaraMt": 104.4,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS4521-BROWN",
+   "ankaraMt": 75.4,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS4521-SHINNING",
+   "ankaraMt": 127.6,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS4521-WHITE",
+   "ankaraMt": 107.3,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS4521B-ANT",
+   "ankaraMt": 60.9,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS4618-1",
+   "ankaraMt": 58,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS4618-2",
+   "ankaraMt": 72.5,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS4618-3",
+   "ankaraMt": 98.6,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS4618-4",
+   "ankaraMt": 40.6,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS4618-5",
+   "ankaraMt": 40.6,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS4721-2",
+   "ankaraMt": 5.8,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS4725-SHINNING-WHITE",
+   "ankaraMt": 26.1,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS4820-ANT",
+   "ankaraMt": 8.7,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS4820-BLACK",
+   "ankaraMt": 481.4,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS4820-GRAY",
+   "ankaraMt": 464,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS4820-WHITE",
+   "ankaraMt": 455.3,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS5123-BLACK",
+   "ankaraMt": 46.4,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS5123-BROWN",
+   "ankaraMt": 37.7,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS5123-WHITE",
+   "ankaraMt": 29,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS5322-ANT",
+   "ankaraMt": 66.7,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS5322-CREAM",
+   "ankaraMt": 31.9,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS5322-WHITE",
+   "ankaraMt": 49.3,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS5323-ANT",
+   "ankaraMt": 72.5,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS5323-SILVER",
+   "ankaraMt": 34.8,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS5323F-GOLD",
+   "ankaraMt": 34.8,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS5323F-SILVER",
+   "ankaraMt": 63.8,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS5425-SILVER",
+   "ankaraMt": 23.2,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS5528-AGL",
+   "ankaraMt": 17.4,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS5528-ASL",
+   "ankaraMt": 31.9,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS5530-SILVER",
+   "ankaraMt": 26.1,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS5724-4",
+   "ankaraMt": 69.6,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS5724-5",
+   "ankaraMt": 31.9,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS5724-SHINNIG",
+   "ankaraMt": 26.1,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS5724B-ANT",
+   "ankaraMt": 26.1,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS5731-BLACK",
+   "ankaraMt": 808.2,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS5837-ANT",
+   "ankaraMt": 69.6,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS5837-GREEN",
+   "ankaraMt": 2.9,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS5837-RTD",
+   "ankaraMt": 75.4,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS6133-GOLD",
+   "ankaraMt": 14.5,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS6133-SILVER",
+   "ankaraMt": 17.4,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS6318-ANT",
+   "ankaraMt": 72.5,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS6318-KOREAN",
+   "ankaraMt": 14.5,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS6532-ANT",
+   "ankaraMt": 1687.8,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS6532-BLACK",
+   "ankaraMt": 353.8,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS6532-COPPER",
+   "ankaraMt": 400.2,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS6928-ANTİQUE",
+   "ankaraMt": 34.8,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS6928-SHINING",
+   "ankaraMt": 20.3,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS6936-ANT",
+   "ankaraMt": 17.4,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS6936-BLACK",
+   "ankaraMt": 17.4,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS6936-WHITE",
+   "ankaraMt": 23.2,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS7120-ANT",
+   "ankaraMt": 29,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS7233-GOLD",
+   "ankaraMt": 58,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS7233-SILVER",
+   "ankaraMt": 23.2,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS8034-GOLD",
+   "ankaraMt": 84.1,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS8034-SILVER",
+   "ankaraMt": 52.2,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS8351-GOLD",
+   "ankaraMt": 5.8,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS8351-GREEN",
+   "ankaraMt": 84.1,
+   "istanbulMt": 0
+  },
+  {
+   "code": "KS8351-SILVER",
+   "ankaraMt": 11.6,
+   "istanbulMt": 0
+  },
+  {
+   "code": "M30S",
+   "ankaraMt": 0,
+   "istanbulMt": 203
+  }
+ ]
+}
