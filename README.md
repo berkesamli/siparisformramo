@@ -64,6 +64,24 @@ Her PDF, `/kataloglar` sayfasında otomatik listelenir ve dergi görünümünde
    - WhatsApp Cloud API tanımlıysa **WhatsApp mesajı** otomatik gider;
      değilse panelde hazır metinli **wa.me linki** çıkar.
 
+## Günlük Stok Güncelleme (Excel)
+
+Çalışanlar `/panel/stok` sayfasından muhasebe programının günlük stok
+Excel'ini (xls/xlsx) yükler:
+
+- Sistem `DEPO ADI / STOK İSMİ / MİKTAR` kolonlarını otomatik bulur.
+- Şimdilik yalnızca çerçeve profilleri ("PROFİL" içeren satırlar) alınır.
+- Ankara ve İstanbul depoları ayrı gösterilir; metraj **2,9'a bölünerek boy**
+  cinsinden yayınlanır.
+- Portaldaki "Güncel Stok Sorgula" sekmesi bulanık arama yapar:
+  `gc065-1473` yazan biri `GC065-1473BX`i bulur; küçük yazım hataları da
+  tolere edilir.
+
+Kalıcı saklama için Vercel'de bir kez **Storage → Create Database → Blob**
+oluşturup projeye bağlayın (`BLOB_READ_WRITE_TOKEN` otomatik tanımlanır).
+Blob yapılandırılana kadar site, repo içindeki `data/stock-snapshot.json`
+dosyasını gösterir.
+
 ## Ürün / Fiyat Güncelleme
 
 - Çerçeve profilleri ve stok durumu: `data/catalog.ts` (`stok: "var" | "az" | "yok"`)

@@ -42,6 +42,11 @@ export default async function RootLayout({
               Sipariş Paneli
             </Link>
           )}
+          {user?.role === "staff" && (
+            <Link href="/panel/stok" className="navlink">
+              Stok Yükle
+            </Link>
+          )}
           <span className="spacer" />
           {user ? (
             <>
