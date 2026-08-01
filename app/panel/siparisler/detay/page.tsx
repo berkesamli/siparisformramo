@@ -61,8 +61,13 @@ export default async function OrderDetailPage({
       <div className="card" id="print-area">
         <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
           <div>
-            <h1 style={{ fontSize: 22, color: "var(--brand-light)" }}>OLGA ÇERÇEVE</h1>
-            <p style={{ color: "var(--text-2)" }}>Sipariş Fişi</p>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/logo.png"
+              alt="Olga Çerçeve"
+              style={{ height: 44, width: "auto", display: "block" }}
+            />
+            <p style={{ color: "var(--text-2)", marginTop: 6 }}>Sipariş Fişi</p>
           </div>
           <div style={{ textAlign: "right", fontSize: 13.5 }}>
             <div><strong>Sipariş No:</strong> {order.orderId}</div>
@@ -83,7 +88,6 @@ export default async function OrderDetailPage({
         <div style={{ display: "flex", gap: 30, flexWrap: "wrap", fontSize: 14 }}>
           <div><strong>Müşteri:</strong> {order.customer || "—"}</div>
           <div><strong>Çalışan:</strong> {order.employee}</div>
-          {order.note && <div><strong>Not:</strong> {order.note}</div>}
         </div>
 
         <table style={{ marginTop: 16 }}>
@@ -133,6 +137,32 @@ export default async function OrderDetailPage({
             </tr>
           </tbody>
         </table>
+
+        {order.note && (
+          <div
+            style={{
+              marginTop: 16,
+              padding: "12px 16px",
+              background: "var(--input)",
+              borderRadius: 10,
+              fontSize: 13.5,
+            }}
+          >
+            <span
+              style={{
+                color: "var(--brand)",
+                fontWeight: 700,
+                fontSize: 11,
+                letterSpacing: "0.1em",
+                display: "block",
+                marginBottom: 4,
+              }}
+            >
+              NOT
+            </span>
+            {order.note}
+          </div>
+        )}
 
         <p style={{ color: "var(--muted)", fontSize: 12, marginTop: 18 }}>
           Olga Çerçeve — Sipariş Hattı: 0850 305 75 45 · olgacerceve.com

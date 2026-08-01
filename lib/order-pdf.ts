@@ -22,6 +22,7 @@ export interface PdfOrder {
 
 const FONT = path.join(process.cwd(), "assets", "DejaVuSans.ttf");
 const FONT_BOLD = path.join(process.cwd(), "assets", "DejaVuSans-Bold.ttf");
+const LOGO = path.join(process.cwd(), "assets", "olga-logo.png");
 
 const BRAND = "#a9660d";
 const BRAND_DARK = "#7c4a06";
@@ -51,32 +52,29 @@ export function generateOrderPdf(order: PdfOrder): Promise<Buffer> {
     const W = doc.page.width;
     const pageWidth = W - M * 2;
 
-    // ===== Üst bant: bronz zemin + logo =====
-    const bandH = 92;
-    doc.rect(0, 0, W, bandH).fill(BRAND);
-    doc.rect(0, bandH, W, 3).fill("#c99b4a");
-
+    // ===== Üst alan: beyaz zemin + gerçek logo, altta bronz ayraç =====
+    const bandH = 96;
+    doc.image(LOGO, M, 24, { height: 42 });
     doc
       .font(FONT)
-      .fontSize(30)
-      .fillColor("#ffffff")
-      .text("OLGA", M, 24, { characterSpacing: 10 });
-    doc
-      .fontSize(8)
-      .fillColor("#f3e3c8")
-      .text("Ç E R Ç E V E", M + 1, 60, { characterSpacing: 4 });
+      .fontSize(7.5)
+      .fillColor(BRAND)
+      .text("ÇERÇEVE", M + 2, 72, { characterSpacing: 6.5 });
 
     doc
       .font(FONT_BOLD)
-      .fontSize(15)
-      .fillColor("#ffffff")
-      .text("SİPARİŞ FİŞİ", M, 26, { width: pageWidth, align: "right" });
+      .fontSize(16)
+      .fillColor(BRAND)
+      .text("SİPARİŞ FİŞİ", M, 28, { width: pageWidth, align: "right" });
     doc
       .font(FONT)
       .fontSize(9.5)
-      .fillColor("#f3e3c8")
-      .text(order.orderId, M, 48, { width: pageWidth, align: "right" })
-      .text(order.dateStr, M, 62, { width: pageWidth, align: "right" });
+      .fillColor(GRAY)
+      .text(order.orderId, M, 52, { width: pageWidth, align: "right" })
+      .text(order.dateStr, M, 66, { width: pageWidth, align: "right" });
+
+    doc.rect(0, bandH, W, 2.5).fill(BRAND);
+    doc.rect(0, bandH + 2.5, W, 1.2).fill("#c99b4a");
 
     // ===== Bilgi kutuları =====
     let y = bandH + 24;
@@ -109,7 +107,6 @@ export function generateOrderPdf(order: PdfOrder): Promise<Buffer> {
     };
 
     const leftRows: [string, string][] = [["Müşteri", order.customer || "-"]];
-    if (order.note) leftRows.push(["Not", order.note]);
     const rightRows: [string, string][] = [["Çalışan", order.employee]];
     if (order.status) rightRows.push(["Durum", order.status]);
 
@@ -211,6 +208,29 @@ export function generateOrderPdf(order: PdfOrder): Promise<Buffer> {
         .text(v, tx + tw * 0.5, y + 3, { width: tw * 0.5 - 10, align: "right" });
       y += totH + (grand ? 6 : 2);
     });
+
+    // ===== Not (Genel Toplam'ın altındaki boş alanda) =====
+    if (order.note) {
+      y += 10;
+      doc.font(FONT).fontSize(9);
+      const nh = doc.heightOfString(order.note, { width: pageWidth - 24 }) + 32;
+      if (y + nh > doc.page.height - 90) {
+        doc.addPage();
+        y = M;
+      }
+      doc.roundedRect(M, y, pageWidth, nh, 6).fill(CREAM);
+      doc
+        .font(FONT_BOLD)
+        .fontSize(8)
+        .fillColor(BRAND)
+        .text("NOT", M + 12, y + 9, { characterSpacing: 1.5 });
+      doc
+        .font(FONT)
+        .fontSize(9)
+        .fillColor(INK)
+        .text(order.note, M + 12, y + 24, { width: pageWidth - 24 });
+      y += nh;
+    }
 
     // ===== Alt bilgi =====
     // Alt marjı sıfırla — yoksa pdfkit marj sınırını aşan footer için yeni sayfa açar
