@@ -1,10 +1,11 @@
+import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
 import ProductBrowser from "@/components/ProductBrowser";
 import AiChat from "@/components/AiChat";
 
 export default async function PortalPage() {
   const user = await getSessionUser();
-  if (!user) return null;
+  if (!user) redirect("/giris?next=/portal");
 
   return (
     <main className="container">

@@ -1,10 +1,12 @@
+import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
 import OrderForm from "@/components/OrderForm";
 import AiChat from "@/components/AiChat";
 
 export default async function PanelPage() {
   const user = await getSessionUser();
-  if (!user) return null; // middleware zaten yönlendirir
+  if (!user) redirect("/giris?next=/panel");
+  if (user.role !== "staff") redirect("/portal");
 
   return (
     <main className="container">
