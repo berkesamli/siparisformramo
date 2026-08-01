@@ -4,6 +4,7 @@
 
 // Perakende çerçeveletme sihirbazı — eski "Olga Çerçeve Hesaplayıcı"
 // (Google Apps Script) uygulamasının Next.js portu.
+// Akış: Ölçüler → Çerçeve → Paspartu → Cam → Baskı → Özet → Müşteri & Gönder
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
@@ -19,6 +20,12 @@ import {
   type GlassType,
   type PrintType,
 } from "@/data/perakende";
+import {
+  findFrameImage,
+  FRAME_SLICE,
+  FRAME_BORDER_SCALE,
+  DEFAULT_CLIP_RATIO,
+} from "@/data/frame-images";
 
 const fmt = (n: number) =>
   (Number(n) || 0).toLocaleString("tr-TR", {
@@ -65,7 +72,7 @@ interface WizardItem {
   itemTotal: number;
 }
 
-const STEPS = ["Müşteri", "Ölçüler", "Çerçeve", "Paspartu", "Cam", "Baskı", "Özet"];
+const STEPS = ["Ölçüler", "Çerçeve", "Paspartu", "Cam", "Baskı", "Özet", "Müşteri"];
 
 function itemShortText(it: WizardItem): string {
   const parts = [
@@ -96,7 +103,7 @@ function normalizePhoneWa(phone: string): string {
 export default function RetailWizard({ employeeName }: { employeeName: string }) {
   const [step, setStep] = useState(1);
 
-  // ---- Müşteri ----
+  // ---- Müşteri (son adım) ----
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
@@ -246,6 +253,10 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
     (seriesCode.trim().toUpperCase() || "") +
     (colorCode.trim() ? "-" + colorCode.trim().toUpperCase() : "");
 
+  // Gerçek çerçeve görseli (SKU eşleşirse border olarak kullanılır)
+  const frameImg = useMemo(() => findFrameImage(fullFrameCode), [fullFrameCode]);
+  const bareFrame = Boolean(frameImg?.bareFrame);
+
   function selectMat(m: MatType) {
     setMat(m);
     setOuterColor({ code: "", hex: "" });
@@ -346,30 +357,28 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
     }
     setCart([...cart, captureItem()]);
     resetProduct();
-    setStep(2);
+    setStep(1);
     setError("");
   }
 
   function validateStep(s: number): boolean {
     setError("");
-    if (s === 1) {
-      if (!customerName.trim() || !customerPhone.trim()) {
-        setError("Lütfen müşteri adı ve telefon girin.");
-        return false;
-      }
-      if (!(parseFloat(usdRate) > 0)) {
-        setError("Lütfen USD kurunu girin.");
-        return false;
-      }
-    }
-    if (s === 2 && !currentCounts) {
+    if (s === 1 && !currentCounts) {
       setError("Lütfen eser ölçülerini girin.");
       return false;
     }
-    if (s === 3 && framePriceTL <= 0) {
+    if (s === 2 && framePriceTL <= 0) {
       setError(
-        "Çerçeve seri kodu bulunamadı — geçerli bir kod girin veya manuel metre fiyatı yazın."
+        "Çerçeve fiyatı yok — geçerli bir seri kodu ve USD kuru girin veya manuel metre fiyatı yazın."
       );
+      return false;
+    }
+    if (s === 5 && print.usdPerM2 > 0 && !(parseFloat(usdRate) > 0)) {
+      setError("Baskı fiyatı için USD kuru gerekli (Çerçeve adımında girin).");
+      return false;
+    }
+    if (s === 7 && (!customerName.trim() || !customerPhone.trim())) {
+      setError("Lütfen müşteri adı ve telefon girin.");
       return false;
     }
     return true;
@@ -381,8 +390,18 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
   }
 
   async function submitOrder() {
-    if (!validateStep(1) || !validateStep(2) || !validateStep(3)) {
-      setStep(!customerName.trim() || !customerPhone.trim() ? 1 : !currentCounts ? 2 : 3);
+    if (!currentCounts) {
+      setError("Lütfen eser ölçülerini girin.");
+      setStep(1);
+      return;
+    }
+    if (framePriceTL <= 0) {
+      setError("Çerçeve fiyatı eksik — seri kodu veya manuel fiyat girin.");
+      setStep(2);
+      return;
+    }
+    if (!customerName.trim() || !customerPhone.trim()) {
+      setError("Lütfen müşteri adı ve telefon girin.");
       return;
     }
     setSubmitting(true);
@@ -430,7 +449,6 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
     const phone = normalizePhoneWa(customerPhone);
     if (!phone) {
       setError("WhatsApp teklifi için müşteri telefonu gerekli.");
-      setStep(1);
       return;
     }
     const items = currentCounts ? [...cart, captureItem()] : [...cart];
@@ -452,22 +470,31 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
 
   // ---- Önizleme ölçüleri ----
   const preview = useMemo(() => {
-    const maxS = 190;
+    const maxS = 200;
     const w = wMM || 300;
     const h = hMM || 400;
     const scale = Math.min(maxS / w, maxS / h, 1);
-    const dw = Math.max(w * scale, 60);
-    const dh = Math.max(h * scale, 60);
+    const dw = Math.max(w * scale, 64);
+    const dh = Math.max(h * scale, 64);
     const ps = dw / w;
+    const showMat = mat.price > 0 && !bareFrame;
     return {
       dw,
       dh,
-      pt: mat.price > 0 ? Math.max(edges.top * ps, 6) : 0,
-      pr: mat.price > 0 ? Math.max(edges.right * ps, 6) : 0,
-      pb: mat.price > 0 ? Math.max(edges.bottom * ps, 6) : 0,
-      pl: mat.price > 0 ? Math.max(edges.left * ps, 6) : 0,
+      pt: showMat ? Math.max(edges.top * ps, 6) : 0,
+      pr: showMat ? Math.max(edges.right * ps, 6) : 0,
+      pb: showMat ? Math.max(edges.bottom * ps, 6) : 0,
+      pl: showMat ? Math.max(edges.left * ps, 6) : 0,
     };
-  }, [wMM, hMM, mat, edges.top, edges.right, edges.bottom, edges.left]);
+  }, [wMM, hMM, mat, bareFrame, edges.top, edges.right, edges.bottom, edges.left]);
+
+  // Çerçeve border kalınlığı: görseli olan profillerde clipRatio ile ölçeklenir
+  const frameBorderPx = useMemo(() => {
+    if (!frameImg) return 18;
+    return Math.round(
+      20 * FRAME_BORDER_SCALE * (frameImg.clipRatio / DEFAULT_CLIP_RATIO)
+    );
+  }, [frameImg]);
 
   const palette = (price: number) => PASPARTU_COLORS[price] || [];
 
@@ -553,47 +580,8 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
           </div>
         )}
 
-        {/* 1 — MÜŞTERİ */}
+        {/* 1 — ÖLÇÜLER */}
         {step === 1 && (
-          <div className="card">
-            <h2 style={{ marginTop: 0 }}>👤 Müşteri Bilgileri</h2>
-            <div className="rw-grid2">
-              <div>
-                <label>Ad Soyad *</label>
-                <input value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder="Müşteri adı" />
-              </div>
-              <div>
-                <label>Telefon *</label>
-                <input value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} placeholder="05xx xxx xx xx" />
-              </div>
-              <div>
-                <label>E-posta</label>
-                <input type="email" value={customerEmail} onChange={(e) => setCustomerEmail(e.target.value)} placeholder="ornek@eposta.com" />
-              </div>
-              <div>
-                <label>Teslim Tarihi</label>
-                <input type="date" value={deliveryDate} onChange={(e) => setDeliveryDate(e.target.value)} />
-              </div>
-              <div>
-                <label>USD Kuru (TL) *</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={usdRate}
-                  onChange={(e) => { setUsdRate(e.target.value); setRateAuto(false); }}
-                />
-                {rateAuto && (
-                  <span style={{ fontSize: 12, color: "var(--success)" }}>
-                    ✓ Bugünün kuru otomatik geldi
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* 2 — ÖLÇÜLER */}
-        {step === 2 && (
           <div className="card">
             <h2 style={{ marginTop: 0 }}>📐 Eser Ölçüleri</h2>
             <div className="rw-grid2">
@@ -641,8 +629,8 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
           </div>
         )}
 
-        {/* 3 — ÇERÇEVE */}
-        {step === 3 && (
+        {/* 2 — ÇERÇEVE */}
+        {step === 2 && (
           <div className="card">
             <h2 style={{ marginTop: 0 }}>🖼️ Çerçeve Seçimi</h2>
             <div className="rw-grid2">
@@ -673,7 +661,7 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
                       : seriesCode
                         ? parseFloat(usdRate) > 0
                           ? "✗ Kod bulunamadı — manuel fiyat girebilirsiniz"
-                          : "USD kuru girilmedi (1. adım)"
+                          : "Önce USD kurunu girin"
                         : "Seri kodunu girin"}
                 </span>
               </div>
@@ -684,6 +672,26 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
                   onChange={(e) => setColorCode(e.target.value.toUpperCase())}
                   placeholder="örn. 1473"
                 />
+                {frameImg && (
+                  <span style={{ fontSize: 12, fontWeight: 600, color: "var(--success)" }}>
+                    ✓ Bu modelin gerçek görseli önizlemede
+                  </span>
+                )}
+              </div>
+              <div>
+                <label>USD Kuru (TL)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  value={usdRate}
+                  onChange={(e) => { setUsdRate(e.target.value); setRateAuto(false); }}
+                  placeholder="örn. 47.50"
+                />
+                {rateAuto && (
+                  <span style={{ fontSize: 12, color: "var(--success)" }}>
+                    ✓ Bugünün kuru otomatik geldi
+                  </span>
+                )}
               </div>
               <div>
                 <label>Manuel Metre Fiyatı (₺/m)</label>
@@ -706,8 +714,8 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
           </div>
         )}
 
-        {/* 4 — PASPARTU */}
-        {step === 4 && (
+        {/* 3 — PASPARTU */}
+        {step === 3 && (
           <div className="card">
             <h2 style={{ marginTop: 0 }}>🎨 Paspartu</h2>
             <div className="rw-options">
@@ -807,8 +815,8 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
           </div>
         )}
 
-        {/* 5 — CAM */}
-        {step === 5 && (
+        {/* 4 — CAM */}
+        {step === 4 && (
           <div className="card">
             <h2 style={{ marginTop: 0 }}>🪟 Cam Seçimi</h2>
             <div className="rw-options">
@@ -828,46 +836,38 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
           </div>
         )}
 
-        {/* 6 — BASKI */}
-        {step === 6 && (
+        {/* 5 — BASKI */}
+        {step === 5 && (
           <div className="card">
             <h2 style={{ marginTop: 0 }}>🖨️ Baskı (opsiyonel)</h2>
             <p className="subtitle" style={{ marginTop: 0 }}>
               Baskı, eserin kendi ölçüsü üzerinden hesaplanır.
             </p>
             <div className="rw-options">
-              {PRINT_TYPES.map((p) => {
-                const rate = parseFloat(usdRate) || 0;
-                const tl = p.usdPerM2 * rate;
-                return (
-                  <button
-                    key={p.name}
-                    type="button"
-                    className={`rw-option ${print.name === p.name ? "sel" : ""}`}
-                    onClick={() => setPrint(p)}
-                  >
-                    <span className="rw-option-icon">{p.icon}</span>
-                    <span className="rw-option-name">{p.name}</span>
-                    <span className="rw-option-desc">{p.desc}</span>
-                    <span className="rw-option-price">
-                      {p.usdPerM2 > 0 && rate > 0 ? `₺${fmt(tl)}/m²` : p.usdPerM2 > 0 ? `$${p.usdPerM2}/m²` : "—"}
-                    </span>
-                  </button>
-                );
-              })}
+              {PRINT_TYPES.map((p) => (
+                <button
+                  key={p.name}
+                  type="button"
+                  className={`rw-option ${print.name === p.name ? "sel" : ""}`}
+                  onClick={() => setPrint(p)}
+                >
+                  <span className="rw-option-icon">{p.icon}</span>
+                  <span className="rw-option-name">{p.name}</span>
+                  <span className="rw-option-desc">{p.desc}</span>
+                </button>
+              ))}
             </div>
           </div>
         )}
 
-        {/* 7 — ÖZET */}
-        {step === 7 && (
+        {/* 6 — ÖZET */}
+        {step === 6 && (
           <div className="card">
             <h2 style={{ marginTop: 0 }}>
               🧾 {cart.length > 0 ? `Şu Anki Ürün (${cart.length + 1}. Ürün)` : "Sipariş Özeti"}
             </h2>
             <table style={{ marginBottom: 14 }}>
               <tbody>
-                <tr><td>Müşteri</td><td><strong>{customerName || "-"}</strong> {customerPhone && `· ${customerPhone}`}</td></tr>
                 <tr><td>Ölçü</td><td>{artWidth || "-"} {wUnit} × {artHeight || "-"} {hUnit}</td></tr>
                 <tr><td>Çerçeve</td><td>{fullFrameCode || "-"} {framePriceTL > 0 && `(₺${fmt(framePriceTL)}/m)`}</td></tr>
                 <tr>
@@ -881,7 +881,6 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
                 </tr>
                 <tr><td>Cam</td><td>{glass.name}</td></tr>
                 <tr><td>Baskı</td><td>{print.name}</td></tr>
-                <tr><td>Teslim</td><td>{deliveryDate || "-"}</td></tr>
               </tbody>
             </table>
 
@@ -946,6 +945,45 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
               <button className="btn secondary" onClick={addToCart}>
                 ➕ Sepete Ekle & Yeni Ürün
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* 7 — MÜŞTERİ & GÖNDER */}
+        {step === 7 && (
+          <div className="card">
+            <h2 style={{ marginTop: 0 }}>👤 Müşteri Bilgileri</h2>
+            <div className="rw-grid2">
+              <div>
+                <label>Ad Soyad *</label>
+                <input value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder="Müşteri adı" />
+              </div>
+              <div>
+                <label>Telefon *</label>
+                <input value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} placeholder="05xx xxx xx xx" />
+              </div>
+              <div>
+                <label>E-posta</label>
+                <input type="email" value={customerEmail} onChange={(e) => setCustomerEmail(e.target.value)} placeholder="ornek@eposta.com" />
+              </div>
+              <div>
+                <label>Teslim Tarihi</label>
+                <input type="date" value={deliveryDate} onChange={(e) => setDeliveryDate(e.target.value)} />
+              </div>
+            </div>
+
+            <div className="rw-totals" style={{ marginTop: 18 }}>
+              <div>
+                <span>{cart.length > 0 ? `${cart.length + 1} ürün` : "1 ürün"}</span>
+                <span></span>
+              </div>
+              {discount > 0 && (
+                <div style={{ color: "var(--error)" }}><span>İndirim</span><span>-₺{fmt(discount)}</span></div>
+              )}
+              <div className="rw-grand"><span>GENEL TOPLAM</span><span>₺{fmt(grandTotal)}</span></div>
+            </div>
+
+            <div style={{ display: "flex", gap: 10, marginTop: 20, flexWrap: "wrap" }}>
               <button className="btn wa" onClick={sendWhatsAppQuote}>
                 📲 WhatsApp Teklif Gönder
               </button>
@@ -980,51 +1018,70 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
 
       {/* Sağ — canlı önizleme */}
       <aside className="rw-preview-panel">
-        <div className="card" style={{ position: "sticky", top: 90 }}>
+        <div className="card rw-preview-card" style={{ position: "sticky", top: 90 }}>
           <h3 style={{ marginTop: 0, fontSize: 15 }}>Önizleme</h3>
           <div className="rw-preview-stage">
-            <div
-              className="rw-preview-frame"
-              style={{ borderColor: framePriceTL > 0 ? "#2b2016" : "#c9c2b8" }}
-            >
+            <div className="rw-preview-hang">
               <div
-                className="rw-preview-mat"
+                className={`rw-preview-frame ${frameImg ? "has-img" : ""}`}
                 style={{
-                  paddingTop: preview.pt,
-                  paddingRight: preview.pr,
-                  paddingBottom: preview.pb,
-                  paddingLeft: preview.pl,
-                  background:
-                    mat.price > 0 && outerColor.hex ? outerColor.hex : "#f4f1ec",
+                  borderWidth: frameBorderPx,
+                  ...(frameImg
+                    ? {
+                        borderImage: `url("${frameImg.url}") ${frameImg.slice ?? FRAME_SLICE} stretch`,
+                      }
+                    : {}),
                 }}
               >
                 <div
-                  className="rw-preview-inner"
+                  className="rw-preview-mat"
                   style={{
-                    border:
-                      doubleMat && mat.price > 0
-                        ? `4px solid ${innerColor.hex || "#fff"}`
-                        : "none",
-                    background: zeminEnabled
-                      ? zeminColor.hex || "#e5e0d8"
-                      : "#fff",
-                    width: preview.dw,
-                    height: preview.dh,
+                    paddingTop: preview.pt,
+                    paddingRight: preview.pr,
+                    paddingBottom: preview.pb,
+                    paddingLeft: preview.pl,
+                    background:
+                      mat.price > 0 && !bareFrame && outerColor.hex
+                        ? outerColor.hex
+                        : "#f6f3ee",
                   }}
                 >
-                  {imageUrl ? (
-                    <img src={imageUrl} alt="Eser" />
-                  ) : (
-                    <span className="rw-preview-ph">
-                      {wMM > 0 && hMM > 0
-                        ? `${artWidth}${wUnit} × ${artHeight}${hUnit}`
-                        : "Eser"}
-                    </span>
-                  )}
+                  <div
+                    className="rw-preview-inner"
+                    style={{
+                      border:
+                        doubleMat && mat.price > 0 && !bareFrame
+                          ? `4px solid ${innerColor.hex || "#fff"}`
+                          : "none",
+                      background: zeminEnabled && !bareFrame
+                        ? zeminColor.hex || "#e5e0d8"
+                        : "#fff",
+                      width: preview.dw,
+                      height: preview.dh,
+                    }}
+                  >
+                    {imageUrl ? (
+                      <img src={imageUrl} alt="Eser" />
+                    ) : (
+                      <span className="rw-preview-ph">
+                        {wMM > 0 && hMM > 0
+                          ? `${artWidth}${wUnit} × ${artHeight}${hUnit}`
+                          : "Eser"}
+                      </span>
+                    )}
+                    {glass.name !== "Cam Yok" && !bareFrame && (
+                      <span className="rw-glass-sheen" aria-hidden />
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
           </div>
+          {frameImg ? (
+            <p className="rw-preview-note ok">✓ {fullFrameCode} — gerçek profil görseli</p>
+          ) : fullFrameCode ? (
+            <p className="rw-preview-note">{fullFrameCode} için görsel henüz eklenmedi</p>
+          ) : null}
           <div className="rw-preview-total">
             <span>Bu ürün</span>
             <strong>₺{fmt(currentCounts ? costs.itemTotal : 0)}</strong>
