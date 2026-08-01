@@ -7,8 +7,18 @@ import {
   type OrderPayload,
   type OrderLine,
 } from "@/lib/notify";
+import {
+  saveOrder,
+  listOrders,
+  lastNDateKeys,
+  istanbulDateKey,
+  sanitizeLines,
+  computeTotals,
+  type SavedOrder,
+} from "@/lib/orders";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 function makeOrderId(): string {
   const d = new Date();
@@ -18,6 +28,26 @@ function makeOrderId(): string {
   return `OLG-${stamp}-${rand}`;
 }
 
+
+// Sipariş listesi: ?range=today | ?range=week | ?date=YYYY-MM-DD
+export async function GET(req: Request) {
+  const user = await getSessionUser();
+  if (!user || user.role !== "staff") {
+    return NextResponse.json({ ok: false, error: "Yetkisiz." }, { status: 401 });
+  }
+  const url = new URL(req.url);
+  const date = url.searchParams.get("date");
+  const range = url.searchParams.get("range") || "today";
+
+  let dateKeys: string[];
+  if (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) dateKeys = [date];
+  else if (range === "week") dateKeys = lastNDateKeys(7);
+  else dateKeys = lastNDateKeys(1);
+
+  const orders = await listOrders(dateKeys);
+  return NextResponse.json({ ok: true, orders });
+}
+
 export async function POST(req: Request) {
   const user = await getSessionUser();
   if (!user || user.role !== "staff") {
@@ -25,32 +55,16 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json().catch(() => null);
-  if (!body || !Array.isArray(body.lines) || body.lines.length === 0) {
-    return NextResponse.json({ ok: false, error: "Satır verisi boş." }, { status: 400 });
-  }
-
-  const lines: OrderLine[] = body.lines
-    .map((l: any) => ({
-      name: String(l.name || "").slice(0, 200),
-      unitText: String(l.unitText || "").slice(0, 200),
-      unitPriceTL: Number(l.unitPriceTL) || 0,
-      lineTotal: Number(l.lineTotal) || 0,
-    }))
-    .filter((l: OrderLine) => l.name);
-
+  const lines = sanitizeLines(body?.lines);
   if (!lines.length) {
     return NextResponse.json({ ok: false, error: "Geçerli satır yok." }, { status: 400 });
   }
 
-  const r2 = (n: number) => Math.round(n * 100) / 100;
-  const gross = r2(lines.reduce((s, l) => s + l.lineTotal, 0));
   const discountPct = Math.max(0, Number(body.discountPct) || 0);
-  const discount = r2(gross * (discountPct / 100));
-  const afterDiscount = r2(Math.max(0, gross - discount));
   const vatApplied = !!body.vatApplied;
-  const vatAmount = vatApplied ? r2(afterDiscount * 0.2) : 0;
-  const net = r2(afterDiscount + vatAmount);
+  const { gross, discount, vatAmount, net } = computeTotals(lines, discountPct, vatApplied);
 
+  const now = new Date();
   const order: OrderPayload = {
     orderId: makeOrderId(),
     employee: user.name,
@@ -65,8 +79,36 @@ export async function POST(req: Request) {
     discount,
     vatAmount,
     net,
-    dateStr: new Date().toLocaleString("tr-TR", { timeZone: "Europe/Istanbul" }),
+    dateStr: now.toLocaleString("tr-TR", { timeZone: "Europe/Istanbul" }),
   };
+
+  // Kalıcı kayıt (sipariş takip ekranı için)
+  const saved: SavedOrder = {
+    orderId: order.orderId,
+    dateKey: istanbulDateKey(now),
+    createdAt: now.toISOString(),
+    updatedAt: now.toISOString(),
+    status: "olusturuldu",
+    employee: order.employee,
+    customer: order.customer,
+    note: order.note,
+    rate: order.rate,
+    euroRate: order.euroRate,
+    discountPct,
+    vatApplied,
+    lines,
+    gross,
+    discount,
+    vatAmount,
+    net,
+    rows: Array.isArray(body.rows) ? body.rows.slice(0, 100) : undefined,
+  };
+  let stored = false;
+  try {
+    stored = await saveOrder(saved);
+  } catch (err) {
+    console.error("Sipariş Blob'a kaydedilemedi:", err);
+  }
 
   let emailSent = false;
   let waSent = false;
@@ -84,6 +126,8 @@ export async function POST(req: Request) {
   return NextResponse.json({
     ok: true,
     orderId: order.orderId,
+    dateKey: saved.dateKey,
+    stored,
     emailSent,
     waSent,
     waLink: waSent ? undefined : waLink(order),

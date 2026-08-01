@@ -43,6 +43,11 @@ export default async function RootLayout({
             </Link>
           )}
           {user?.role === "staff" && (
+            <Link href="/panel/siparisler" className="navlink">
+              Siparişler
+            </Link>
+          )}
+          {user?.role === "staff" && (
             <Link href="/panel/stok" className="navlink">
               Stok Yükle
             </Link>
