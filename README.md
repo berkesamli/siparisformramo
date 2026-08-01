@@ -78,3 +78,5 @@ Değişikliği push ettiğinizde Vercel otomatik yeniden yayınlar.
 npm install
 npm run dev   # http://localhost:3000
 ```
+
+<!-- deploy: 2026-08-01T08:25:44Z -->
