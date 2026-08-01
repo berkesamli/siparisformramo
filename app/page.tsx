@@ -64,12 +64,14 @@ export default async function HomePage() {
       <div className="hero-grid">
         {cards.map((c) => (
           <Link key={c.title} href={c.href} className="hero-card">
-            {c.img ? (
-              <img className="hero-bg" src={c.img} alt={c.title} />
-            ) : (
-              <img className="hero-watermark" src="/logo.png" alt="" />
-            )}
-            <span className="hero-shade" />
+            <span className="hero-media">
+              {c.img ? (
+                <img className="hero-bg" src={c.img} alt={c.title} />
+              ) : (
+                <img className="hero-watermark" src="/logo.png" alt="" />
+              )}
+              <span className="hero-shade" />
+            </span>
             <span className="hero-txt">
               <h3>{c.title}</h3>
               <span>{c.sub}</span>
