@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
-import { verifySessionToken, SESSION_COOKIE } from "@/lib/auth";
+import { verifySessionToken, SESSION_COOKIE } from "@/lib/jwt";
 
 // /panel yalnızca çalışanlara, /portal çalışan + müşteriye açık.
 export async function middleware(req: NextRequest) {

@@ -1,41 +1,11 @@
-import { SignJWT, jwtVerify } from "jose";
+// Sunucu tarafı oturum yardımcıları (cookies() kullanır — middleware'de KULLANMAYIN;
+// middleware lib/jwt.ts'den import eder).
+
 import { cookies } from "next/headers";
-import type { Role } from "@/data/users";
+import { verifySessionToken, SESSION_COOKIE, type SessionUser } from "@/lib/jwt";
 
-export interface SessionUser {
-  username: string;
-  name: string;
-  role: Role;
-}
-
-export const SESSION_COOKIE = "olga_session";
-
-function secret(): Uint8Array {
-  const s = process.env.AUTH_SECRET || "olga-cerceve-dev-secret-change-me";
-  return new TextEncoder().encode(s);
-}
-
-export async function createSessionToken(user: SessionUser): Promise<string> {
-  return new SignJWT({ username: user.username, name: user.name, role: user.role })
-    .setProtectedHeader({ alg: "HS256" })
-    .setIssuedAt()
-    .setExpirationTime("7d")
-    .sign(secret());
-}
-
-export async function verifySessionToken(token: string): Promise<SessionUser | null> {
-  try {
-    const { payload } = await jwtVerify(token, secret());
-    if (typeof payload.username !== "string" || typeof payload.role !== "string") return null;
-    return {
-      username: payload.username,
-      name: (payload.name as string) || payload.username,
-      role: payload.role as Role,
-    };
-  } catch {
-    return null;
-  }
-}
+export { createSessionToken, verifySessionToken, SESSION_COOKIE } from "@/lib/jwt";
+export type { SessionUser } from "@/lib/jwt";
 
 export async function getSessionUser(): Promise<SessionUser | null> {
   const token = cookies().get(SESSION_COOKIE)?.value;
