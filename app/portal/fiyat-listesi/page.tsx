@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
 import { FRAME_PROFILES, SERIES_ORDER } from "@/data/catalog";
 import PrintButton from "@/components/PrintButton";
@@ -7,7 +8,7 @@ const fmt = (n: number) =>
 
 export default async function PriceListPage() {
   const user = await getSessionUser();
-  if (!user) return null;
+  if (!user) redirect("/giris?next=/portal/fiyat-listesi");
 
   return (
     <main className="container">
