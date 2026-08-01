@@ -42,27 +42,10 @@ export default async function HomePage() {
 
   return (
     <main className="container">
-      <div style={{ textAlign: "center", padding: "44px 0 34px" }}>
-        <img
-          src="/logo.png"
-          alt="Olga Çerçeve"
-          style={{ height: 64, width: "auto" }}
-        />
-        <p
-          style={{
-            color: "var(--brand)",
-            letterSpacing: "0.6em",
-            marginRight: "-0.6em",
-            fontSize: 12,
-            fontWeight: 600,
-            marginTop: 8,
-          }}
-        >
-          ÇERÇEVE
-        </p>
+      <div style={{ textAlign: "center", padding: "26px 0 26px" }}>
         <p
           className="subtitle"
-          style={{ fontSize: 16, maxWidth: 620, margin: "14px auto 0" }}
+          style={{ fontSize: 15.5, maxWidth: 620, margin: "0 auto" }}
         >
           Profesyonel çerçeveleme ve dekorasyon çözümleri — kataloglar, güncel
           stok ve online sipariş platformu.
@@ -82,22 +65,20 @@ export default async function HomePage() {
               <h3>{c.title}</h3>
               <span>{c.sub}</span>
             </span>
-            <span className="hero-pad">
-              <span className="hero-btn" aria-hidden>
-                <svg
-                  width="20"
-                  height="20"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2.4"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <line x1="7" y1="17" x2="17" y2="7" />
-                  <polyline points="8 7 17 7 17 16" />
-                </svg>
-              </span>
+            <span className="hero-btn" aria-hidden>
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.4"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <line x1="7" y1="17" x2="17" y2="7" />
+                <polyline points="8 7 17 7 17 16" />
+              </svg>
             </span>
           </Link>
         ))}
