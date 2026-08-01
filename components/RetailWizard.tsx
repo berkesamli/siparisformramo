@@ -487,10 +487,15 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
             key={code}
             type="button"
             title={code}
-            className={`rw-color ${selected.code === code ? "sel" : ""} ${metallic ? "metallic" : ""}`}
-            style={{ background: hex }}
+            className={`rw-color-item ${selected.code === code ? "sel" : ""}`}
             onClick={() => onSelect({ code, hex })}
-          />
+          >
+            <span
+              className={`rw-color ${selected.code === code ? "sel" : ""} ${metallic ? "metallic" : ""}`}
+              style={{ background: hex }}
+            />
+            <span className="rw-color-code">{code}</span>
+          </button>
         ))}
         {selected.code && (
           <span className="rw-color-label">Seçili: {selected.code}</span>
@@ -715,9 +720,6 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
                 >
                   <span className="rw-option-icon">{m.icon}</span>
                   <span className="rw-option-name">{m.name}</span>
-                  <span className="rw-option-price">
-                    {m.price > 0 ? `₺${m.price.toLocaleString("tr-TR")}/m²` : "—"}
-                  </span>
                 </button>
               ))}
             </div>
@@ -820,9 +822,6 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
                   <span className="rw-option-icon">{g.icon}</span>
                   <span className="rw-option-name">{g.name}</span>
                   <span className="rw-option-desc">{g.desc}</span>
-                  <span className="rw-option-price">
-                    {g.price > 0 ? `₺${g.price.toLocaleString("tr-TR")}/m²` : "—"}
-                  </span>
                 </button>
               ))}
             </div>
