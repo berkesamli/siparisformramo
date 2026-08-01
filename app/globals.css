@@ -178,6 +178,116 @@ h2 { font-size: 18px; font-weight: 700; margin: 20px 0 12px; }
 .notice.err { background: rgba(185, 28, 28, 0.06); border: 1px solid rgba(185, 28, 28, 0.25); color: #991b1b; }
 .notice.info { background: rgba(169, 102, 13, 0.06); border: 1px solid rgba(169, 102, 13, 0.25); color: var(--brand-dark); }
 
+/* ---- Ana sayfa hero kartları ---- */
+.hero-grid {
+  display: grid;
+  gap: 24px;
+  grid-template-columns: repeat(3, 1fr);
+  max-width: 1080px;
+  margin: 0 auto;
+}
+@media (max-width: 1000px) { .hero-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 640px) { .hero-grid { grid-template-columns: 1fr; max-width: 420px; } }
+
+.hero-card {
+  position: relative;
+  display: block;
+  border-radius: 28px;
+  overflow: hidden;
+  aspect-ratio: 3 / 3.8;
+  background:
+    radial-gradient(ellipse at 80% 110%, rgba(169, 102, 13, 0.55) 0%, transparent 55%),
+    linear-gradient(160deg, #f6ecdb 0%, #e2c491 55%, #b97c1e 120%);
+  box-shadow: var(--shadow-md);
+  transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.3, 1), box-shadow 0.35s ease;
+}
+.hero-card:hover {
+  transform: translateY(-7px);
+  box-shadow: 0 24px 55px rgba(38, 32, 26, 0.2);
+  text-decoration: none;
+}
+.hero-card img.hero-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.65s ease;
+}
+.hero-card:hover img.hero-bg { transform: scale(1.07); }
+.hero-card img.hero-watermark {
+  position: absolute;
+  left: 50%;
+  top: 52%;
+  transform: translate(-50%, -50%);
+  width: 68%;
+  opacity: 0.16;
+  filter: grayscale(0.2);
+}
+.hero-card .hero-shade {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(22, 15, 7, 0.55) 0%, rgba(22, 15, 7, 0.12) 38%, rgba(22, 15, 7, 0) 55%);
+}
+.hero-card .hero-txt {
+  position: absolute;
+  top: 24px;
+  left: 26px;
+  right: 26px;
+  z-index: 2;
+}
+.hero-card .hero-txt h3 {
+  font-size: 27px;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+  color: #fff;
+  margin: 0 0 4px;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.35);
+}
+.hero-card .hero-txt span {
+  font-size: 10.5px;
+  letter-spacing: 0.32em;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.9);
+  text-transform: uppercase;
+}
+/* Sağ altta kavisli köşe + yuvarlak buton */
+.hero-card .hero-pad {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  z-index: 2;
+  background: var(--bg);
+  border-top-left-radius: 30px;
+  padding: 12px 0 0 12px;
+}
+.hero-card .hero-pad::before,
+.hero-card .hero-pad::after {
+  content: "";
+  position: absolute;
+  width: 30px;
+  height: 30px;
+  background: transparent;
+  border-bottom-right-radius: 18px;
+  box-shadow: 10px 10px 0 0 var(--bg);
+}
+.hero-card .hero-pad::before { right: 0; top: -30px; }
+.hero-card .hero-pad::after { left: -30px; bottom: 0; }
+.hero-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--brand), var(--brand-dark));
+  color: #fff;
+  font-size: 20px;
+  box-shadow: 0 6px 18px rgba(169, 102, 13, 0.4);
+  transition: transform 0.3s ease;
+}
+.hero-card:hover .hero-btn { transform: scale(1.1) rotate(45deg); }
+
 /* ---- Mobil ---- */
 @media (max-width: 680px) {
   .container { padding: 16px 12px; }
