@@ -1,57 +1,112 @@
+/* eslint-disable @next/next/no-img-element */
+import fs from "fs";
+import path from "path";
 import Link from "next/link";
 import { getSessionUser } from "@/lib/auth";
+
+export const dynamic = "force-dynamic";
+
+// Ana sayfa kart görselleri: public/anasayfa/ klasörüne
+// kataloglar.jpg, stok.jpg, siparis.jpg (jpg/png/webp) eklenince otomatik kullanılır.
+function cardImage(base: string): string | null {
+  for (const ext of ["jpg", "jpeg", "png", "webp"]) {
+    const p = path.join(process.cwd(), "public", "anasayfa", `${base}.${ext}`);
+    if (fs.existsSync(p)) return `/anasayfa/${base}.${ext}`;
+  }
+  return null;
+}
 
 export default async function HomePage() {
   const user = await getSessionUser();
 
+  const cards = [
+    {
+      title: "Kataloglar",
+      sub: "PDF · Dergi Görünümü",
+      href: "/kataloglar",
+      img: cardImage("kataloglar"),
+    },
+    {
+      title: "Stok Durumu",
+      sub: "Ankara · İstanbul",
+      href: user ? "/portal" : "/giris?next=/portal",
+      img: cardImage("stok"),
+    },
+    {
+      title: "Sipariş Paneli",
+      sub: "Çalışanlara Özel",
+      href: user?.role === "staff" ? "/panel" : "/giris?next=/panel",
+      img: cardImage("siparis"),
+    },
+  ];
+
   return (
     <main className="container">
-      <div style={{ textAlign: "center", padding: "60px 0 40px" }}>
-        <h1 style={{ fontSize: 38 }}>
-          Olga <span style={{ color: "var(--brand-light)" }}>Çerçeve</span>
-        </h1>
-        <p className="subtitle" style={{ fontSize: 17, maxWidth: 640, margin: "10px auto 0" }}>
-          Profesyonel çerçeveleme ve dekorasyon çözümleri — toptan fiyat listesi,
-          ürün katalogları, stok durumu ve online sipariş platformu.
+      <div style={{ textAlign: "center", padding: "44px 0 34px" }}>
+        <img
+          src="/logo.png"
+          alt="Olga Çerçeve"
+          style={{ height: 64, width: "auto" }}
+        />
+        <p
+          style={{
+            color: "var(--brand)",
+            letterSpacing: "0.6em",
+            marginRight: "-0.6em",
+            fontSize: 12,
+            fontWeight: 600,
+            marginTop: 8,
+          }}
+        >
+          ÇERÇEVE
+        </p>
+        <p
+          className="subtitle"
+          style={{ fontSize: 16, maxWidth: 620, margin: "14px auto 0" }}
+        >
+          Profesyonel çerçeveleme ve dekorasyon çözümleri — kataloglar, güncel
+          stok ve online sipariş platformu.
         </p>
       </div>
 
-      <div className="grid cols-3">
-        <div className="card">
-          <h2 style={{ marginTop: 0 }}>📖 Kataloglar</h2>
-          <p style={{ color: "var(--text-2)", marginBottom: 16 }}>
-            Çerçeve profili ve teknik malzeme kataloglarımızı dergi formatında
-            inceleyin.
-          </p>
-          <Link href="/kataloglar" className="btn">
-            Katalogları Aç
+      <div className="hero-grid">
+        {cards.map((c) => (
+          <Link key={c.title} href={c.href} className="hero-card">
+            {c.img ? (
+              <img className="hero-bg" src={c.img} alt={c.title} />
+            ) : (
+              <img className="hero-watermark" src="/logo.png" alt="" />
+            )}
+            <span className="hero-shade" />
+            <span className="hero-txt">
+              <h3>{c.title}</h3>
+              <span>{c.sub}</span>
+            </span>
+            <span className="hero-pad">
+              <span className="hero-btn" aria-hidden>
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.4"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <line x1="7" y1="17" x2="17" y2="7" />
+                  <polyline points="8 7 17 7 17 16" />
+                </svg>
+              </span>
+            </span>
           </Link>
-        </div>
-
-        <div className="card">
-          <h2 style={{ marginTop: 0 }}>🏷️ Ürünler &amp; Stok</h2>
-          <p style={{ color: "var(--text-2)", marginBottom: 16 }}>
-            Bayilerimiz için: tüm serilerde stok durumu ve toptan fiyat listesi.
-            Giriş gereklidir.
-          </p>
-          <Link href={user ? "/portal" : "/giris?next=/portal"} className="btn">
-            Portala Git
-          </Link>
-        </div>
-
-        <div className="card">
-          <h2 style={{ marginTop: 0 }}>🧾 Sipariş Paneli</h2>
-          <p style={{ color: "var(--text-2)", marginBottom: 16 }}>
-            Çalışanlarımız için: sipariş oluşturma, e-posta ve WhatsApp ile
-            iletim.
-          </p>
-          <Link href={user?.role === "staff" ? "/panel" : "/giris?next=/panel"} className="btn">
-            Panele Git
-          </Link>
-        </div>
+        ))}
       </div>
 
-      <div className="card" style={{ marginTop: 24, textAlign: "center" }}>
+      <div
+        className="card"
+        style={{ marginTop: 34, textAlign: "center", maxWidth: 1080, marginLeft: "auto", marginRight: "auto" }}
+      >
         <p style={{ color: "var(--text-2)" }}>
           📞 Sipariş Hattı: <strong>0850 305 75 45</strong> · Ankara: 0312 495 75 45 ·
           İstanbul: 0212 675 27 50 ·{" "}
