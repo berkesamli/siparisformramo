@@ -268,6 +268,30 @@ export function boyLength(profile: FrameProfile): number {
   return profile.koliAdet > 0 ? profile.koliMetraj / profile.koliAdet : 0;
 }
 
+/**
+ * Metrajı "X koli + Y boy" metnine çevirir (fiş/PDF gösterimi için).
+ * Örn. 145 mt, koli 72,5 mt → "2 koli"; 160,1 mt → "2 koli + 5 boy".
+ */
+export function koliBoyText(metres: number, profile: FrameProfile): string {
+  const koliM = profile.koliMetraj;
+  const boyM = boyLength(profile) || 2.9;
+  if (metres <= 0 || koliM <= 0 || boyM <= 0) return "";
+  const EPS = 0.01;
+  let koli = Math.floor((metres + EPS) / koliM);
+  let remainder = metres - koli * koliM;
+  let boy = Math.round(remainder / boyM);
+  // Kalan boylar tam bir koliyi tamamlıyorsa yukarı yuvarla
+  if (boy >= profile.koliAdet) {
+    koli += 1;
+    boy = 0;
+  }
+  const parts: string[] = [];
+  if (koli > 0) parts.push(`${koli} koli`);
+  if (boy > 0) parts.push(`${boy} boy`);
+  if (!parts.length) return "";
+  return parts.join(" + ");
+}
+
 export function findProfile(code: string): FrameProfile | undefined {
   const norm = (s: string) => s.toUpperCase().replace(/\s+/g, "");
   const q = norm(code);

@@ -6,6 +6,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { StockData } from "@/lib/stock-parse";
 import { searchStock, toBoy } from "@/lib/stock-search";
+import { findProfile } from "@/data/catalog";
 
 const nf = (n: number) => n.toLocaleString("tr-TR");
 
@@ -71,6 +72,22 @@ export default function StockSearch() {
             <tbody>
               {results.map(({ item, score }) => {
                 const total = item.ankaraMt + item.istanbulMt;
+                const profile = findProfile(item.code);
+                const koliM = profile?.koliMetraj || 0;
+                const cell = (mt: number) => {
+                  if (mt <= 0) return <span className="badge yok">Yok</span>;
+                  const koli = koliM > 0 ? Math.floor(mt / koliM) : 0;
+                  return (
+                    <>
+                      <strong>{nf(toBoy(mt))} boy</strong>
+                      {koli > 0 && (
+                        <span style={{ color: "var(--muted)", fontSize: 12, marginLeft: 6 }}>
+                          (≈ {nf(koli)} koli)
+                        </span>
+                      )}
+                    </>
+                  );
+                };
                 return (
                   <tr key={item.code}>
                     <td style={{ fontWeight: 600 }}>
@@ -81,24 +98,17 @@ export default function StockSearch() {
                         </span>
                       )}
                     </td>
-                    <td>
-                      {item.ankaraMt > 0 ? (
-                        <><strong>{nf(toBoy(item.ankaraMt))} boy</strong></>
-                      ) : (
-                        <span className="badge yok">Yok</span>
-                      )}
-                    </td>
-                    <td>
-                      {item.istanbulMt > 0 ? (
-                        <><strong>{nf(toBoy(item.istanbulMt))} boy</strong></>
-                      ) : (
-                        <span className="badge yok">Yok</span>
-                      )}
-                    </td>
+                    <td>{cell(item.ankaraMt)}</td>
+                    <td>{cell(item.istanbulMt)}</td>
                     <td>
                       <strong style={{ color: "var(--brand-light)" }}>
                         {nf(toBoy(total))} boy
                       </strong>
+                      {koliM > 0 && Math.floor(total / koliM) > 0 && (
+                        <span style={{ color: "var(--muted)", fontSize: 12, marginLeft: 6 }}>
+                          (≈ {nf(Math.floor(total / koliM))} koli)
+                        </span>
+                      )}
                     </td>
                   </tr>
                 );
