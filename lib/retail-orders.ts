@@ -5,9 +5,9 @@ import { findProfile } from "@/data/catalog";
 import type { RetailStatus } from "@/data/perakende";
 import { blobConfigured, istanbulDateKey } from "./orders";
 
-// Perakende metre fiyatı = toptan liste fiyatı (USD/mt) × PERAKENDE_KATSAYI × kur.
+// Perakende metre fiyatı = katalog liste fiyatı (USD/mt) × PERAKENDE_KATSAYI × kur.
 // Katsayı gerekirse RETAIL_FACTOR env değişkeniyle değiştirilebilir.
-const RETAIL_FACTOR = Number(process.env.RETAIL_FACTOR) || 1.5152;
+const RETAIL_FACTOR = Number(process.env.RETAIL_FACTOR) || 5;
 
 export interface RetailFramePrice {
   found: boolean;

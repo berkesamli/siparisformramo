@@ -60,10 +60,10 @@ export interface MatType {
 export const MAT_TYPES: MatType[] = [
   { code: "-", name: "Paspartu Yok", price: 0, icon: "🚫" },
   { code: "DK", name: "Düz Karton", price: 1250, icon: "🟨" },
-  { code: "DMK", name: "Damarlı Karton", price: 1350, icon: "🪵" },
+  { code: "PK", name: "Pamuk Karton", price: 1350, icon: "🪵" },
   { code: "AG", name: "Altın-Gümüş", price: 1700, icon: "✨" },
-  { code: "DOK", name: "Dokulu", price: 1800, icon: "🧵" },
-  { code: "KDF", name: "Kadife", price: 3000, icon: "🟪" },
+  { code: "KDF", name: "Kadife", price: 1800, icon: "🧵" },
+  { code: "PR", name: "Premium", price: 3000, icon: "🟪" },
 ];
 
 // İç paspartu / zemin seçenekleri ("Paspartu Yok" hariç)
@@ -78,9 +78,9 @@ export interface GlassType {
 
 export const GLASS_TYPES: GlassType[] = [
   { name: "Cam Yok", price: 0, desc: "Camsız teslim", icon: "🚫" },
-  { name: "Düz Cam", price: 1250, desc: "Standart şeffaf cam", icon: "🪟" },
+  { name: "Düz Cam", price: 1500, desc: "Standart şeffaf cam", icon: "🪟" },
   { name: "Mat Cam", price: 1750, desc: "Yansıma yapmayan mat cam", icon: "🌫️" },
-  { name: "PVC Cam", price: 1250, desc: "Kırılmaz hafif PVC", icon: "🛡️" },
+  { name: "PVC Cam", price: 1500, desc: "Kırılmaz hafif PVC (pleksi)", icon: "🛡️" },
   { name: "Müze Camı", price: 12000, desc: "UV korumalı premium cam", icon: "🏛️" },
 ];
 
