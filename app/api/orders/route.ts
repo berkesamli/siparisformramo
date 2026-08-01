@@ -14,19 +14,14 @@ import {
   istanbulDateKey,
   sanitizeLines,
   computeTotals,
+  nextOrderId,
+  getDailyRates,
+  saveDailyRates,
   type SavedOrder,
 } from "@/lib/orders";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-function makeOrderId(): string {
-  const d = new Date();
-  const pad = (n: number) => String(n).padStart(2, "0");
-  const stamp = `${String(d.getFullYear()).slice(2)}${pad(d.getMonth() + 1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}`;
-  const rand = Math.random().toString(36).slice(2, 5).toUpperCase();
-  return `OLG-${stamp}-${rand}`;
-}
 
 
 // Sipariş listesi: ?range=today | ?range=week | ?date=YYYY-MM-DD
@@ -66,7 +61,7 @@ export async function POST(req: Request) {
 
   const now = new Date();
   const order: OrderPayload = {
-    orderId: makeOrderId(),
+    orderId: await nextOrderId(),
     employee: user.name,
     customer: String(body.customer || "").slice(0, 200),
     note: String(body.note || "").slice(0, 500),
@@ -108,6 +103,23 @@ export async function POST(req: Request) {
     stored = await saveOrder(saved);
   } catch (err) {
     console.error("Sipariş Blob'a kaydedilemedi:", err);
+  }
+
+  // Günün kuru daha önce kaydedilmediyse bu siparişteki kuru günlük kur yap
+  if (order.rate > 0) {
+    try {
+      const existing = await getDailyRates(saved.dateKey);
+      if (!existing) {
+        await saveDailyRates(saved.dateKey, {
+          rate: order.rate,
+          euroRate: order.euroRate,
+          updatedAt: now.toISOString(),
+          by: user.name,
+        });
+      }
+    } catch (err) {
+      console.error("Günlük kur kaydedilemedi:", err);
+    }
   }
 
   let emailSent = false;

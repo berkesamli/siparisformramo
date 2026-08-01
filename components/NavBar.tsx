@@ -27,8 +27,12 @@ export default function NavBar({ user }: { user: NavUser | null }) {
   if (user?.role === "staff") {
     links.push({ href: "/panel", label: "Sipariş Paneli" });
     links.push({ href: "/panel/siparisler", label: "Siparişler" });
-    links.push({ href: "/panel/stok", label: "Stok Yükle" });
   }
+  // Çekmece menüde Stok Yükle de listelensin
+  const drawerLinks =
+    user?.role === "staff"
+      ? [...links, { href: "/panel/stok", label: "Stok Yükle" }]
+      : links;
 
   async function logout() {
     setOpen(false);
@@ -74,6 +78,11 @@ export default function NavBar({ user }: { user: NavUser | null }) {
             <span className="user">
               {user.name} ({user.role === "staff" ? "Çalışan" : "Müşteri"})
             </span>
+            {user.role === "staff" && (
+              <Link href="/panel/stok" className="btn small secondary">
+                📦 Stok Yükle
+              </Link>
+            )}
             <button className="btn small secondary" onClick={logout}>
               Çıkış
             </button>
@@ -106,7 +115,7 @@ export default function NavBar({ user }: { user: NavUser | null }) {
               </button>
             </div>
 
-            {links.map((l) => (
+            {drawerLinks.map((l) => (
               <Link
                 key={l.href}
                 href={l.href}
