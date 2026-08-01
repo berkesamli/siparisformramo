@@ -22,8 +22,15 @@ export default async function RootLayout({
       <body>
         <nav className="topnav">
           <Link href="/" className="logo">
-            <span className="logo-word">OLGA</span>
-            <span className="logo-sub">ÇERÇEVE</span>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/logo.png"
+              alt="Olga Çerçeve"
+              style={{ height: 34, width: "auto", display: "block" }}
+            />
+            <span className="logo-sub" style={{ marginTop: 3 }}>
+              ÇERÇEVE
+            </span>
           </Link>
           <Link href="/kataloglar" className="navlink">
             Kataloglar
