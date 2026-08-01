@@ -27,6 +27,7 @@ export default function NavBar({ user }: { user: NavUser | null }) {
   if (user?.role === "staff") {
     links.push({ href: "/panel", label: "Sipariş Paneli" });
     links.push({ href: "/panel/siparisler", label: "Siparişler" });
+    links.push({ href: "/panel/perakende", label: "Perakende" });
   }
   // Çekmece menüde Stok Yükle de listelensin
   const drawerLinks =
