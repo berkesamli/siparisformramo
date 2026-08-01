@@ -161,10 +161,63 @@ tbody tr:hover td { background: #faf7f1; }
   color: var(--muted);
   margin-right: -0.62em;
 }
-.topnav a.navlink { color: var(--text-2); font-weight: 500; font-size: 14px; }
+.topnav a.navlink { color: var(--text-2); font-weight: 500; font-size: 14px; white-space: nowrap; }
 .topnav a.navlink:hover { color: var(--brand); text-decoration: none; }
 .topnav .spacer { flex: 1; }
 .topnav .user { color: var(--muted); font-size: 13px; }
+.nav-links { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+.nav-user-area { display: flex; align-items: center; gap: 12px; }
+
+.hamburger {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+.hamburger:hover { background: var(--input); }
+
+.drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(24, 18, 10, 0.4);
+  backdrop-filter: blur(2px);
+  z-index: 98;
+  animation: fadeIn 0.2s ease;
+}
+.drawer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: min(290px, 84vw);
+  background: #fff;
+  z-index: 99;
+  padding: 20px 20px 24px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 12px 0 40px rgba(0, 0, 0, 0.16);
+  animation: slideIn 0.25s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+.drawer-link {
+  display: block;
+  padding: 12px 14px;
+  border-radius: 10px;
+  color: var(--text);
+  font-weight: 500;
+  font-size: 15px;
+  margin-bottom: 2px;
+}
+.drawer-link:hover { background: var(--input); text-decoration: none; color: var(--brand); }
+.drawer-link.active { background: rgba(169, 102, 13, 0.08); color: var(--brand); font-weight: 700; }
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideIn { from { transform: translateX(-100%); } to { transform: translateX(0); } }
 
 h1 { font-size: 27px; font-weight: 800; margin-bottom: 6px; letter-spacing: -0.01em; }
 h2 { font-size: 18px; font-weight: 700; margin: 20px 0 12px; }
@@ -251,50 +304,38 @@ h2 { font-size: 18px; font-weight: 700; margin: 20px 0 12px; }
   color: rgba(255, 255, 255, 0.9);
   text-transform: uppercase;
 }
-/* Sağ altta kavisli köşe + yuvarlak buton */
-.hero-card .hero-pad {
-  position: absolute;
-  right: 0;
-  bottom: 0;
-  z-index: 2;
-  background: var(--bg);
-  border-top-left-radius: 30px;
-  padding: 12px 0 0 12px;
-}
-.hero-card .hero-pad::before,
-.hero-card .hero-pad::after {
-  content: "";
-  position: absolute;
-  width: 30px;
-  height: 30px;
-  background: transparent;
-  border-bottom-right-radius: 18px;
-  box-shadow: 10px 10px 0 0 var(--bg);
-}
-.hero-card .hero-pad::before { right: 0; top: -30px; }
-.hero-card .hero-pad::after { left: -30px; bottom: 0; }
+/* Sağ altta cam-beyaz yuvarlak ok butonu */
 .hero-btn {
+  position: absolute;
+  right: 18px;
+  bottom: 18px;
+  z-index: 2;
   display: flex;
   align-items: center;
   justify-content: center;
   width: 54px;
   height: 54px;
   border-radius: 50%;
-  background: linear-gradient(135deg, var(--brand), var(--brand-dark));
-  color: #fff;
-  font-size: 20px;
-  box-shadow: 0 6px 18px rgba(169, 102, 13, 0.4);
-  transition: transform 0.3s ease;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(8px);
+  color: var(--brand);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.22);
+  transition: transform 0.3s ease, background 0.3s ease;
 }
-.hero-card:hover .hero-btn { transform: scale(1.1) rotate(45deg); }
+.hero-card:hover .hero-btn {
+  transform: scale(1.12) rotate(45deg);
+  background: #ffffff;
+}
 
 /* ---- Mobil ---- */
+@media (max-width: 900px) {
+  .nav-links { display: none; }
+  .nav-user-area { display: none; }
+  .hamburger { display: flex; }
+  .topnav { gap: 12px; padding: 10px 14px; flex-wrap: nowrap; }
+}
 @media (max-width: 680px) {
   .container { padding: 16px 12px; }
-  .topnav { gap: 12px; padding: 10px 14px; }
-  .logo-word { font-size: 19px; }
-  .topnav a.navlink { font-size: 13px; }
-  .topnav .user { display: none; }
   h1 { font-size: 22px; }
   .card { padding: 16px; border-radius: 12px; }
   th, td { padding: 8px 8px; font-size: 12.5px; }
