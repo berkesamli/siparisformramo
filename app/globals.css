@@ -245,19 +245,32 @@ h2 { font-size: 18px; font-weight: 700; margin: 20px 0 12px; }
 .hero-card {
   position: relative;
   display: block;
-  border-radius: 28px;
-  overflow: hidden;
   aspect-ratio: 3 / 3.8;
-  background:
-    radial-gradient(ellipse at 80% 110%, rgba(169, 102, 13, 0.55) 0%, transparent 55%),
-    linear-gradient(160deg, #f6ecdb 0%, #e2c491 55%, #b97c1e 120%);
-  box-shadow: var(--shadow-md);
-  transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.3, 1), box-shadow 0.35s ease;
+  filter: drop-shadow(0 10px 24px rgba(38, 32, 26, 0.15));
+  transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.3, 1), filter 0.35s ease;
 }
 .hero-card:hover {
   transform: translateY(-7px);
-  box-shadow: 0 24px 55px rgba(38, 32, 26, 0.2);
+  filter: drop-shadow(0 26px 44px rgba(38, 32, 26, 0.24));
   text-decoration: none;
+}
+/* Kart gövdesi — sağ alt köşesi yuvarlak oyuklu (Nike tarzı kesim).
+   Oyuk SVG mask ile açılır; ok butonu bu boşlukta durur. */
+.hero-media {
+  position: absolute;
+  inset: 0;
+  display: block;
+  border-radius: 28px;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 80% 110%, rgba(169, 102, 13, 0.55) 0%, transparent 55%),
+    linear-gradient(160deg, #f6ecdb 0%, #e2c491 55%, #b97c1e 120%);
+  -webkit-mask-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 380'><path d='M26 0H274A26 26 0 0 1 300 26V272A20 20 0 0 1 280 292H232A20 20 0 0 0 212 312V360A20 20 0 0 1 192 380H26A26 26 0 0 1 0 354V26A26 26 0 0 1 26 0Z' fill='black'/></svg>");
+  mask-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 300 380'><path d='M26 0H274A26 26 0 0 1 300 26V272A20 20 0 0 1 280 292H232A20 20 0 0 0 212 312V360A20 20 0 0 1 192 380H26A26 26 0 0 1 0 354V26A26 26 0 0 1 26 0Z' fill='black'/></svg>");
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
 }
 .hero-card img.hero-bg {
   position: absolute;
@@ -304,27 +317,30 @@ h2 { font-size: 18px; font-weight: 700; margin: 20px 0 12px; }
   color: rgba(255, 255, 255, 0.9);
   text-transform: uppercase;
 }
-/* Sağ altta cam-beyaz yuvarlak ok butonu */
+/* Oyuk köşede duran yuvarlak cam ok butonu */
 .hero-btn {
   position: absolute;
-  right: 18px;
-  bottom: 18px;
+  right: 5%;
+  bottom: 4%;
   z-index: 2;
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 54px;
-  height: 54px;
+  width: 19%;
+  aspect-ratio: 1;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.92);
-  backdrop-filter: blur(8px);
+  background: rgba(255, 255, 255, 0.66);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.85);
   color: var(--brand);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.22);
+  box-shadow: 0 8px 22px rgba(38, 32, 26, 0.2), inset 0 1px 2px rgba(255, 255, 255, 0.9);
   transition: transform 0.3s ease, background 0.3s ease;
 }
+.hero-btn svg { width: 38%; height: auto; }
 .hero-card:hover .hero-btn {
-  transform: scale(1.12) rotate(45deg);
-  background: #ffffff;
+  transform: scale(1.1) rotate(45deg);
+  background: rgba(255, 255, 255, 0.95);
 }
 
 /* ---- Mobil ---- */
