@@ -174,14 +174,43 @@ function computeRow(row: Row, rate: number, euroRate: number): ComputedLine | nu
   };
 }
 
-export default function OrderForm({ employeeName }: { employeeName: string }) {
-  const [rows, setRows] = useState<Row[]>([emptyRow()]);
-  const [customer, setCustomer] = useState("");
-  const [note, setNote] = useState("");
-  const [rate, setRate] = useState("");
-  const [euroRate, setEuroRate] = useState("");
-  const [discountPct, setDiscountPct] = useState("");
-  const [vat, setVat] = useState(false);
+export interface InitialOrder {
+  dateKey: string;
+  orderId: string;
+  customer: string;
+  note: string;
+  rate: number;
+  euroRate: number;
+  discountPct: number;
+  vatApplied: boolean;
+  rows?: Partial<Row>[];
+}
+
+export default function OrderForm({
+  employeeName,
+  initialOrder,
+}: {
+  employeeName: string;
+  initialOrder?: InitialOrder;
+}) {
+  const [rows, setRows] = useState<Row[]>(() => {
+    if (initialOrder?.rows?.length) {
+      return initialOrder.rows.map((r) => ({ ...emptyRow(), ...r, id: rowSeq++ }));
+    }
+    return [emptyRow()];
+  });
+  const [customer, setCustomer] = useState(initialOrder?.customer ?? "");
+  const [note, setNote] = useState(initialOrder?.note ?? "");
+  const [rate, setRate] = useState(
+    initialOrder?.rate ? String(initialOrder.rate) : ""
+  );
+  const [euroRate, setEuroRate] = useState(
+    initialOrder?.euroRate ? String(initialOrder.euroRate) : ""
+  );
+  const [discountPct, setDiscountPct] = useState(
+    initialOrder?.discountPct ? String(initialOrder.discountPct) : ""
+  );
+  const [vat, setVat] = useState(initialOrder?.vatApplied ?? false);
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<{
     ok: boolean;
@@ -220,38 +249,50 @@ export default function OrderForm({ employeeName }: { employeeName: string }) {
     }
     setSending(true);
     try {
-      const res = await fetch("/api/orders", {
-        method: "POST",
+      const payload = {
+        customer: customer.trim(),
+        note: note.trim(),
+        rate: rateNum,
+        euroRate: euroNum,
+        discountPct: parseFloat(discountPct) || 0,
+        vatApplied: vat,
+        lines,
+        rows,
+        gross,
+        discount,
+        vatAmount,
+        net,
+      };
+      const url = initialOrder
+        ? `/api/orders/one?d=${initialOrder.dateKey}&id=${encodeURIComponent(initialOrder.orderId)}`
+        : "/api/orders";
+      const res = await fetch(url, {
+        method: initialOrder ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          customer: customer.trim(),
-          note: note.trim(),
-          rate: rateNum,
-          euroRate: euroNum,
-          discountPct: parseFloat(discountPct) || 0,
-          vatApplied: vat,
-          lines,
-          gross,
-          discount,
-          vatAmount,
-          net,
-        }),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (!res.ok || !data.ok) {
         setResult({ ok: false, msg: data.error || "Sipariş gönderilemedi." });
         return;
       }
-      setResult({
-        ok: true,
-        msg: `Sipariş ${data.orderId} oluşturuldu. ${data.emailSent ? "E-posta gönderildi." : "E-posta yapılandırılmadı (SMTP env eksik)."} ${data.waSent ? "WhatsApp mesajı gönderildi." : ""}`,
-        waLink: data.waLink,
-      });
-      setRows([emptyRow()]);
-      setCustomer("");
-      setNote("");
-      setDiscountPct("");
-      setVat(false);
+      if (initialOrder) {
+        setResult({
+          ok: true,
+          msg: `Sipariş ${initialOrder.orderId} güncellendi. Yeni toplam: ₺ ${fmt(data.net)}`,
+        });
+      } else {
+        setResult({
+          ok: true,
+          msg: `Sipariş ${data.orderId} oluşturuldu. ${data.emailSent ? "E-posta gönderildi." : "E-posta yapılandırılmadı (SMTP env eksik)."} ${data.waSent ? "WhatsApp mesajı gönderildi." : ""}`,
+          waLink: data.waLink,
+        });
+        setRows([emptyRow()]);
+        setCustomer("");
+        setNote("");
+        setDiscountPct("");
+        setVat(false);
+      }
     } catch {
       setResult({ ok: false, msg: "Sunucu hatası." });
     } finally {
@@ -668,7 +709,11 @@ export default function OrderForm({ employeeName }: { employeeName: string }) {
 
       <div style={{ marginTop: 16, display: "flex", gap: 12 }}>
         <button className="btn" onClick={submit} disabled={sending}>
-          {sending ? "Gönderiliyor…" : "Siparişi Gönder"}
+          {sending
+            ? "Gönderiliyor…"
+            : initialOrder
+              ? "Değişiklikleri Kaydet"
+              : "Siparişi Gönder"}
         </button>
       </div>
     </div>
