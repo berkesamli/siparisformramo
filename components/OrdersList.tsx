@@ -159,12 +159,19 @@ export default function OrdersList() {
                     </select>
                   </td>
                   <td style={{ whiteSpace: "nowrap" }}>
+                    <a
+                      className="btn small secondary"
+                      href={`/api/orders/pdf?d=${o.dateKey}&id=${encodeURIComponent(o.orderId)}`}
+                      style={{ marginRight: 6 }}
+                    >
+                      ⬇ PDF
+                    </a>
                     <Link
                       className="btn small secondary"
                       href={`/panel/siparisler/detay?d=${o.dateKey}&id=${encodeURIComponent(o.orderId)}`}
                       style={{ marginRight: 6 }}
                     >
-                      🖨️ PDF
+                      🖨️ Fiş
                     </Link>
                     <Link
                       className="btn small secondary"

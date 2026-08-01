@@ -269,8 +269,16 @@ export function boyLength(profile: FrameProfile): number {
 }
 
 export function findProfile(code: string): FrameProfile | undefined {
-  const norm = code.toUpperCase().replace(/\s+/g, "");
-  return FRAME_PROFILES.find(
-    (f) => f.code.toUpperCase().replace(/\s+/g, "") === norm
-  );
+  const norm = (s: string) => s.toUpperCase().replace(/\s+/g, "");
+  const q = norm(code);
+  if (!q) return undefined;
+  // Birebir eşleşme
+  const exact = FRAME_PROFILES.find((f) => norm(f.code) === q);
+  if (exact) return exact;
+  // Renk/varyant ekli kodlar: "GC065-1473BX" → taban kod "GC065"
+  const base = q.split("-")[0];
+  if (base && base !== q) {
+    return FRAME_PROFILES.find((f) => norm(f.code) === base);
+  }
+  return undefined;
 }
