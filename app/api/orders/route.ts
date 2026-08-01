@@ -113,7 +113,14 @@ export async function POST(req: Request) {
   let emailSent = false;
   let waSent = false;
   try {
-    emailSent = await sendOrderEmail(order);
+    let pdf: Buffer | undefined;
+    try {
+      const { generateOrderPdf } = await import("@/lib/order-pdf");
+      pdf = await generateOrderPdf(order);
+    } catch (err) {
+      console.error("PDF üretilemedi:", err);
+    }
+    emailSent = await sendOrderEmail(order, pdf);
   } catch (err) {
     console.error("E-posta gönderilemedi:", err);
   }

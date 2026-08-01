@@ -621,6 +621,16 @@ export default function OrderForm({
               }}
             >
               <span style={{ color: "var(--text-2)", fontSize: 13 }}>
+                {row.kind === "frame" && profile && (
+                  <span style={{ color: "var(--brand-light)", marginRight: 10 }}>
+                    {profile.code}: 1 koli = {profile.koliAdet} adet /{" "}
+                    {profile.koliMetraj.toLocaleString("tr-TR")} mt · 1 boy ={" "}
+                    {boyLength(profile).toLocaleString("tr-TR", {
+                      maximumFractionDigits: 2,
+                    })}{" "}
+                    mt
+                  </span>
+                )}
                 {computed
                   ? `${computed.unitText} — Tutar: ₺ ${fmt(computed.lineTotal)}`
                   : "Satır henüz eksik"}

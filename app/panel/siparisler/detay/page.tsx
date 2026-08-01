@@ -49,6 +49,12 @@ export default async function OrderDetailPage({
         >
           ✏️ Düzenle
         </Link>
+        <a
+          className="btn small"
+          href={`/api/orders/pdf?d=${order.dateKey}&id=${encodeURIComponent(order.orderId)}`}
+        >
+          ⬇ PDF İndir
+        </a>
         <PrintButton />
       </div>
 

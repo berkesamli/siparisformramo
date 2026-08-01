@@ -91,8 +91,11 @@ export function orderHtml(o: OrderPayload): string {
   </div>`;
 }
 
-/** SMTP env değişkenleri tanımlıysa e-posta gönderir. */
-export async function sendOrderEmail(o: OrderPayload): Promise<boolean> {
+/** SMTP env değişkenleri tanımlıysa e-posta gönderir (varsa PDF ekiyle). */
+export async function sendOrderEmail(
+  o: OrderPayload,
+  pdf?: Buffer
+): Promise<boolean> {
   const host = process.env.SMTP_HOST;
   const user = process.env.SMTP_USER;
   const pass = process.env.SMTP_PASS;
@@ -112,6 +115,15 @@ export async function sendOrderEmail(o: OrderPayload): Promise<boolean> {
     subject: `Yeni Sipariş ${o.orderId} — ${o.customer} — ₺ ${fmt(o.net)}`,
     text: orderText(o),
     html: orderHtml(o),
+    attachments: pdf
+      ? [
+          {
+            filename: `Siparis_${o.orderId}.pdf`,
+            content: pdf,
+            contentType: "application/pdf",
+          },
+        ]
+      : undefined,
   });
   return true;
 }
