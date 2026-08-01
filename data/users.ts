@@ -11,11 +11,11 @@ export interface User {
   role: Role;
 }
 
+// Gerçek kullanıcılar USERS_JSON ortam değişkeninde tanımlıdır (Vercel →
+// Settings → Environment Variables). Aşağıdaki liste yalnızca USERS_JSON hiç
+// tanımlanmadığında (ör. ilk kurulum/yerel geliştirme) devreye girer.
 const DEFAULT_USERS: User[] = [
-  { username: "ramazan", password: "olga2025", name: "Ramazan Kaypan", role: "staff" },
-  { username: "murat", password: "olga2025", name: "Murat Gündüz", role: "staff" },
-  { username: "alaattin", password: "olga2025", name: "Alaattin Yıldız", role: "staff" },
-  { username: "musteri", password: "olga123", name: "Örnek Müşteri", role: "customer" },
+  { username: "demo", password: "kurulum-tamamlanmadi", name: "Demo", role: "customer" },
 ];
 
 export function getUsers(): User[] {
