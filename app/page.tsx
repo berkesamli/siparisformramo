@@ -38,6 +38,15 @@ export default async function HomePage() {
       href: user?.role === "staff" ? "/panel" : "/giris?next=/panel",
       img: cardImage("siparis"),
     },
+    {
+      title: "Online Çerçeve",
+      sub: "Perakende · Çerçeveletme",
+      href:
+        user?.role === "staff"
+          ? "/panel/perakende"
+          : "/giris?next=/panel/perakende",
+      img: cardImage("perakende"),
+    },
   ];
 
   return (
