@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { FRAME_PROFILES, findProfile, boyLength } from "@/data/catalog";
+import { FRAME_PROFILES, findProfile, boyLength, koliBoyText } from "@/data/catalog";
 import {
   TECHNICAL_PRODUCTS,
   getTechnicalProduct,
@@ -85,12 +85,9 @@ function computeRow(row: Row, rate: number, euroRate: number): ComputedLine | nu
     }
     metres = r2(metres);
     let unitText = `${fmt(metres)} mt`;
-    if (profile) {
-      const bl = boyLength(profile);
-      if (bl > 0 && metres > 0) {
-        const boyCount = Math.round((metres / bl) * 10) / 10;
-        unitText = `${fmt(metres)} mt (${boyCount} boy)`;
-      }
+    if (profile && metres > 0) {
+      const kb = koliBoyText(metres, profile);
+      if (kb) unitText = `${fmt(metres)} mt (${kb})`;
     }
     return {
       name: row.code.trim().toUpperCase(),
