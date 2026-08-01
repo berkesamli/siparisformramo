@@ -2,6 +2,7 @@
 
 import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Logo from "@/components/Logo";
 
 function LoginForm() {
   const router = useRouter();
@@ -39,8 +40,11 @@ function LoginForm() {
 
   return (
     <main className="container" style={{ maxWidth: 440 }}>
-      <div className="card" style={{ marginTop: 60 }}>
-        <h1 style={{ textAlign: "center" }}>Giriş Yap</h1>
+      <div style={{ textAlign: "center", marginTop: 50, marginBottom: 26 }}>
+        <Logo size={1.2} />
+      </div>
+      <div className="card">
+        <h1 style={{ textAlign: "center", fontSize: 21 }}>Giriş Yap</h1>
         <p className="subtitle" style={{ textAlign: "center" }}>
           Çalışan veya bayi hesabınızla giriş yapın
         </p>

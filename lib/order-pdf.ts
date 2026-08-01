@@ -22,7 +22,15 @@ export interface PdfOrder {
 
 const FONT = path.join(process.cwd(), "assets", "DejaVuSans.ttf");
 const FONT_BOLD = path.join(process.cwd(), "assets", "DejaVuSans-Bold.ttf");
-const BRAND = "#8b6914";
+
+const BRAND = "#a9660d";
+const BRAND_DARK = "#7c4a06";
+const CREAM = "#faf7f1";
+const INK = "#26201a";
+const GRAY = "#8a8072";
+const LINE = "#e8e0d2";
+
+const M = 46; // sayfa marjı
 
 const fmt = (n: number) =>
   (Number(n) || 0).toLocaleString("tr-TR", {
@@ -34,115 +42,203 @@ export function generateOrderPdf(order: PdfOrder): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     // font seçeneği ile başlatınca pdfkit standart (Helvetica) fontlarını hiç
     // yüklemez — Türkçe karakterler ve Vercel paketi için gereklidir.
-    const doc = new PDFDocument({ size: "A4", margin: 50, font: FONT });
+    const doc = new PDFDocument({ size: "A4", margin: M, font: FONT });
     const chunks: Buffer[] = [];
     doc.on("data", (c: Buffer) => chunks.push(c));
     doc.on("end", () => resolve(Buffer.concat(chunks)));
     doc.on("error", reject);
 
-    const pageWidth = doc.page.width - 100; // marjlar düşülmüş
+    const W = doc.page.width;
+    const pageWidth = W - M * 2;
 
-    // Başlık
-    doc.font(FONT_BOLD).fontSize(20).fillColor(BRAND).text("OLGA ÇERÇEVE");
-    doc.font(FONT).fontSize(10).fillColor("#666").text("Sipariş Fişi");
-    doc.moveDown(0.6);
+    // ===== Üst bant: bronz zemin + logo =====
+    const bandH = 92;
+    doc.rect(0, 0, W, bandH).fill(BRAND);
+    doc.rect(0, bandH, W, 3).fill("#c99b4a");
 
-    // Üst bilgiler
-    doc.fontSize(10).fillColor("#000");
-    const info: [string, string][] = [
-      ["Sipariş No", order.orderId],
-      ["Tarih", order.dateStr],
-      ["Çalışan", order.employee],
-      ["Müşteri", order.customer || "-"],
-    ];
-    if (order.status) info.push(["Durum", order.status]);
-    if (order.note) info.push(["Not", order.note]);
-    for (const [k, v] of info) {
-      doc.font(FONT_BOLD).text(`${k}: `, { continued: true });
-      doc.font(FONT).text(v);
-    }
-    doc.moveDown(0.8);
-
-    // Tablo başlığı
-    const cols = [26, pageWidth * 0.34, pageWidth * 0.3, pageWidth * 0.14, pageWidth * 0.16];
-    const colX: number[] = [];
-    let x = 50;
-    for (const w of cols) {
-      colX.push(x);
-      x += w;
-    }
-    const rowHeight = (texts: string[], widths: number[]) =>
-      Math.max(
-        ...texts.map((t, i) => doc.heightOfString(t, { width: widths[i] - 6 }))
-      ) + 8;
-
-    const drawRow = (
-      texts: string[],
-      opts: { bold?: boolean; bg?: string } = {}
-    ) => {
-      const h = rowHeight(texts, cols);
-      if (doc.y + h > doc.page.height - 60) doc.addPage();
-      const y = doc.y;
-      if (opts.bg) {
-        doc.rect(50, y, pageWidth, h).fill(opts.bg);
-      }
-      doc.fillColor("#000").font(opts.bold ? FONT_BOLD : FONT).fontSize(9);
-      texts.forEach((t, i) => {
-        doc.text(t, colX[i] + 3, y + 4, {
-          width: cols[i] - 6,
-          align: i >= 3 ? "right" : "left",
-        });
-      });
-      doc.y = y + h;
-      doc.x = 50;
-      doc
-        .moveTo(50, doc.y)
-        .lineTo(50 + pageWidth, doc.y)
-        .strokeColor("#dddddd")
-        .lineWidth(0.5)
-        .stroke();
-    };
-
-    drawRow(["#", "Ürün", "Birim", "B.Fiyat (₺)", "Tutar (₺)"], {
-      bold: true,
-      bg: "#f5f0e6",
-    });
-    order.lines.forEach((l, i) => {
-      drawRow([String(i + 1), l.name, l.unitText, fmt(l.unitPriceTL), fmt(l.lineTotal)]);
-    });
-
-    doc.moveDown(0.8);
-
-    // Toplamlar (sağa dayalı küçük tablo)
-    const totals: [string, string][] = [
-      ["Ara Toplam", `₺ ${fmt(order.gross)}`],
-      [`İskonto (%${order.discountPct})`, `₺ ${fmt(order.discount)}`],
-      ["KDV", order.vatApplied ? `%20 — ₺ ${fmt(order.vatAmount)}` : "Uygulanmadı"],
-      ["GENEL TOPLAM", `₺ ${fmt(order.net)}`],
-    ];
-    const tx = 50 + pageWidth * 0.5;
-    const tw = pageWidth * 0.5;
-    totals.forEach(([k, v], i) => {
-      const bold = i === totals.length - 1;
-      const y = doc.y;
-      if (bold) doc.rect(tx, y - 2, tw, 18).fill("#f5f0e6");
-      doc.fillColor(bold ? BRAND : "#000").font(bold ? FONT_BOLD : FONT).fontSize(10);
-      doc.text(k, tx + 4, y, { width: tw * 0.55 });
-      doc.text(v, tx + tw * 0.55, y, { width: tw * 0.45 - 6, align: "right" });
-      doc.y = y + 18;
-      doc.x = 50;
-    });
-
-    // Alt bilgi — sayfa alt marjının üstünde tek satır (taşarsa pdfkit yeni
-    // sayfa açacağı için lineBreak kapalı)
     doc
       .font(FONT)
+      .fontSize(30)
+      .fillColor("#ffffff")
+      .text("OLGA", M, 24, { characterSpacing: 10 });
+    doc
       .fontSize(8)
-      .fillColor("#888")
+      .fillColor("#f3e3c8")
+      .text("Ç E R Ç E V E", M + 1, 60, { characterSpacing: 4 });
+
+    doc
+      .font(FONT_BOLD)
+      .fontSize(15)
+      .fillColor("#ffffff")
+      .text("SİPARİŞ FİŞİ", M, 26, { width: pageWidth, align: "right" });
+    doc
+      .font(FONT)
+      .fontSize(9.5)
+      .fillColor("#f3e3c8")
+      .text(order.orderId, M, 48, { width: pageWidth, align: "right" })
+      .text(order.dateStr, M, 62, { width: pageWidth, align: "right" });
+
+    // ===== Bilgi kutuları =====
+    let y = bandH + 24;
+    const half = pageWidth / 2 - 8;
+
+    const infoBox = (
+      x: number,
+      title: string,
+      rows: [string, string][],
+      w: number
+    ) => {
+      const rowH = 16;
+      const h = 26 + rows.length * rowH;
+      doc.roundedRect(x, y, w, h, 6).fill(CREAM);
+      doc
+        .font(FONT_BOLD)
+        .fontSize(8)
+        .fillColor(BRAND)
+        .text(title.toUpperCase(), x + 12, y + 9, { characterSpacing: 1.5 });
+      rows.forEach(([k, v], i) => {
+        const ry = y + 26 + i * rowH;
+        doc.font(FONT).fontSize(9).fillColor(GRAY).text(k, x + 12, ry, { width: 70 });
+        doc
+          .font(FONT_BOLD)
+          .fontSize(9)
+          .fillColor(INK)
+          .text(v, x + 84, ry, { width: w - 96 });
+      });
+      return h;
+    };
+
+    const leftRows: [string, string][] = [["Müşteri", order.customer || "-"]];
+    if (order.note) leftRows.push(["Not", order.note]);
+    const rightRows: [string, string][] = [["Çalışan", order.employee]];
+    if (order.status) rightRows.push(["Durum", order.status]);
+
+    const h1 = infoBox(M, "Müşteri Bilgileri", leftRows, half);
+    const h2 = infoBox(M + half + 16, "Sipariş Bilgileri", rightRows, half);
+    y += Math.max(h1, h2) + 22;
+
+    // ===== Ürün tablosu =====
+    const cols = [26, pageWidth * 0.36, pageWidth * 0.29, pageWidth * 0.14, pageWidth * 0.16];
+    const colX: number[] = [];
+    {
+      let x = M;
+      for (const w of cols) {
+        colX.push(x);
+        x += w;
+      }
+    }
+
+    const cellHeight = (texts: string[]) =>
+      Math.max(
+        ...texts.map((t, i) =>
+          doc.heightOfString(t, { width: cols[i] - 12 })
+        )
+      ) + 11;
+
+    const drawCells = (
+      texts: string[],
+      opts: { header?: boolean; zebra?: boolean } = {}
+    ) => {
+      doc.font(opts.header ? FONT_BOLD : FONT).fontSize(opts.header ? 8.5 : 9);
+      const h = cellHeight(texts);
+      if (y + h > doc.page.height - 150) {
+        doc.addPage();
+        y = M;
+      }
+      if (opts.header) {
+        doc.roundedRect(M, y, pageWidth, h, 4).fill(BRAND);
+      } else if (opts.zebra) {
+        doc.rect(M, y, pageWidth, h).fill(CREAM);
+      }
+      texts.forEach((t, i) => {
+        doc
+          .font(opts.header ? FONT_BOLD : i === 1 ? FONT_BOLD : FONT)
+          .fontSize(opts.header ? 8.5 : 9)
+          .fillColor(opts.header ? "#ffffff" : INK)
+          .text(t, colX[i] + 6, y + 6, {
+            width: cols[i] - 12,
+            align: i >= 3 ? "right" : "left",
+            characterSpacing: opts.header ? 0.8 : 0,
+          });
+      });
+      y += h;
+      if (!opts.header) {
+        doc
+          .moveTo(M, y)
+          .lineTo(M + pageWidth, y)
+          .strokeColor(LINE)
+          .lineWidth(0.5)
+          .stroke();
+      }
+    };
+
+    drawCells(["#", "ÜRÜN", "MİKTAR", "B. FİYAT", "TUTAR"], { header: true });
+    order.lines.forEach((l, i) => {
+      drawCells(
+        [String(i + 1), l.name, l.unitText, `₺ ${fmt(l.unitPriceTL)}`, `₺ ${fmt(l.lineTotal)}`],
+        { zebra: i % 2 === 1 }
+      );
+    });
+
+    // ===== Toplamlar =====
+    y += 16;
+    const tw = pageWidth * 0.46;
+    const tx = M + pageWidth - tw;
+    const totals: [string, string, boolean][] = [
+      ["Ara Toplam", `₺ ${fmt(order.gross)}`, false],
+      [`İskonto (%${order.discountPct})`, `₺ ${fmt(order.discount)}`, false],
+      ["KDV", order.vatApplied ? `%20 — ₺ ${fmt(order.vatAmount)}` : "Uygulanmadı", false],
+      ["GENEL TOPLAM", `₺ ${fmt(order.net)}`, true],
+    ];
+    const totH = 20;
+    if (y + totals.length * totH + 60 > doc.page.height - 80) {
+      doc.addPage();
+      y = M;
+    }
+    totals.forEach(([k, v, grand]) => {
+      if (grand) {
+        doc.roundedRect(tx, y - 1, tw, totH + 4, 5).fill(BRAND);
+      }
+      doc
+        .font(grand ? FONT_BOLD : FONT)
+        .fontSize(grand ? 11 : 9.5)
+        .fillColor(grand ? "#ffffff" : GRAY)
+        .text(k, tx + 10, y + 3, { width: tw * 0.55 });
+      doc
+        .font(FONT_BOLD)
+        .fontSize(grand ? 11 : 9.5)
+        .fillColor(grand ? "#ffffff" : INK)
+        .text(v, tx + tw * 0.5, y + 3, { width: tw * 0.5 - 10, align: "right" });
+      y += totH + (grand ? 6 : 2);
+    });
+
+    // ===== Alt bilgi =====
+    // Alt marjı sıfırla — yoksa pdfkit marj sınırını aşan footer için yeni sayfa açar
+    doc.page.margins.bottom = 0;
+    const fy = doc.page.height - 64;
+    doc
+      .moveTo(M, fy)
+      .lineTo(M + pageWidth, fy)
+      .strokeColor(BRAND)
+      .lineWidth(0.8)
+      .stroke();
+    doc
+      .font(FONT)
+      .fontSize(7.5)
+      .fillColor(GRAY)
       .text(
-        "Olga Çerçeve — Sipariş Hattı: 0850 305 75 45 · olgacerceve.com",
-        50,
-        doc.page.height - 68,
+        "OLGA ÇERÇEVE  ·  Sipariş Hattı: 0850 305 75 45  ·  olgacerceve.com",
+        M,
+        fy + 10,
+        { width: pageWidth, align: "center", lineBreak: false }
+      );
+    doc
+      .fontSize(7)
+      .fillColor("#b3a893")
+      .text(
+        "Ankara: Birlik Mah. 448. Cd. No:56 Çankaya — 0312 495 75 45   |   İstanbul: Masko Mobilya San. Sit. 3-B1 No:4 İkitelli — 0212 675 27 50",
+        M,
+        fy + 24,
         { width: pageWidth, align: "center", lineBreak: false }
       );
 

@@ -22,7 +22,8 @@ export default async function RootLayout({
       <body>
         <nav className="topnav">
           <Link href="/" className="logo">
-            OLGA ÇERÇEVE
+            <span className="logo-word">OLGA</span>
+            <span className="logo-sub">ÇERÇEVE</span>
           </Link>
           <Link href="/kataloglar" className="navlink">
             Kataloglar
