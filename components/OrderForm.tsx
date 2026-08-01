@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { FRAME_PROFILES, findProfile, boyLength, koliBoyText } from "@/data/catalog";
 import {
   TECHNICAL_PRODUCTS,
@@ -209,11 +209,40 @@ export default function OrderForm({
   );
   const [vat, setVat] = useState(initialOrder?.vatApplied ?? false);
   const [sending, setSending] = useState(false);
+  const [ratesAuto, setRatesAuto] = useState(false);
   const [result, setResult] = useState<{
     ok: boolean;
     msg: string;
     waLink?: string;
   } | null>(null);
+
+  // Günün kuru daha önce girildiyse formu otomatik doldur
+  useEffect(() => {
+    fetch("/api/rates")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.ok && d.rates) {
+          let used = false;
+          if (d.rates.rate > 0) {
+            setRate((prev) => {
+              if (prev) return prev;
+              used = true;
+              return String(d.rates.rate);
+            });
+          }
+          if (d.rates.euroRate > 0) {
+            setEuroRate((prev) => {
+              if (prev) return prev;
+              used = true;
+              return String(d.rates.euroRate);
+            });
+          }
+          if (used) setRatesAuto(true);
+        }
+      })
+      .catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const techCategories = useMemo(() => technicalByCategory(), []);
   const rateNum = parseFloat(rate) || 0;
@@ -333,6 +362,12 @@ export default function OrderForm({
           />
         </div>
       </div>
+      {ratesAuto && (
+        <p style={{ color: "var(--muted)", fontSize: 12, marginTop: 6 }}>
+          💡 Bugün için girilen kur otomatik yüklendi — gerekirse
+          değiştirebilirsiniz.
+        </p>
+      )}
 
       <h2>Sipariş Satırları</h2>
       {rows.map((row) => {

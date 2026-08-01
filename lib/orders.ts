@@ -129,6 +129,74 @@ export async function listOrders(dateKeys: string[]): Promise<SavedOrder[]> {
   return orders.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
+/** Sıralı sipariş numarası: OLG-2026-001. Sayaç Blob'da yıl bazlı tutulur. */
+export async function nextOrderId(): Promise<string> {
+  const now = new Date();
+  const year = istanbulDateKey(now).slice(0, 4);
+
+  if (!blobConfigured()) {
+    // Blob yoksa zaman damgalı benzersiz numara
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const rand = Math.random().toString(36).slice(2, 5).toUpperCase();
+    return `OLG-${year}-${pad(now.getMonth() + 1)}${pad(now.getDate())}${pad(now.getHours())}${pad(now.getMinutes())}-${rand}`;
+  }
+
+  const { get, put } = await import("@vercel/blob");
+  const counterPath = `orders/counter-${year}.json`;
+  let seq = 0;
+  try {
+    const r = await get(counterPath, { access: "private", useCache: false });
+    if (r && r.statusCode === 200 && r.stream) {
+      const data = JSON.parse(await new Response(r.stream).text());
+      seq = Number(data.seq) || 0;
+    }
+  } catch {
+    /* ilk sipariş — sayaç yok */
+  }
+  seq += 1;
+  await put(counterPath, JSON.stringify({ seq }), {
+    access: "private",
+    contentType: "application/json",
+    addRandomSuffix: false,
+    allowOverwrite: true,
+  });
+  return `OLG-${year}-${String(seq).padStart(3, "0")}`;
+}
+
+// ---- Günlük kur (ilk giren yazar, gün boyu formlara otomatik gelir) ----
+
+export interface DailyRates {
+  rate: number; // TL/USD
+  euroRate: number; // TL/EUR
+  updatedAt: string;
+  by: string;
+}
+
+const ratesPath = (dateKey: string) => `rates/${dateKey}.json`;
+
+export async function getDailyRates(dateKey: string): Promise<DailyRates | null> {
+  if (!blobConfigured()) return null;
+  try {
+    const { get } = await import("@vercel/blob");
+    const r = await get(ratesPath(dateKey), { access: "private", useCache: false });
+    if (!r || r.statusCode !== 200 || !r.stream) return null;
+    return JSON.parse(await new Response(r.stream).text()) as DailyRates;
+  } catch {
+    return null;
+  }
+}
+
+export async function saveDailyRates(dateKey: string, rates: DailyRates): Promise<void> {
+  if (!blobConfigured()) return;
+  const { put } = await import("@vercel/blob");
+  await put(ratesPath(dateKey), JSON.stringify(rates), {
+    access: "private",
+    contentType: "application/json",
+    addRandomSuffix: false,
+    allowOverwrite: true,
+  });
+}
+
 /** Bugünden geriye n günlük tarih anahtarları (İstanbul saati). */
 export function lastNDateKeys(n: number): string[] {
   const keys: string[] = [];

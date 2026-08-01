@@ -1,10 +1,16 @@
 import fs from "fs";
 import path from "path";
 import Link from "next/link";
+import { catalogTitle } from "@/lib/catalog-meta";
 
 export const dynamic = "force-dynamic";
 
-function listCatalogs(): { slug: string; name: string; sizeMB: string }[] {
+function listCatalogs(): {
+  slug: string;
+  name: string;
+  note?: string;
+  sizeMB: string;
+}[] {
   const dir = path.join(process.cwd(), "public", "catalogs");
   try {
     return fs
@@ -12,12 +18,12 @@ function listCatalogs(): { slug: string; name: string; sizeMB: string }[] {
       .filter((f) => f.toLowerCase().endsWith(".pdf"))
       .map((f) => {
         const stat = fs.statSync(path.join(dir, f));
+        const rawSlug = f.replace(/\.pdf$/i, "");
+        const meta = catalogTitle(rawSlug);
         return {
-          slug: encodeURIComponent(f.replace(/\.pdf$/i, "")),
-          name: f
-            .replace(/\.pdf$/i, "")
-            .replace(/[-_]+/g, " ")
-            .replace(/\b\w/g, (c) => c.toUpperCase()),
+          slug: encodeURIComponent(rawSlug),
+          name: meta.title,
+          note: meta.note,
           sizeMB: (stat.size / (1024 * 1024)).toFixed(1),
         };
       });
@@ -53,6 +59,11 @@ export default function CatalogsPage() {
             <div className="card" key={c.slug}>
               <div style={{ fontSize: 40, marginBottom: 8 }}>📖</div>
               <h2 style={{ marginTop: 0 }}>{c.name}</h2>
+              {c.note && (
+                <p style={{ color: "var(--brand)", fontSize: 12.5, fontWeight: 600, marginBottom: 6 }}>
+                  {c.note}
+                </p>
+              )}
               <p style={{ color: "var(--muted)", fontSize: 13, marginBottom: 14 }}>
                 PDF · {c.sizeMB} MB
               </p>
