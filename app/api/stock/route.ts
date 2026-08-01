@@ -8,15 +8,21 @@ export const dynamic = "force-dynamic";
 
 const BLOB_PATH = "stock/latest.json";
 
+// Vercel Blob erişimi iki şekilde çalışır:
+// 1) OIDC: depo projeye "Connect" edilmişse (BLOB_STORE_ID otomatik tanımlanır)
+// 2) Klasik token: BLOB_READ_WRITE_TOKEN
+function blobConfigured(): boolean {
+  return Boolean(process.env.BLOB_STORE_ID || process.env.BLOB_READ_WRITE_TOKEN);
+}
+
 async function readFromBlob(): Promise<StockData | null> {
-  if (!process.env.BLOB_READ_WRITE_TOKEN) return null;
+  if (!blobConfigured()) return null;
   try {
-    const { list } = await import("@vercel/blob");
-    const { blobs } = await list({ prefix: BLOB_PATH, limit: 1 });
-    if (!blobs.length) return null;
-    const res = await fetch(blobs[0].url, { cache: "no-store" });
-    if (!res.ok) return null;
-    return (await res.json()) as StockData;
+    const { get } = await import("@vercel/blob");
+    const result = await get(BLOB_PATH, { access: "private", useCache: false });
+    if (!result || result.statusCode !== 200 || !result.stream) return null;
+    const text = await new Response(result.stream).text();
+    return JSON.parse(text) as StockData;
   } catch (err) {
     console.error("Blob okunamadı:", err);
     return null;
@@ -57,12 +63,12 @@ export async function POST(req: Request) {
     );
   }
 
-  if (!process.env.BLOB_READ_WRITE_TOKEN) {
+  if (!blobConfigured()) {
     return NextResponse.json(
       {
         ok: false,
         error:
-          "Kalıcı depolama henüz açık değil. Vercel panelinde Storage → Create Database → Blob oluşturup projeye bağlayın (BLOB_READ_WRITE_TOKEN otomatik eklenir), sonra tekrar yükleyin.",
+          "Kalıcı depolama bağlı değil. Vercel'de Storage → Blob deposu → Connect Project adımını yapın, sonra tekrar yükleyin.",
         parsedCount: data.items.length,
       },
       { status: 503 }
@@ -72,7 +78,7 @@ export async function POST(req: Request) {
   try {
     const { put } = await import("@vercel/blob");
     await put(BLOB_PATH, JSON.stringify(data), {
-      access: "public",
+      access: "private",
       contentType: "application/json",
       addRandomSuffix: false,
       allowOverwrite: true,
@@ -80,7 +86,11 @@ export async function POST(req: Request) {
   } catch (err) {
     console.error("Blob yazılamadı:", err);
     return NextResponse.json(
-      { ok: false, error: "Stok kaydedilemedi (Blob hatası)." },
+      {
+        ok: false,
+        error:
+          "Stok kaydedilemedi. Depo bağlantısını kontrol edin (Storage → Connect Project) ve yeniden deploy edin.",
+      },
       { status: 500 }
     );
   }
