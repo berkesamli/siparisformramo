@@ -95,7 +95,9 @@ export function generateRetailPdf(o: SavedRetailOrder): Promise<Buffer> {
 
     const W = doc.page.width;
     const H = doc.page.height;
-    const items = o.items.slice(0, 4); // tek sayfa: en fazla 4 diyagram
+    // Tek sayfa: en fazla 4 diyagram. Kalemi olmayan (bozuk/eski) kayıtlarda
+    // diyagram bölümü atlanır, PDF yine de üretilir.
+    const items = (o.items || []).slice(0, 4);
     const single = items.length === 1;
 
     // ============ 1. HEADER (koyu altın bant, 24mm) ============
@@ -384,13 +386,14 @@ export function generateRetailPdf(o: SavedRetailOrder): Promise<Buffer> {
         rows.push({ box: ["#BDE3F5", "#5DADE2"], label: `${pre}Cam  — `, value: it.glassType });
       }
     });
-    const g0 = geom(items[0]);
+    const g0 = items.length > 0 ? geom(items[0]) : null;
     rows.push({
       box: [ART_FILL, "#BBBBBB"],
       label: "Sanat eseri  — ",
-      value: single
-        ? `${cm1(g0.artW)} × ${cm1(g0.artH)} cm  (+${PAY}mm pay)`
-        : `${items.length} eser (+${PAY}mm pay)`,
+      value:
+        single && g0
+          ? `${cm1(g0.artW)} × ${cm1(g0.artH)} cm  (+${PAY}mm pay)`
+          : `${items.length} eser (+${PAY}mm pay)`,
     });
     rows.push({ box: [PAY_COL, "#B8860B"], label: `+${PAY} mm pay  — `, value: "Sarı çizgi ile gösterilmiştir" });
     if (items.every((it) => !it.glassType || it.glassType === "Cam Yok")) {
@@ -399,9 +402,10 @@ export function generateRetailPdf(o: SavedRetailOrder): Promise<Buffer> {
     if (items.every((it) => !geom(it).hasMat)) {
       rows.push({ label: "Paspartu  — ", value: "Yok" });
     }
-    const askiTxt = single
-      ? g0.aski
-      : items.map((it, i) => `#${i + 1} ${geom(it).aski}`).join(", ");
+    const askiTxt =
+      single && g0
+        ? g0.aski
+        : items.map((it, i) => `#${i + 1} ${geom(it).aski}`).join(", ") || "-";
     rows.push({ label: "Askı  — ", value: askiTxt });
 
     // Satır yüksekliği: footer'a sığacak şekilde daralt
@@ -425,7 +429,7 @@ export function generateRetailPdf(o: SavedRetailOrder): Promise<Buffer> {
     });
 
     // Askı yön oku (tek üründe)
-    if (single) {
+    if (single && g0) {
       const lastY = y + (rows.length - 1) * rh + mm(2.5);
       doc.font(FONT_BOLD).fontSize(fs);
       const sx = mm(24) + doc.widthOfString(`Askı  — ${askiTxt}`) + mm(10);
