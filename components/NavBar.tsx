@@ -9,6 +9,7 @@ import { usePathname, useRouter } from "next/navigation";
 interface NavUser {
   name: string;
   role: "staff" | "customer";
+  owner?: boolean; // firma sahibi — raporları görebilir
 }
 
 export default function NavBar({ user }: { user: NavUser | null }) {
@@ -29,6 +30,8 @@ export default function NavBar({ user }: { user: NavUser | null }) {
     links.push({ href: "/panel/siparisler", label: "Siparişler" });
     links.push({ href: "/panel/perakende", label: "Perakende" });
     links.push({ href: "/etiket", label: "Etiket" });
+  }
+  if (user?.role === "staff" && user.owner) {
     links.push({ href: "/panel/raporlar", label: "Raporlar" });
   }
   // Çekmece menüde Stok Yükle de listelensin
