@@ -1,6 +1,8 @@
 import fs from "fs";
 import path from "path";
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { getSessionUser } from "@/lib/auth";
 import { catalogTitle } from "@/lib/catalog-meta";
 
 export const dynamic = "force-dynamic";
@@ -32,7 +34,10 @@ function listCatalogs(): {
   }
 }
 
-export default function CatalogsPage() {
+export default async function CatalogsPage() {
+  const user = await getSessionUser();
+  if (!user) redirect("/giris?next=/kataloglar");
+
   const catalogs = listCatalogs();
 
   return (

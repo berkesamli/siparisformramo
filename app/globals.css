@@ -1191,20 +1191,3 @@ h2 { font-size: 18px; font-weight: 700; margin: 20px 0 12px; }
 @media (max-width: 720px) {
   .rep-split { grid-template-columns: 1fr; }
 }
-
-/* ---- Bayi talep formu ---- */
-.req-line {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  padding: 12px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  margin-bottom: 8px;
-  background: #fff;
-}
-.req-line label { margin-bottom: 4px; }
-@media (max-width: 640px) {
-  .req-line > div { flex: 1 1 100% !important; width: auto !important; }
-}
