@@ -11,6 +11,26 @@ export const STATUS_LABELS: Record<OrderStatus, string> = {
   tamamlandi: "Tamamlandı",
 };
 
+// ---- Ödeme (cari) takibi ----
+export type PaymentStatus = "bekliyor" | "kismi" | "odendi";
+
+export const PAYMENT_LABELS: Record<PaymentStatus, string> = {
+  bekliyor: "Ödeme Bekliyor",
+  kismi: "Kısmi Ödendi",
+  odendi: "Ödendi",
+};
+
+/** Siparişin kalan bakiyesi (net − tahsil edilen). */
+export function orderBalance(o: {
+  net: number;
+  payment?: PaymentStatus;
+  paidAmount?: number;
+}): number {
+  if (o.payment === "odendi") return 0;
+  const paid = Number(o.paidAmount) || 0;
+  return Math.max(0, Math.round((o.net - paid) * 100) / 100);
+}
+
 export interface SavedOrder {
   orderId: string;
   dateKey: string; // YYYY-MM-DD (İstanbul)
@@ -19,6 +39,9 @@ export interface SavedOrder {
   status: OrderStatus;
   employee: string;
   customer: string;
+  customerId?: string; // müşteri defterindeki kayıt (varsa)
+  payment?: PaymentStatus;
+  paidAmount?: number; // tahsil edilen tutar (kısmi ödemede)
   note: string;
   rate: number;
   euroRate: number;
@@ -126,6 +149,33 @@ export async function listOrders(dateKeys: string[]): Promise<SavedOrder[]> {
       }
     })
   );
+  return orders.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+/** Tüm toptan siparişleri getirir (müşteri geçmişi ve raporlar için). */
+export async function listAllOrders(limit = 2000): Promise<SavedOrder[]> {
+  if (!blobConfigured()) return [];
+  const { list, get } = await import("@vercel/blob");
+  const orders: SavedOrder[] = [];
+  try {
+    const { blobs } = await list({ prefix: "orders/", limit });
+    await Promise.all(
+      blobs
+        // sayaç dosyalarını atla: orders/counter-2026.json
+        .filter((b) => /^orders\/\d{4}-\d{2}-\d{2}\//.test(b.pathname))
+        .map(async (b) => {
+          try {
+            const r = await get(b.pathname, { access: "private", useCache: false });
+            if (!r || r.statusCode !== 200 || !r.stream) return;
+            orders.push(JSON.parse(await new Response(r.stream).text()) as SavedOrder);
+          } catch {
+            /* tek kayıt okunamazsa listeyi bozma */
+          }
+        })
+    );
+  } catch {
+    return [];
+  }
   return orders.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 

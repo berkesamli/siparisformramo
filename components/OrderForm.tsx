@@ -198,6 +198,8 @@ export default function OrderForm({
     return [emptyRow()];
   });
   const [customer, setCustomer] = useState(initialOrder?.customer ?? "");
+  // Müşteri defterinden seçildiyse kaydı sipariş kaydına da bağlarız (cari takip)
+  const [customerId, setCustomerId] = useState("");
   const [note, setNote] = useState(initialOrder?.note ?? "");
   const [rate, setRate] = useState(
     initialOrder?.rate ? String(initialOrder.rate) : ""
@@ -278,6 +280,7 @@ export default function OrderForm({
     try {
       const payload = {
         customer: customer.trim(),
+        customerId,
         note: note.trim(),
         rate: rateNum,
         euroRate: euroNum,
@@ -336,7 +339,14 @@ export default function OrderForm({
         </div>
         <div>
           <label>Müşteri *</label>
-          <CustomerPicker value={customer} onChange={setCustomer} />
+          <CustomerPicker
+            value={customer}
+            onChange={(v) => {
+              setCustomer(v);
+              setCustomerId("");
+            }}
+            onPick={(c) => setCustomerId(c.id)}
+          />
         </div>
         <div>
           <label>Dolar Kuru (TL/USD)</label>

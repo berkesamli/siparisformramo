@@ -229,6 +229,14 @@ export default function LabelManager() {
                   <span className={`lbl-branch ${c.branch}`}>
                     {c.branch === "istanbul" ? "İST" : "ANK"}
                   </span>
+                  <a
+                    className="btn small secondary"
+                    href={`/musteri?id=${encodeURIComponent(c.id)}`}
+                    title="Cari kart: sipariş geçmişi ve bakiye"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    💳
+                  </a>
                   <button
                     className="btn small secondary"
                     onClick={(e) => { e.stopPropagation(); startEdit(c); }}

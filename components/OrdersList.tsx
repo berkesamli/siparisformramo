@@ -2,7 +2,13 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import type { SavedOrder, OrderStatus } from "@/lib/orders";
+import {
+  orderBalance,
+  PAYMENT_LABELS,
+  type SavedOrder,
+  type OrderStatus,
+  type PaymentStatus,
+} from "@/lib/orders";
 
 const STATUS_LABELS: Record<OrderStatus, string> = {
   olusturuldu: "Oluşturuldu",
@@ -69,6 +75,40 @@ export default function OrdersList() {
     }
   }
 
+  async function changePayment(o: SavedOrder, payment: PaymentStatus) {
+    let paidAmount: number | undefined;
+    if (payment === "kismi") {
+      const girilen = prompt(
+        `Tahsil edilen tutar (toplam ₺${fmt(o.net)}):`,
+        String(o.paidAmount || "")
+      );
+      if (girilen === null) return;
+      paidAmount = Number(girilen.replace(",", ".")) || 0;
+    }
+    const optimistic: SavedOrder = {
+      ...o,
+      payment,
+      paidAmount:
+        payment === "odendi" ? o.net : payment === "bekliyor" ? 0 : paidAmount ?? 0,
+    };
+    setOrders((os) => (os || []).map((x) => (x.orderId === o.orderId ? optimistic : x)));
+
+    const res = await fetch(
+      `/api/orders/one?d=${o.dateKey}&id=${encodeURIComponent(o.orderId)}`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(
+          paidAmount !== undefined ? { paidAmount } : { payment }
+        ),
+      }
+    ).catch(() => null);
+    if (!res || !res.ok) {
+      setError("Ödeme durumu güncellenemedi, sayfayı yenileyin.");
+      load();
+    }
+  }
+
   const visible = (orders || []).filter(
     (o) => statusFilter === "all" || o.status === statusFilter
   );
@@ -128,6 +168,7 @@ export default function OrdersList() {
                 <th>Çalışan</th>
                 <th>Tutar</th>
                 <th>Durum</th>
+                <th>Ödeme</th>
                 <th>İşlemler</th>
               </tr>
             </thead>
@@ -157,6 +198,25 @@ export default function OrdersList() {
                         </option>
                       ))}
                     </select>
+                  </td>
+                  <td>
+                    <select
+                      className={`pay-select ${o.payment || "bekliyor"}`}
+                      style={{ width: "auto", padding: "4px 8px", fontSize: 13 }}
+                      value={o.payment || "bekliyor"}
+                      onChange={(e) => changePayment(o, e.target.value as PaymentStatus)}
+                    >
+                      {Object.entries(PAYMENT_LABELS).map(([k, v]) => (
+                        <option key={k} value={k}>
+                          {v}
+                        </option>
+                      ))}
+                    </select>
+                    {o.payment === "kismi" && (
+                      <div style={{ fontSize: 11, color: "var(--error)", marginTop: 2 }}>
+                        Kalan ₺{fmt(orderBalance(o))}
+                      </div>
+                    )}
                   </td>
                   <td style={{ whiteSpace: "nowrap" }}>
                     <a

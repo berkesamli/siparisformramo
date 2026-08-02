@@ -86,6 +86,10 @@ export async function POST(req: Request) {
     status: "olusturuldu",
     employee: order.employee,
     customer: order.customer,
+    // Müşteri defterinden seçildiyse cari takip için bağlanır
+    customerId: String(body.customerId || "").slice(0, 40),
+    payment: "bekliyor",
+    paidAmount: 0,
     note: order.note,
     rate: order.rate,
     euroRate: order.euroRate,
