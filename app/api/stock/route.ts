@@ -1,33 +1,14 @@
 import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { parseStockWorkbook, type StockData } from "@/lib/stock-parse";
-import snapshot from "@/data/stock-snapshot.json";
+import {
+  getStockData,
+  stockBlobConfigured as blobConfigured,
+  STOCK_BLOB_PATH as BLOB_PATH,
+} from "@/lib/stock-store";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
-
-const BLOB_PATH = "stock/latest.json";
-
-// Vercel Blob erişimi iki şekilde çalışır:
-// 1) OIDC: depo projeye "Connect" edilmişse (BLOB_STORE_ID otomatik tanımlanır)
-// 2) Klasik token: BLOB_READ_WRITE_TOKEN
-function blobConfigured(): boolean {
-  return Boolean(process.env.BLOB_STORE_ID || process.env.BLOB_READ_WRITE_TOKEN);
-}
-
-async function readFromBlob(): Promise<StockData | null> {
-  if (!blobConfigured()) return null;
-  try {
-    const { get } = await import("@vercel/blob");
-    const result = await get(BLOB_PATH, { access: "private", useCache: false });
-    if (!result || result.statusCode !== 200 || !result.stream) return null;
-    const text = await new Response(result.stream).text();
-    return JSON.parse(text) as StockData;
-  } catch (err) {
-    console.error("Blob okunamadı:", err);
-    return null;
-  }
-}
 
 // Güncel stok verisi: önce Blob (günlük yüklenen), yoksa repo içindeki snapshot.
 export async function GET() {
@@ -35,7 +16,7 @@ export async function GET() {
   if (!user) {
     return NextResponse.json({ ok: false, error: "Giriş gerekli." }, { status: 401 });
   }
-  const data = (await readFromBlob()) ?? (snapshot as StockData);
+  const data = await getStockData();
   return NextResponse.json({ ok: true, data });
 }
 
