@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
-import { istanbulDateKey, lastNDateKeys, blobConfigured } from "@/lib/orders";
+import {
+  istanbulDateKey,
+  lastNDateKeys,
+  blobConfigured,
+  PAYMENT_LABELS,
+  type PaymentStatus,
+} from "@/lib/orders";
 import {
   saveRetailOrder,
   getRetailOrder,
@@ -113,6 +119,9 @@ export async function POST(req: NextRequest) {
     customerPhone,
     customerEmail: s(body.customerEmail, 120).trim(),
     customerAddress: s(body.customerAddress, 240).trim(),
+    customerId: s(body.customerId, 40),
+    payment: "bekliyor",
+    paidAmount: 0,
     usdRate: r2(body.usdRate),
     deliveryDate: s(body.deliveryDate, 20),
     notes: s(body.notes, 1000),
@@ -161,16 +170,43 @@ export async function PATCH(req: NextRequest) {
   }
 
   const body = await req.json().catch(() => null);
-  const status = body?.status as RetailStatus;
-  if (!RETAIL_STATUSES.includes(status)) {
-    return NextResponse.json({ error: "Geçersiz durum" }, { status: 400 });
-  }
-
   const order = await getRetailOrder(d, id);
   if (!order) return NextResponse.json({ error: "Sipariş bulunamadı" }, { status: 404 });
 
-  order.status = status;
+  if (body?.status !== undefined) {
+    const status = body.status as RetailStatus;
+    if (!RETAIL_STATUSES.includes(status)) {
+      return NextResponse.json({ error: "Geçersiz durum" }, { status: 400 });
+    }
+    order.status = status;
+  }
+
+  // Ödeme (cari) güncelleme
+  if (body?.payment !== undefined) {
+    const payment = String(body.payment) as PaymentStatus;
+    if (!(payment in PAYMENT_LABELS)) {
+      return NextResponse.json({ error: "Geçersiz ödeme durumu" }, { status: 400 });
+    }
+    order.payment = payment;
+    if (payment === "odendi") order.paidAmount = order.total;
+    else if (payment === "bekliyor") order.paidAmount = 0;
+  }
+  if (body?.paidAmount !== undefined) {
+    const paid = Math.max(0, r2(body.paidAmount));
+    order.paidAmount = paid;
+    if (paid <= 0) order.payment = "bekliyor";
+    else if (paid + 0.01 >= order.total) {
+      order.payment = "odendi";
+      order.paidAmount = order.total;
+    } else order.payment = "kismi";
+  }
+
   order.updatedAt = new Date().toISOString();
   await saveRetailOrder(order);
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({
+    ok: true,
+    status: order.status,
+    payment: order.payment,
+    paidAmount: order.paidAmount,
+  });
 }

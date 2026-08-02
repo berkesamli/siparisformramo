@@ -3,7 +3,7 @@
 
 import { findProfile } from "@/data/catalog";
 import type { RetailStatus } from "@/data/perakende";
-import { blobConfigured, istanbulDateKey } from "./orders";
+import { blobConfigured, istanbulDateKey, type PaymentStatus } from "./orders";
 
 // Perakende metre fiyatı = katalog liste fiyatı (USD/mt) × PERAKENDE_KATSAYI × kur.
 // Katsayı gerekirse RETAIL_FACTOR env değişkeniyle değiştirilebilir.
@@ -72,6 +72,9 @@ export interface SavedRetailOrder {
   customerPhone: string;
   customerEmail: string;
   customerAddress?: string;
+  customerId?: string; // müşteri defterindeki kayıt (varsa)
+  payment?: PaymentStatus;
+  paidAmount?: number;
   usdRate: number;
   deliveryDate: string;
   notes: string;
@@ -146,6 +149,32 @@ export async function listRetailOrders(
     })
   );
   return orders.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+/** Tüm perakende siparişleri (müşteri geçmişi ve raporlar için). */
+export async function listAllRetailOrders(limit = 2000): Promise<SavedRetailOrder[]> {
+  if (!blobConfigured()) return [];
+  const { list, get } = await import("@vercel/blob");
+  const out: SavedRetailOrder[] = [];
+  try {
+    const { blobs } = await list({ prefix: "retail/", limit });
+    await Promise.all(
+      blobs
+        .filter((b) => /^retail\/\d{4}-\d{2}-\d{2}\//.test(b.pathname))
+        .map(async (b) => {
+          try {
+            const r = await get(b.pathname, { access: "private", useCache: false });
+            if (!r || r.statusCode !== 200 || !r.stream) return;
+            out.push(JSON.parse(await new Response(r.stream).text()) as SavedRetailOrder);
+          } catch {
+            /* tek kayıt okunamazsa listeyi bozma */
+          }
+        })
+    );
+  } catch {
+    return [];
+  }
+  return out.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
 /** Sıralı perakende sipariş numarası: PRK-2026-001. */

@@ -118,6 +118,8 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
   const [customerAddress, setCustomerAddress] = useState("");
+  // Müşteri defterinden seçildiyse cari takip için kayıt kimliği
+  const [customerId, setCustomerId] = useState("");
   const [deliveryDate, setDeliveryDate] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() + 7);
@@ -427,6 +429,7 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
           customerPhone: customerPhone.trim(),
           customerEmail: customerEmail.trim(),
           customerAddress: customerAddress.trim(),
+          customerId,
           usdRate: parseFloat(usdRate) || 0,
           deliveryDate,
           notes: notes.trim(),
@@ -981,9 +984,13 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
                 <label>Ad Soyad *</label>
                 <CustomerPicker
                   value={customerName}
-                  onChange={setCustomerName}
+                  onChange={(v) => {
+                    setCustomerName(v);
+                    setCustomerId("");
+                  }}
                   placeholder="Müşteri adı"
                   onPick={(c) => {
+                    setCustomerId(c.id);
                     if (c.phone) setCustomerPhone(c.phone);
                     if (c.email) setCustomerEmail(c.email);
                     const adres = [c.addr1, c.addr2, [c.district, c.city].filter(Boolean).join(" / ")]

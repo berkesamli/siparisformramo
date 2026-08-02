@@ -6,7 +6,9 @@ import {
   sanitizeLines,
   computeTotals,
   STATUS_LABELS,
+  PAYMENT_LABELS,
   type OrderStatus,
+  type PaymentStatus,
 } from "@/lib/orders";
 
 export const runtime = "nodejs";
@@ -51,18 +53,49 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ ok: false, error: "Geçersiz parametre." }, { status: 400 });
   }
   const body = await req.json().catch(() => null);
-  const status = String(body?.status || "") as OrderStatus;
-  if (!(status in STATUS_LABELS)) {
-    return NextResponse.json({ ok: false, error: "Geçersiz durum." }, { status: 400 });
-  }
   const order = await getOrder(dateKey, orderId);
   if (!order) {
     return NextResponse.json({ ok: false, error: "Sipariş bulunamadı." }, { status: 404 });
   }
-  order.status = status;
+
+  // Durum güncelleme
+  if (body?.status !== undefined) {
+    const status = String(body.status) as OrderStatus;
+    if (!(status in STATUS_LABELS)) {
+      return NextResponse.json({ ok: false, error: "Geçersiz durum." }, { status: 400 });
+    }
+    order.status = status;
+  }
+
+  // Ödeme (cari) güncelleme
+  if (body?.payment !== undefined) {
+    const payment = String(body.payment) as PaymentStatus;
+    if (!(payment in PAYMENT_LABELS)) {
+      return NextResponse.json({ ok: false, error: "Geçersiz ödeme durumu." }, { status: 400 });
+    }
+    order.payment = payment;
+    if (payment === "odendi") order.paidAmount = order.net;
+    else if (payment === "bekliyor") order.paidAmount = 0;
+  }
+  if (body?.paidAmount !== undefined) {
+    const paid = Math.max(0, Math.round((Number(body.paidAmount) || 0) * 100) / 100);
+    order.paidAmount = paid;
+    // Tutara göre durumu kendiliğinden ayarla
+    if (paid <= 0) order.payment = "bekliyor";
+    else if (paid + 0.01 >= order.net) {
+      order.payment = "odendi";
+      order.paidAmount = order.net;
+    } else order.payment = "kismi";
+  }
+
   order.updatedAt = new Date().toISOString();
   await saveOrder(order);
-  return NextResponse.json({ ok: true, status });
+  return NextResponse.json({
+    ok: true,
+    status: order.status,
+    payment: order.payment,
+    paidAmount: order.paidAmount,
+  });
 }
 
 // Siparişi düzenle: satırlar + üst bilgiler yeniden kaydedilir
