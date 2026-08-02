@@ -642,7 +642,7 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
                 />
                 {frameImg && (
                   <span style={{ fontSize: 12, fontWeight: 600, color: "var(--success)" }}>
-                    ✓ Bu modelin gerçek görseli önizlemede
+                    ✓ {frameImg.sku} — gerçek görseli önizlemede
                   </span>
                 )}
               </div>

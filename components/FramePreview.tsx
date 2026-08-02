@@ -148,7 +148,7 @@ export interface FramePreviewProps {
   zeminEnabled: boolean;
   zeminColorHex: string;
   glassName: string;
-  frameImg: FrameImage | null;
+  frameImg: (FrameImage & { sku?: string }) | null;
   fullCode: string;
   artImageUrl: string | null;
 }
@@ -606,7 +606,7 @@ export default function FramePreview(p: FramePreviewProps) {
       )}
 
       {hasRealFrame ? (
-        <p className="fp-note ok">✓ {p.fullCode} — gerçek profil görseli</p>
+        <p className="fp-note ok">✓ {p.frameImg?.sku || p.fullCode} — gerçek profil görseli</p>
       ) : p.fullCode ? (
         <p className="fp-note">{p.fullCode} için görsel henüz eklenmedi</p>
       ) : null}
