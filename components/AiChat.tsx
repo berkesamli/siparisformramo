@@ -86,10 +86,29 @@ export default function AiChat() {
         style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 8, minHeight: 120 }}
       >
         {messages.length === 0 && (
-          <p style={{ color: "var(--muted)", fontSize: 13 }}>
-            Ürün kodları, liste fiyatları, koli bilgileri veya stok hakkında soru
-            sorabilirsiniz. Örn: &quot;KS 2030 fiyatı nedir?&quot;
-          </p>
+          <div style={{ color: "var(--muted)", fontSize: 13 }}>
+            <p style={{ margin: "0 0 8px" }}>
+              Fiyat, güncel stok, kur, perakende çerçeveletme hesabı, sipariş ve
+              müşteri kayıtları hakkında soru sorabilirsiniz.
+            </p>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+              {[
+                "GC065 stokta kaç boy var?",
+                "Bugünün kuru ne?",
+                "50x70 eser, GB139, 5 cm paspartu, mat cam kaça olur?",
+                "Yılmaz Çerçeve'nin açık bakiyesi ne kadar?",
+              ].map((s) => (
+                <button
+                  key={s}
+                  className="btn small secondary"
+                  style={{ fontSize: 11.5, padding: "4px 9px" }}
+                  onClick={() => setInput(s)}
+                >
+                  {s}
+                </button>
+              ))}
+            </div>
+          </div>
         )}
         {messages.map((m, i) => (
           <div
