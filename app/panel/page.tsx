@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
 import OrderForm from "@/components/OrderForm";
@@ -10,7 +11,13 @@ export default async function PanelPage() {
 
   return (
     <main className="container">
-      <h1>Sipariş Paneli</h1>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+        <h1 style={{ marginBottom: 4 }}>Sipariş Paneli</h1>
+        <span style={{ flex: 1 }} />
+        <Link href="/panel/siparisler" className="btn small secondary">
+          📋 Siparişler
+        </Link>
+      </div>
       <p className="subtitle">
         Hoş geldin {user.name} — siparişler e-posta ve WhatsApp ile iletilir.
       </p>

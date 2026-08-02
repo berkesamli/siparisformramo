@@ -51,8 +51,8 @@ export const BRANCHES: Record<Branch, BranchInfo> = {
     label: "İstanbul",
     name: "Olga Çerçeve",
     cityTel: "İstanbul • Tel: 0212 675 27 50",
-    addr1: "Masko Mobilya Sanayi Sitesi, 3-B1 No:4",
-    addr2: "İkitelli / Başakşehir, 34490 İstanbul",
+    addr1: "Tahtakale Mah. Fırat Cd. No:6, Tem34 Sitesi No:95",
+    addr2: "34320 Avcılar / İstanbul",
     website: "olgacerceve.com",
   },
 };
