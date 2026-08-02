@@ -20,12 +20,8 @@ import {
   type GlassType,
   type PrintType,
 } from "@/data/perakende";
-import {
-  findFrameImage,
-  FRAME_SLICE,
-  FRAME_BORDER_SCALE,
-  DEFAULT_CLIP_RATIO,
-} from "@/data/frame-images";
+import { findFrameImage } from "@/data/frame-images";
+import FramePreview from "@/components/FramePreview";
 
 const fmt = (n: number) =>
   (Number(n) || 0).toLocaleString("tr-TR", {
@@ -467,34 +463,6 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
       "_blank"
     );
   }
-
-  // ---- Önizleme ölçüleri ----
-  const preview = useMemo(() => {
-    const maxS = 200;
-    const w = wMM || 300;
-    const h = hMM || 400;
-    const scale = Math.min(maxS / w, maxS / h, 1);
-    const dw = Math.max(w * scale, 64);
-    const dh = Math.max(h * scale, 64);
-    const ps = dw / w;
-    const showMat = mat.price > 0 && !bareFrame;
-    return {
-      dw,
-      dh,
-      pt: showMat ? Math.max(edges.top * ps, 6) : 0,
-      pr: showMat ? Math.max(edges.right * ps, 6) : 0,
-      pb: showMat ? Math.max(edges.bottom * ps, 6) : 0,
-      pl: showMat ? Math.max(edges.left * ps, 6) : 0,
-    };
-  }, [wMM, hMM, mat, bareFrame, edges.top, edges.right, edges.bottom, edges.left]);
-
-  // Çerçeve border kalınlığı: görseli olan profillerde clipRatio ile ölçeklenir
-  const frameBorderPx = useMemo(() => {
-    if (!frameImg) return 18;
-    return Math.round(
-      20 * FRAME_BORDER_SCALE * (frameImg.clipRatio / DEFAULT_CLIP_RATIO)
-    );
-  }, [frameImg]);
 
   const palette = (price: number) => PASPARTU_COLORS[price] || [];
 
@@ -1016,72 +984,51 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
         </div>
       </div>
 
-      {/* Sağ — canlı önizleme */}
+      {/* Sağ — canlı önizleme (web sitesindeki hesaplayıcı tasarımının portu) */}
       <aside className="rw-preview-panel">
         <div className="card rw-preview-card" style={{ position: "sticky", top: 90 }}>
-          <h3 style={{ marginTop: 0, fontSize: 15 }}>Önizleme</h3>
-          <div className="rw-preview-stage">
-            <div className="rw-preview-hang">
-              <div
-                className={`rw-preview-frame ${frameImg ? "has-img" : ""}`}
-                style={{
-                  borderWidth: frameBorderPx,
-                  ...(frameImg
-                    ? {
-                        borderImage: `url("${frameImg.url}") ${frameImg.slice ?? FRAME_SLICE} stretch`,
-                      }
-                    : {}),
-                }}
-              >
-                <div
-                  className="rw-preview-mat"
-                  style={{
-                    paddingTop: preview.pt,
-                    paddingRight: preview.pr,
-                    paddingBottom: preview.pb,
-                    paddingLeft: preview.pl,
-                    background:
-                      mat.price > 0 && !bareFrame && outerColor.hex
-                        ? outerColor.hex
-                        : "#f6f3ee",
-                  }}
-                >
-                  <div
-                    className="rw-preview-inner"
-                    style={{
-                      border:
-                        doubleMat && mat.price > 0 && !bareFrame
-                          ? `4px solid ${innerColor.hex || "#fff"}`
-                          : "none",
-                      background: zeminEnabled && !bareFrame
-                        ? zeminColor.hex || "#e5e0d8"
-                        : "#fff",
-                      width: preview.dw,
-                      height: preview.dh,
-                    }}
-                  >
-                    {imageUrl ? (
-                      <img src={imageUrl} alt="Eser" />
-                    ) : (
-                      <span className="rw-preview-ph">
-                        {wMM > 0 && hMM > 0
-                          ? `${artWidth}${wUnit} × ${artHeight}${hUnit}`
-                          : "Eser"}
-                      </span>
-                    )}
-                    {glass.name !== "Cam Yok" && !bareFrame && (
-                      <span className="rw-glass-sheen" aria-hidden />
-                    )}
-                  </div>
-                </div>
+          <FramePreview
+            wMM={wMM}
+            hMM={hMM}
+            matTop={edges.top}
+            matRight={edges.right}
+            matBottom={edges.bottom}
+            matLeft={edges.left}
+            matPrice={mat.price}
+            matName={mat.name}
+            matColorCode={outerColor.code}
+            matColorHex={outerColor.hex}
+            doubleMat={doubleMat}
+            innerMatPrice={innerMat.price}
+            innerMatName={innerMat.name}
+            innerColorCode={innerColor.code}
+            innerColorHex={innerColor.hex}
+            mountingMM={parseFloat(altMontaj) || 5}
+            zeminEnabled={zeminEnabled}
+            zeminColorHex={zeminColor.hex}
+            glassName={glass.name}
+            frameImg={frameImg}
+            fullCode={fullFrameCode}
+            artImageUrl={imageUrl}
+          />
+
+          {currentCounts && costs.itemTotal > 0 && (
+            <div className="fp-cost">
+              <div className="fp-cost-bar">
+                <span className="seg frame" style={{ width: `${(costs.frameCost / costs.itemTotal) * 100}%` }} />
+                <span className="seg mat" style={{ width: `${(costs.matCost / costs.itemTotal) * 100}%` }} />
+                <span className="seg glass" style={{ width: `${(costs.glassCost / costs.itemTotal) * 100}%` }} />
+                <span className="seg print" style={{ width: `${(costs.printCost / costs.itemTotal) * 100}%` }} />
+              </div>
+              <div className="fp-cost-legend">
+                <span><i className="dot frame" /> Çerçeve <strong>₺{fmt(costs.frameCost)}</strong></span>
+                {costs.matCost > 0 && <span><i className="dot mat" /> Paspartu <strong>₺{fmt(costs.matCost)}</strong></span>}
+                {costs.glassCost > 0 && <span><i className="dot glass" /> Cam <strong>₺{fmt(costs.glassCost)}</strong></span>}
+                {costs.printCost > 0 && <span><i className="dot print" /> Baskı <strong>₺{fmt(costs.printCost)}</strong></span>}
               </div>
             </div>
-          </div>
-          {frameImg ? (
-            <p className="rw-preview-note ok">✓ {fullFrameCode} — gerçek profil görseli</p>
-          ) : fullFrameCode ? (
-            <p className="rw-preview-note">{fullFrameCode} için görsel henüz eklenmedi</p>
-          ) : null}
+          )}
+
           <div className="rw-preview-total">
             <span>Bu ürün</span>
             <strong>₺{fmt(currentCounts ? costs.itemTotal : 0)}</strong>
