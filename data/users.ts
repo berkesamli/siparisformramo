@@ -53,3 +53,21 @@ export function findUser(username: string, password: string): User | undefined {
     (u) => normalizeUsername(u.username) === q && u.password === password
   );
 }
+
+// Raporlar (ciro, tahsilat, kâr kırılımları) yalnızca firma sahiplerine açıktır.
+// Liste OWNER_USERNAMES ortam değişkeniyle değiştirilebilir:
+// OWNER_USERNAMES="berke,özgür,eren"
+const DEFAULT_OWNERS = ["berke", "özgür"];
+
+export function ownerUsernames(): string[] {
+  const raw = process.env.OWNER_USERNAMES;
+  const list = raw
+    ? raw.split(",").map((s) => s.trim()).filter(Boolean)
+    : DEFAULT_OWNERS;
+  return list.map(normalizeUsername);
+}
+
+export function isOwner(username: string | undefined | null): boolean {
+  if (!username) return false;
+  return ownerUsernames().includes(normalizeUsername(username));
+}

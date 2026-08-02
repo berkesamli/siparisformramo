@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { getSessionUser } from "@/lib/auth";
+import { isOwner } from "@/data/users";
 import NavBar from "@/components/NavBar";
 
 export const metadata: Metadata = {
@@ -21,7 +22,11 @@ export default async function RootLayout({
       <body>
         {/* Giriş yapılmadan hiçbir menü görünmez — ziyaretçi yalnızca
             giriş ekranını görür (sayfalar ayrıca kendi kontrolünü yapar). */}
-        {user && <NavBar user={{ name: user.name, role: user.role }} />}
+        {user && (
+          <NavBar
+            user={{ name: user.name, role: user.role, owner: isOwner(user.username) }}
+          />
+        )}
         {children}
       </body>
     </html>

@@ -3,6 +3,7 @@ import { getSessionUser } from "@/lib/auth";
 import { listAllOrders, orderBalance, blobConfigured } from "@/lib/orders";
 import { listAllRetailOrders } from "@/lib/retail-orders";
 import { findProfile } from "@/data/catalog";
+import { isOwner } from "@/data/users";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -22,6 +23,10 @@ export async function GET(req: NextRequest) {
   const user = await getSessionUser();
   if (!user || user.role !== "staff") {
     return NextResponse.json({ error: "Yetkisiz" }, { status: 401 });
+  }
+  // Ciro/tahsilat verileri yalnızca firma sahiplerine döndürülür.
+  if (!isOwner(user.username)) {
+    return NextResponse.json({ error: "Bu rapora erişim yetkiniz yok." }, { status: 403 });
   }
 
   const ay = req.nextUrl.searchParams.get("ay") || "";
