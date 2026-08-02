@@ -24,16 +24,11 @@ export default function NavBar({ user }: { user: NavUser | null }) {
     links.push({ href: "/portal", label: "Ürünler & Stok" });
     links.push({ href: "/portal/fiyat-listesi", label: "Toptan Fiyat Listesi" });
   }
-  // Bayiler kendi sipariş taleplerini portalden gönderir
-  if (user?.role === "customer") {
-    links.push({ href: "/portal/siparis", label: "Sipariş Talebi" });
-  }
   if (user?.role === "staff") {
     links.push({ href: "/panel", label: "Sipariş Paneli" });
     links.push({ href: "/panel/siparisler", label: "Siparişler" });
     links.push({ href: "/panel/perakende", label: "Perakende" });
     links.push({ href: "/etiket", label: "Etiket" });
-    links.push({ href: "/panel/talepler", label: "Talepler" });
     links.push({ href: "/panel/raporlar", label: "Raporlar" });
   }
   // Çekmece menüde Stok Yükle de listelensin

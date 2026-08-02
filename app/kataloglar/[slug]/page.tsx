@@ -1,14 +1,19 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { getSessionUser } from "@/lib/auth";
 import FlipBook from "@/components/FlipBook";
 import { catalogTitle } from "@/lib/catalog-meta";
 
 export const dynamic = "force-dynamic";
 
-export default function CatalogViewerPage({
+export default async function CatalogViewerPage({
   params,
 }: {
   params: { slug: string };
 }) {
+  const user = await getSessionUser();
+  if (!user) redirect("/giris?next=/kataloglar");
+
   const slug = decodeURIComponent(params.slug);
   const pdfUrl = `/catalogs/${encodeURIComponent(slug)}.pdf`;
   const meta = catalogTitle(slug);

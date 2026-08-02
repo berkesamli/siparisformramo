@@ -2,6 +2,7 @@
 import fs from "fs";
 import path from "path";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
@@ -18,6 +19,9 @@ function cardImage(base: string): string | null {
 
 export default async function HomePage() {
   const user = await getSessionUser();
+  // Site tamamen kapalıdır: giriş yapılmadan ana sayfa da görüntülenemez.
+  // Giriş sonrası kullanıcı yine ana sayfaya döner.
+  if (!user) redirect("/giris?next=/");
 
   const cards = [
     {

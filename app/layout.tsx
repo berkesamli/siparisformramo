@@ -19,7 +19,9 @@ export default async function RootLayout({
   return (
     <html lang="tr">
       <body>
-        <NavBar user={user ? { name: user.name, role: user.role } : null} />
+        {/* Giriş yapılmadan hiçbir menü görünmez — ziyaretçi yalnızca
+            giriş ekranını görür (sayfalar ayrıca kendi kontrolünü yapar). */}
+        {user && <NavBar user={{ name: user.name, role: user.role }} />}
         {children}
       </body>
     </html>
