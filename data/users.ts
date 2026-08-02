@@ -31,8 +31,25 @@ export function getUsers(): User[] {
   return DEFAULT_USERS;
 }
 
+// Kullanıcı adı eşleştirmesi büyük/küçük harf ve Türkçe karakter duyarsızdır:
+// "Özgür", "özgür", "ozgur", "OZGUR" aynı kullanıcıya gider. (JS'in toLowerCase
+// fonksiyonu Türkçe İ/ı harflerinde beklenmedik sonuç verdiği için harfler önce
+// ASCII karşılığına çevrilir.)
+const TR_TO_ASCII: Record<string, string> = {
+  ç: "c", Ç: "c", ğ: "g", Ğ: "g", ı: "i", İ: "i",
+  ö: "o", Ö: "o", ş: "s", Ş: "s", ü: "u", Ü: "u",
+};
+
+function normalizeUsername(s: string): string {
+  return String(s || "")
+    .replace(/[çÇğĞıİöÖşŞüÜ]/g, (c) => TR_TO_ASCII[c])
+    .toLowerCase()
+    .replace(/\s+/g, "");
+}
+
 export function findUser(username: string, password: string): User | undefined {
+  const q = normalizeUsername(username);
   return getUsers().find(
-    (u) => u.username.toLowerCase() === username.toLowerCase() && u.password === password
+    (u) => normalizeUsername(u.username) === q && u.password === password
   );
 }
