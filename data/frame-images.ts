@@ -201,15 +201,43 @@ export const FRAME_IMAGES: Record<string, FrameImage> = {
   "FD070-025": { url: u("a78cf9c8-6a9a-4ed2-9e2d-aa3ee83172d3"), clipRatio: 0.65, bareFrame: true },
 };
 
-// SKU eşleştirme: büyük/küçük harf ve boşluk duyarsız
-const norm = (s: string) => s.toUpperCase().replace(/\s+/g, "").trim();
-
-const INDEX: Record<string, FrameImage> = {};
-for (const [sku, img] of Object.entries(FRAME_IMAGES)) {
-  INDEX[norm(sku)] = img;
+// Eşleşen görsel + hangi SKU ile eşleştiği
+export interface FrameImageMatch extends FrameImage {
+  sku: string;
 }
 
-export function findFrameImage(fullCode: string): FrameImage | null {
+// SKU eşleştirme: büyük/küçük harf, boşluk ve tire/altçizgi duyarsız
+const norm = (s: string) => s.toUpperCase().replace(/[\s\-_]+/g, "").trim();
+
+const INDEX: Record<string, { sku: string; img: FrameImage }> = {};
+for (const [sku, img] of Object.entries(FRAME_IMAGES)) {
+  INDEX[norm(sku)] = { sku, img };
+}
+
+// Kod tam yazılmasa da modeli bulur:
+//   "GB022-011"    → GB022-011BX   (BX soneki eksik)
+//   "GD154 4313BA" → GD154-4313-BA (tire farkı)
+// Kural: normalize edilmiş kod ile SKU arasındaki fark yalnızca sondaki
+// 1-3 HARFLİK ek olabilir (rakam farkı kabul edilmez — yanlış renge gitmesin).
+export function findFrameImage(fullCode: string): FrameImageMatch | null {
   if (!fullCode) return null;
-  return INDEX[norm(fullCode)] || null;
+  const q = norm(fullCode);
+  if (q.length < 4) return null;
+
+  const exact = INDEX[q];
+  if (exact) return { ...exact.img, sku: exact.sku };
+
+  let best: { sku: string; img: FrameImage; extra: number } | null = null;
+  for (const key of Object.keys(INDEX)) {
+    let rest: string;
+    if (key.startsWith(q)) rest = key.slice(q.length);
+    else if (q.startsWith(key)) rest = q.slice(key.length);
+    else continue;
+    if (!/^[A-Z]{1,3}$/.test(rest)) continue;
+    if (!best || rest.length < best.extra) {
+      const hit = INDEX[key];
+      best = { sku: hit.sku, img: hit.img, extra: rest.length };
+    }
+  }
+  return best ? { ...best.img, sku: best.sku } : null;
 }
