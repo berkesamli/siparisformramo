@@ -9,6 +9,7 @@ import {
 } from "@/data/technical";
 import { GLASS_TYPES, GLASS_SIZES, AYNA_SIZES, plateM2 } from "@/data/glass";
 import CustomerPicker from "@/components/CustomerPicker";
+import OrderTextImport, { type ParsedLine } from "@/components/OrderTextImport";
 
 type Kind = "frame" | "glass" | "ayna" | "technical" | "other";
 
@@ -58,6 +59,23 @@ const emptyRow = (): Row => ({
 });
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
+
+// Teknik malzemeyi adıyla bulur ("10luk agraf" → "10'luk Agraf").
+const sadeAd = (s: string) =>
+  String(s || "")
+    .toLowerCase()
+    .replace(/[çÇ]/g, "c").replace(/[ğĞ]/g, "g").replace(/[ıİ]/g, "i")
+    .replace(/[öÖ]/g, "o").replace(/[şŞ]/g, "s").replace(/[üÜ]/g, "u")
+    .replace(/[^a-z0-9]/g, "");
+
+function findTechnicalByName(q: string) {
+  const k = sadeAd(q);
+  if (k.length < 3) return undefined;
+  return TECHNICAL_PRODUCTS.find((t) => {
+    const n = sadeAd(t.name);
+    return n === k || n.includes(k) || k.includes(n);
+  });
+}
 const fmt = (n: number) =>
   (Number(n) || 0).toLocaleString("tr-TR", {
     minimumFractionDigits: 2,
@@ -200,6 +218,58 @@ export default function OrderForm({
   const [customer, setCustomer] = useState(initialOrder?.customer ?? "");
   // Müşteri defterinden seçildiyse kaydı sipariş kaydına da bağlarız (cari takip)
   const [customerId, setCustomerId] = useState("");
+  const [importOpen, setImportOpen] = useState(false);
+
+  /** Yapay zekanın çözümlediği satırları forma ekler. */
+  function applyParsed(data: {
+    lines: ParsedLine[];
+    customer: string;
+    note: string;
+  }) {
+    const yeni: Row[] = data.lines.map((l) => {
+      const r = emptyRow();
+      if (l.kind === "frame") {
+        r.kind = "frame";
+        r.code = l.code;
+        r.unit = l.unit === "koli" || l.unit === "boy" ? l.unit : "metre";
+        r.qty = String(l.qty);
+        const p = findProfile(l.code);
+        if (p) r.usd = String(p.priceUSD);
+      } else if (l.kind === "glass" || l.kind === "ayna") {
+        r.kind = l.kind;
+        // Cam türünü metinden yakala (mat / müze / düz)
+        const t = `${l.code} ${l.note}`.toLowerCase();
+        r.glassType = t.includes("mat") ? "mat" : t.includes("müze") || t.includes("muze") ? "muze" : "duz";
+        r.plakaAdet = String(l.qty);
+      } else if (l.kind === "technical") {
+        r.kind = "technical";
+        // Yapay zeka ürün adı da döndürebilir: önce koda, sonra ada bakılır
+        const t = getTechnicalProduct(l.code) || findTechnicalByName(l.code);
+        if (t) {
+          r.techCode = t.code;
+          r.kutuPrice = String(t.priceTL ?? t.priceEUR ?? "");
+        }
+        r.kutuAdet = String(l.qty);
+      } else {
+        r.kind = "other";
+        r.name = [l.code, l.note].filter(Boolean).join(" — ");
+        r.otherQty = String(l.qty);
+      }
+      return r;
+    });
+    if (yeni.length === 0) return;
+
+    setRows((rs) => {
+      // Tamamen boş duran ilk satırı ez, doldurulmuş satırları koru
+      const dolu = rs.filter(
+        (r) => r.code || r.name || r.techCode || r.qty || r.plakaAdet || r.kutuAdet
+      );
+      return [...dolu, ...yeni];
+    });
+    if (data.customer && !customer.trim()) setCustomer(data.customer);
+    if (data.note && !note.trim()) setNote(data.note);
+    setImportOpen(false);
+  }
   const [note, setNote] = useState(initialOrder?.note ?? "");
   const [rate, setRate] = useState(
     initialOrder?.rate ? String(initialOrder.rate) : ""
@@ -686,9 +756,21 @@ export default function OrderForm({
         );
       })}
 
-      <button className="btn secondary" onClick={() => setRows((rs) => [...rs, emptyRow()])}>
-        + Satır Ekle
-      </button>
+      <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+        <button className="btn secondary" onClick={() => setRows((rs) => [...rs, emptyRow()])}>
+          + Satır Ekle
+        </button>
+        <button className="btn secondary" onClick={() => setImportOpen(true)}>
+          🤖 Metinden Sipariş Oluştur
+        </button>
+      </div>
+
+      {importOpen && (
+        <OrderTextImport
+          onClose={() => setImportOpen(false)}
+          onApply={applyParsed}
+        />
+      )}
 
       <h2>Özet</h2>
       <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))" }}>
