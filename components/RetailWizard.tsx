@@ -116,6 +116,7 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
+  const [customerAddress, setCustomerAddress] = useState("");
   const [deliveryDate, setDeliveryDate] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() + 7);
@@ -167,7 +168,7 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
   const [discountType, setDiscountType] = useState<"percent" | "tl">("percent");
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [successId, setSuccessId] = useState<string | null>(null);
+  const [success, setSuccess] = useState<{ id: string; d: string } | null>(null);
   const [error, setError] = useState("");
 
   // Günlük kuru otomatik doldur (sipariş panelindeki kur kaydından)
@@ -424,6 +425,7 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
           customerName: customerName.trim(),
           customerPhone: customerPhone.trim(),
           customerEmail: customerEmail.trim(),
+          customerAddress: customerAddress.trim(),
           usdRate: parseFloat(usdRate) || 0,
           deliveryDate,
           notes: notes.trim(),
@@ -433,7 +435,7 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
       });
       const d = await res.json();
       if (!res.ok || !d.ok) throw new Error(d.error || "Sipariş kaydedilemedi");
-      setSuccessId(d.orderId);
+      setSuccess({ id: d.orderId, d: d.dateKey || "" });
     } catch (e: any) {
       setError(e.message || "Bir hata oluştu");
     } finally {
@@ -442,10 +444,11 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
   }
 
   function resetAll() {
-    setSuccessId(null);
+    setSuccess(null);
     setCustomerName("");
     setCustomerPhone("");
     setCustomerEmail("");
+    setCustomerAddress("");
     setNotes("");
     setDiscountValue("0");
     setDiscountType("percent");
@@ -512,21 +515,32 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
     );
   }
 
-  if (successId) {
+  if (success) {
+    const q = `d=${success.d}&id=${encodeURIComponent(success.id)}`;
     return (
       <div className="card" style={{ maxWidth: 560, margin: "40px auto", textAlign: "center" }}>
         <div style={{ fontSize: 52 }}>✅</div>
         <h2>Sipariş Kaydedildi</h2>
         <p style={{ fontSize: 15 }}>
           Sipariş Numarası:{" "}
-          <strong style={{ color: "var(--brand)", fontSize: 20 }}>{successId}</strong>
+          <strong style={{ color: "var(--brand)", fontSize: 20 }}>{success.id}</strong>
         </p>
         <div style={{ display: "flex", gap: 10, justifyContent: "center", marginTop: 16, flexWrap: "wrap" }}>
-          <button className="btn" onClick={resetAll}>Yeni Sipariş</button>
-          <Link href="/panel/perakende/siparisler" className="btn secondary">
-            Perakende Siparişler
-          </Link>
+          {success.d && (
+            <>
+              <a href={`/api/perakende/orders/pdf?${q}`} className="btn">
+                ⬇ Üretim PDF
+              </a>
+              <Link href={`/panel/perakende/siparisler/detay?${q}`} className="btn secondary">
+                🖨️ Fişi Gör
+              </Link>
+            </>
+          )}
+          <button className="btn secondary" onClick={resetAll}>Yeni Sipariş</button>
         </div>
+        <p style={{ fontSize: 12.5, color: "var(--muted)", marginTop: 12 }}>
+          <Link href="/panel/perakende/siparisler">Perakende Siparişler listesine git →</Link>
+        </p>
       </div>
     );
   }
@@ -977,6 +991,14 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
               <div>
                 <label>Teslim Tarihi</label>
                 <input type="date" value={deliveryDate} onChange={(e) => setDeliveryDate(e.target.value)} />
+              </div>
+              <div style={{ gridColumn: "1 / -1" }}>
+                <label>Adres (kargolu siparişlerde)</label>
+                <input
+                  value={customerAddress}
+                  onChange={(e) => setCustomerAddress(e.target.value)}
+                  placeholder="Mah. Cad. No:X D:Y  İLÇE / İL"
+                />
               </div>
             </div>
 

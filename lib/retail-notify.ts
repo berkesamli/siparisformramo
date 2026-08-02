@@ -93,7 +93,10 @@ export function retailOrderHtml(o: SavedRetailOrder): string {
 }
 
 /** SMTP tanımlıysa siparişi mağazaya (ve varsa müşteriye kopya) e-postalar. */
-export async function sendRetailOrderEmail(o: SavedRetailOrder): Promise<boolean> {
+export async function sendRetailOrderEmail(
+  o: SavedRetailOrder,
+  pdf?: Buffer
+): Promise<boolean> {
   const host = process.env.SMTP_HOST;
   const user = process.env.SMTP_USER;
   const pass = process.env.SMTP_PASS;
@@ -114,6 +117,15 @@ export async function sendRetailOrderEmail(o: SavedRetailOrder): Promise<boolean
     subject: `Perakende Sipariş ${o.orderId} — ${o.customerName} — ₺ ${fmt(o.total)}`,
     text: retailOrderText(o),
     html: retailOrderHtml(o),
+    attachments: pdf
+      ? [
+          {
+            filename: `olga_siparis_${o.orderId}.pdf`,
+            content: pdf,
+            contentType: "application/pdf",
+          },
+        ]
+      : undefined,
   });
   return true;
 }

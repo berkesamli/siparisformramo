@@ -10,6 +10,7 @@ import {
   type SavedRetailOrder,
 } from "@/lib/retail-orders";
 import { sendRetailOrderEmail } from "@/lib/retail-notify";
+import { generateRetailPdf } from "@/lib/retail-pdf";
 import { RETAIL_STATUSES, type RetailStatus } from "@/data/perakende";
 
 export const dynamic = "force-dynamic";
@@ -111,6 +112,7 @@ export async function POST(req: NextRequest) {
     customerName,
     customerPhone,
     customerEmail: s(body.customerEmail, 120).trim(),
+    customerAddress: s(body.customerAddress, 240).trim(),
     usdRate: r2(body.usdRate),
     deliveryDate: s(body.deliveryDate, 20),
     notes: s(body.notes, 1000),
@@ -122,14 +124,28 @@ export async function POST(req: NextRequest) {
 
   const saved = await saveRetailOrder(order);
 
+  // Üretim PDF'i — e-posta ekinde gider, ayrıca listeden indirilebilir
+  let pdf: Buffer | undefined;
+  try {
+    pdf = await generateRetailPdf(order);
+  } catch {
+    /* PDF hatası siparişi engellemesin */
+  }
+
   let emailSent = false;
   try {
-    emailSent = await sendRetailOrderEmail(order);
+    emailSent = await sendRetailOrderEmail(order, pdf);
   } catch {
     /* e-posta hatası siparişi engellemesin */
   }
 
-  return NextResponse.json({ ok: true, orderId, saved, emailSent });
+  return NextResponse.json({
+    ok: true,
+    orderId,
+    dateKey: order.dateKey,
+    saved,
+    emailSent,
+  });
 }
 
 export async function PATCH(req: NextRequest) {
