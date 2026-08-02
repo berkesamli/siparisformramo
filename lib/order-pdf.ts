@@ -256,7 +256,7 @@ export function generateOrderPdf(order: PdfOrder): Promise<Buffer> {
       .fontSize(7)
       .fillColor("#b3a893")
       .text(
-        "Ankara: Birlik Mah. 448. Cd. No:56 Çankaya — 0312 495 75 45   |   İstanbul: Masko Mobilya San. Sit. 3-B1 No:4 İkitelli — 0212 675 27 50",
+        "Ankara: Birlik Mah. 448. Cd. No:56 Çankaya — 0312 495 75 45   |   İstanbul: Tahtakale Mah. Fırat Cd. No:6, Tem34 Sitesi No:95 Avcılar — 0212 675 27 50",
         M,
         fy + 24,
         { width: pageWidth, align: "center", lineBreak: false }
