@@ -8,6 +8,7 @@ const nextConfig = {
       "/api/orders/pdf": ["./assets/**"],
       "/api/perakende/orders": ["./assets/**"],
       "/api/perakende/orders/pdf": ["./assets/**"],
+      "/api/etiket/pdf": ["./assets/**"],
     },
   },
 };

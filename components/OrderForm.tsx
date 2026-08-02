@@ -8,6 +8,7 @@ import {
   technicalByCategory,
 } from "@/data/technical";
 import { GLASS_TYPES, GLASS_SIZES, AYNA_SIZES, plateM2 } from "@/data/glass";
+import CustomerPicker from "@/components/CustomerPicker";
 
 type Kind = "frame" | "glass" | "ayna" | "technical" | "other";
 
@@ -335,11 +336,7 @@ export default function OrderForm({
         </div>
         <div>
           <label>Müşteri *</label>
-          <input
-            value={customer}
-            onChange={(e) => setCustomer(e.target.value)}
-            placeholder="Müşteri / Firma adı"
-          />
+          <CustomerPicker value={customer} onChange={setCustomer} />
         </div>
         <div>
           <label>Dolar Kuru (TL/USD)</label>
