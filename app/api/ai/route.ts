@@ -490,9 +490,25 @@ export async function POST(req: Request) {
     });
   } catch (err) {
     console.error("AI hatası:", err);
-    return NextResponse.json(
-      { ok: false, error: "AI asistanına şu an ulaşılamıyor." },
-      { status: 502 }
-    );
+    return NextResponse.json({ ok: false, error: apiErrorMessage(err) }, { status: 502 });
   }
+}
+
+// Anthropic API hatasını anlaşılır Türkçe mesaja çevirir.
+// Anahtar değeri hiçbir zaman mesaja girmez.
+function apiErrorMessage(err: any): string {
+  const status = Number(err?.status) || 0;
+  const upstream = String(err?.error?.error?.message || err?.message || "");
+
+  if (/credit balance|insufficient|billing/i.test(upstream)) {
+    return "Anthropic hesabında bakiye kalmamış. console.anthropic.com → Billing → Add credits ile kredi yükleyin.";
+  }
+  if (status === 401 || /authentication|invalid x-api-key|invalid api key/i.test(upstream)) {
+    return "API anahtarı geçersiz veya iptal edilmiş. Vercel'deki ANTHROPIC_API_KEY değerini yenileyip Redeploy yapın.";
+  }
+  if (status === 403) return "API anahtarının bu işlem için yetkisi yok.";
+  if (status === 429) return "İstek sınırına takıldı. Birkaç dakika sonra tekrar deneyin.";
+  if (status === 529 || status === 503) return "Anthropic servisi şu an yoğun. Birkaç dakika sonra tekrar deneyin.";
+  if (status === 400) return `İstek reddedildi: ${upstream || "geçersiz istek"}`;
+  return `AI asistanına ulaşılamadı${status ? ` (HTTP ${status})` : ""}${upstream ? `: ${upstream}` : "."}`;
 }
