@@ -70,6 +70,19 @@ interface WizardItem {
 
 const STEPS = ["Ölçüler", "Çerçeve", "Paspartu", "Cam", "Baskı", "Özet", "Müşteri"];
 
+// Yaygın eser boyutları (cm)
+const SIZE_PRESETS: { label: string; w: number; h: number }[] = [
+  { label: "A4", w: 21, h: 29.7 },
+  { label: "A3", w: 29.7, h: 42 },
+  { label: "A2", w: 42, h: 59.4 },
+  { label: "A1", w: 59.4, h: 84.1 },
+  { label: "A0", w: 84.1, h: 118.9 },
+  { label: "15×21", w: 15, h: 21 },
+  { label: "30×40", w: 30, h: 40 },
+  { label: "50×50", w: 50, h: 50 },
+  { label: "50×70", w: 50, h: 70 },
+];
+
 function itemShortText(it: WizardItem): string {
   const parts = [
     `${it.artWidth}${it.artWidthUnit} x ${it.artHeight}${it.artHeightUnit}`,
@@ -572,6 +585,33 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
                     <option value="mm">mm</option>
                   </select>
                 </div>
+              </div>
+            </div>
+
+            <div style={{ marginTop: 16 }}>
+              <label>Yaygın Boyutlar</label>
+              <div className="rw-presets">
+                {SIZE_PRESETS.map((s) => {
+                  const active =
+                    wUnit === "cm" && hUnit === "cm" &&
+                    parseFloat(artWidth) === s.w && parseFloat(artHeight) === s.h;
+                  return (
+                    <button
+                      key={s.label}
+                      type="button"
+                      className={`rw-preset ${active ? "sel" : ""}`}
+                      onClick={() => {
+                        setWUnit("cm");
+                        setHUnit("cm");
+                        setArtWidth(String(s.w));
+                        setArtHeight(String(s.h));
+                      }}
+                    >
+                      <strong>{s.label}</strong>
+                      <span>{s.w}×{s.h} cm</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
