@@ -71,6 +71,7 @@ export interface SavedRetailOrder {
   customerName: string;
   customerPhone: string;
   customerEmail: string;
+  customerAddress?: string;
   usdRate: number;
   deliveryDate: string;
   notes: string;

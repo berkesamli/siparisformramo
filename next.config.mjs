@@ -6,6 +6,8 @@ const nextConfig = {
     outputFileTracingIncludes: {
       "/api/orders": ["./assets/**"],
       "/api/orders/pdf": ["./assets/**"],
+      "/api/perakende/orders": ["./assets/**"],
+      "/api/perakende/orders/pdf": ["./assets/**"],
     },
   },
 };
