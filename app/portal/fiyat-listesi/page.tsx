@@ -13,8 +13,9 @@ export default async function PriceListPage() {
         <div style={{ flex: 1 }}>
           <h1>Toptan Fiyat Listesi</h1>
           <p className="subtitle">
-            Çerçeve profilleri ve teknik malzemeler. Profil fiyatları USD/mt,
-            teknik malzemeler kutu bazındadır; tüm fiyatlar KDV hariçtir.
+            Çerçeve profilleri — fiyatlar USD/mt cinsinden ve KDV hariçtir.
+            Profiller koli bazında satılır. Teknik malzemeler için üstteki
+            butonu kullanın.
           </p>
         </div>
         <PrintButton />
