@@ -62,6 +62,10 @@ export default function SmsPanel() {
   const [mesaj, setMesaj] = useState("");
   const [ara, setAra] = useState("");
 
+  // İYS filtresi. Varsayılan "0" (bilgilendirme) — kargo/sipariş mesajları
+  // ticari ileti sayılmaz. Kampanya için 11/12 seçilmeli, aksi hâlde mevzuata
+  // aykırı gönderim yapılmış olur.
+  const [iysfilter, setIysfilter] = useState<"0" | "11" | "12">("0");
   const [gonderiliyor, setGonderiliyor] = useState(false);
   const [sonuc, setSonuc] = useState<{ ok: boolean; text: string } | null>(null);
 
@@ -138,7 +142,7 @@ export default function SmsPanel() {
       const r = await fetch("/api/sms", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ numbers: gecerli, message: mesaj }),
+        body: JSON.stringify({ numbers: gecerli, message: mesaj, iysfilter }),
       });
       const d = await r.json();
       if (d.ok) {
@@ -273,6 +277,26 @@ export default function SmsPanel() {
           onChange={(e) => setMesaj(e.target.value)}
           placeholder="Mesajınızı yazın…"
         />
+
+        <div style={{ marginTop: 12 }}>
+          <label style={{ fontSize: 14, display: "block", marginBottom: 4 }}>
+            Mesaj türü
+          </label>
+          <select
+            value={iysfilter}
+            onChange={(e) => setIysfilter(e.target.value as "0" | "11" | "12")}
+            style={{ width: "auto" }}
+          >
+            <option value="0">Bilgilendirme — kargo, sipariş, hatırlatma</option>
+            <option value="11">Ticari / kampanya — alıcı bireysel</option>
+            <option value="12">Ticari / kampanya — alıcı tacir (firma)</option>
+          </select>
+          <p style={{ margin: "6px 0 0", color: "var(--muted)", fontSize: 13 }}>
+            {iysfilter === "0"
+              ? "Mevcut alışveriş ilişkisine dair mesaj — İYS onayı aranmaz."
+              : "Ticari ileti — İYS'de onayı olmayan numaralara gönderilmez. Kampanya mesajını bilgilendirme olarak göndermek mevzuata aykırıdır."}
+          </p>
+        </div>
 
         <p style={{ margin: "8px 0 0", color: "var(--muted)", fontSize: 13 }}>
           {sayim.chars} karakter · <strong>{sayim.segments}</strong> SMS ·{" "}

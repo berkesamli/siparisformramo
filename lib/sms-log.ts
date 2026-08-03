@@ -15,6 +15,8 @@ export interface SmsRecord {
   ok: boolean;
   jobId?: string;
   error?: string;
+  /** İYS filtresi: "0" bilgilendirme, "11" ticari-bireysel, "12" ticari-tacir. */
+  iysfilter?: string;
 }
 
 const path = (dateKey: string, id: string) => `sms/${dateKey}/${id}.json`;

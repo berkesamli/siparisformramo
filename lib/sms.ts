@@ -45,6 +45,20 @@ const isSuccess = (code: string) => code === "00" || code === "01" || code === "
 const codeMessage = (code: string) =>
   CODES[code] || `NETGSM bilinmeyen yanıt kodu: ${code}`;
 
+/**
+ * İYS (İleti Yönetim Sistemi) filtresi — NETGSM'in mesajı nasıl değerlendireceğini
+ * belirler. Gönderilmezse NETGSM mesajı ticari sayıp marka kaydı arar ve İYS
+ * tanımlı değilse 51 koduyla reddeder.
+ *
+ *  "0"  — Bilgilendirme. Kargo, sipariş durumu, randevu gibi mevcut alışveriş
+ *         ilişkisine dair mesajlar. İYS kontrolü yapılmaz.
+ *  "11" — Ticari ileti, alıcı BİREYSEL. İYS'de onayı olmayan numaraya gitmez.
+ *  "12" — Ticari ileti, alıcı TACİR. İYS'de onayı olmayan numaraya gitmez.
+ *
+ * Kampanya/tanıtım mesajını "0" ile göndermek İYS mevzuatına aykırıdır.
+ */
+export type IysFilter = "0" | "11" | "12";
+
 export interface SendResult {
   ok: boolean;
   /** NETGSM iş kimliği — teslim raporu sorgulamak için. */
@@ -63,7 +77,8 @@ export interface SendResult {
  */
 export async function sendSms(
   numbers: string[],
-  message: string
+  message: string,
+  iysfilter: IysFilter = "0"
 ): Promise<SendResult> {
   const invalid: string[] = [];
   const sent: string[] = [];
@@ -119,6 +134,7 @@ export async function sendSms(
       body: JSON.stringify({
         msgheader: process.env.NETGSM_HEADER,
         encoding,
+        iysfilter,
         messages: sent.map((no) => ({ msg: text, no })),
       }),
       // NETGSM zaman zaman yavaş yanıt veriyor; isteği asılı bırakmayalım.
