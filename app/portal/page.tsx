@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { getSessionUser } from "@/lib/auth";
-import ProductBrowser from "@/components/ProductBrowser";
+import StockSearch from "@/components/StockSearch";
 import AiChat from "@/components/AiChat";
 
 export default async function PortalPage() {
@@ -9,12 +10,23 @@ export default async function PortalPage() {
 
   return (
     <main className="container">
-      <h1>Ürünler &amp; Stok Durumu</h1>
-      <p className="subtitle">
-        Çerçeve profilleri ve teknik malzemeler — toptan liste fiyatları KDV
-        hariçtir. Güncel stok için sipariş hattımızı arayabilirsiniz: 0850 305 75 45
-      </p>
-      <ProductBrowser />
+      <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+        <div style={{ flex: 1, minWidth: 260 }}>
+          <h1>Güncel Stok Sorgulama</h1>
+          <p className="subtitle">
+            Ürün kodunu yazın — Ankara ve İstanbul depolarındaki güncel stok
+            anında listelenir. Sipariş hattı: 0850 305 75 45
+          </p>
+        </div>
+        <Link href="/portal/fiyat-listesi" className="btn small secondary">
+          Fiyat Listesi →
+        </Link>
+      </div>
+
+      <div className="card">
+        <StockSearch />
+      </div>
+
       <AiChat />
     </main>
   );
