@@ -3,6 +3,7 @@
 
 import path from "path";
 import PDFDocument from "pdfkit";
+import { fmtTL, fmtPrice } from "./num";
 
 export interface PdfOrder {
   orderId: string;
@@ -33,11 +34,9 @@ const LINE = "#e8e0d2";
 
 const M = 46; // sayfa marjı
 
-const fmt = (n: number) =>
-  (Number(n) || 0).toLocaleString("tr-TR", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
+// Tutarlar her zaman 2 hane; birim fiyat 4 haneye kadar gösterilir ki
+// miktar × birim fiyat = satır tutarı faturada birebir tutsun.
+const fmt = fmtTL;
 
 export function generateOrderPdf(order: PdfOrder): Promise<Buffer> {
   return new Promise((resolve, reject) => {
@@ -172,7 +171,7 @@ export function generateOrderPdf(order: PdfOrder): Promise<Buffer> {
     drawCells(["#", "ÜRÜN", "MİKTAR", "B. FİYAT", "TUTAR"], { header: true });
     order.lines.forEach((l, i) => {
       drawCells(
-        [String(i + 1), l.name, l.unitText, `₺ ${fmt(l.unitPriceTL)}`, `₺ ${fmt(l.lineTotal)}`],
+        [String(i + 1), l.name, l.unitText, `₺ ${fmtPrice(l.unitPriceTL)}`, `₺ ${fmt(l.lineTotal)}`],
         { zebra: i % 2 === 1 }
       );
     });

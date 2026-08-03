@@ -21,6 +21,7 @@ import {
   type PrintType,
 } from "@/data/perakende";
 import { findFrameImage } from "@/data/frame-images";
+import { kurus } from "@/lib/num";
 import FramePreview from "@/components/FramePreview";
 import CustomerPicker from "@/components/CustomerPicker";
 
@@ -324,11 +325,18 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
       matLeft: edges.left,
       glassType: glass.name,
       printType: print.name,
-      frameCost: Math.round(costs.frameCost * 100) / 100,
-      matCost: Math.round(costs.matCost * 100) / 100,
-      glassCost: Math.round(costs.glassCost * 100) / 100,
-      printCost: Math.round(costs.printCost * 100) / 100,
-      itemTotal: Math.round(costs.itemTotal * 100) / 100,
+      // Kalem tutarı, dökümdeki yuvarlanmış satırların toplamıdır — fişte
+      // ve PDF'te alt kalemler genel toplamı birebir versin diye.
+      frameCost: kurus(costs.frameCost),
+      matCost: kurus(costs.matCost),
+      glassCost: kurus(costs.glassCost),
+      printCost: kurus(costs.printCost),
+      itemTotal: kurus(
+        kurus(costs.frameCost) +
+          kurus(costs.matCost) +
+          kurus(costs.glassCost) +
+          kurus(costs.printCost)
+      ),
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [

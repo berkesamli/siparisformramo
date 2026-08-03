@@ -2,6 +2,7 @@
 // Yalnızca sunucu tarafında kullanılır.
 
 import type { OrderLine } from "./notify";
+import { kurus } from "./num";
 
 export type OrderStatus = "olusturuldu" | "hazirlaniyor" | "tamamlandi";
 
@@ -68,7 +69,9 @@ export function sanitizeLines(raw: unknown): OrderLine[] {
 }
 
 export function computeTotals(lines: OrderLine[], discountPct: number, vatApplied: boolean) {
-  const r2 = (n: number) => Math.round(n * 100) / 100;
+  // Satır tutarları zaten kuruşa yuvarlanmış gelir; burada yalnızca
+  // toplama/iskonto/KDV adımları kuruşa sabitlenir. Bkz. lib/num.ts
+  const r2 = kurus;
   const gross = r2(lines.reduce((s, l) => s + l.lineTotal, 0));
   const discount = r2(gross * (Math.max(0, discountPct) / 100));
   const afterDiscount = r2(Math.max(0, gross - discount));

@@ -29,6 +29,9 @@ export const AYNA_SIZES: PlateSize[] = [
   { label: "122 × 183 cm — 4mm", en: 122, boy: 183, mm: 4 },
 ];
 
+// Plaka alanı tam hassasiyetle döner — yuvarlanmaz.
+// 91,4 × 122 cm → 1,11508 m² (1,12 değil). Fatura tutarlarının tutması için
+// yuvarlama yalnızca satır tutarında yapılır.
 export function plateM2(s: PlateSize): number {
-  return Math.round(((s.en / 100) * (s.boy / 100)) * 100) / 100;
+  return Math.round((s.en / 100) * (s.boy / 100) * 1e6) / 1e6;
 }
