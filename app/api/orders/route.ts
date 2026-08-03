@@ -146,6 +146,54 @@ export async function POST(req: Request) {
     console.error("WhatsApp gönderilemedi:", err);
   }
 
+  // Müşteriye sipariş onay SMS'i — form işaretliyse ve müşteri defterden
+  // seçilmişse. Telefonu yoksa veya SMS yapılandırılmadıysa sessizce atlanır;
+  // SMS hatası sipariş kaydını asla geri döndürmez.
+  let smsSent = false;
+  let smsInfo = "";
+  if (body.sendSms && saved.customerId) {
+    try {
+      const { smsConfigured, sendSms } = await import("@/lib/sms");
+      if (smsConfigured()) {
+        const { getCustomer } = await import("@/lib/customers");
+        const c = await getCustomer(saved.customerId);
+        if (c?.phone) {
+          const { stripTurkish } = await import("@/lib/sms-format");
+          const mesaj = stripTurkish(
+            `Sayin musterimiz, ${order.orderId} numarali siparisiniz alinmistir. Tesekkur ederiz. Olga Cerceve`
+          );
+          const r = await sendSms([c.phone], mesaj);
+          smsSent = r.ok;
+          if (!r.ok) smsInfo = r.error || "SMS gönderilemedi.";
+
+          const { saveSmsRecord, newSmsId, istanbulDateKey: gun } = await import(
+            "@/lib/sms-log"
+          );
+          const t = new Date();
+          await saveSmsRecord({
+            id: newSmsId(t),
+            dateKey: gun(t),
+            createdAt: t.toISOString(),
+            sender: user.name,
+            message: mesaj,
+            recipients: r.sent,
+            segments: 1,
+            credits: r.sent.length,
+            ok: r.ok,
+            jobId: r.jobId,
+            error: r.error,
+            iysfilter: "0",
+          }).catch(() => {});
+        } else {
+          smsInfo = "Müşterinin kayıtlı telefonu yok.";
+        }
+      }
+    } catch (err) {
+      console.error("Sipariş SMS'i gönderilemedi:", err);
+      smsInfo = "SMS gönderiminde hata oluştu.";
+    }
+  }
+
   return NextResponse.json({
     ok: true,
     orderId: order.orderId,
@@ -154,6 +202,8 @@ export async function POST(req: Request) {
     emailSent,
     waSent,
     waLink: waSent ? undefined : waLink(order),
+    smsSent,
+    smsInfo,
     net,
   });
 }

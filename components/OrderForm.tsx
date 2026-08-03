@@ -218,6 +218,9 @@ export default function OrderForm({
   const [customer, setCustomer] = useState(initialOrder?.customer ?? "");
   // Müşteri defterinden seçildiyse kaydı sipariş kaydına da bağlarız (cari takip)
   const [customerId, setCustomerId] = useState("");
+  // Sipariş onay SMS'i — varsayılan açık; müşteri defterden seçilmediyse veya
+  // telefonu yoksa sunucu sessizce atlar. Düzenleme modunda gönderilmez.
+  const [sendSms, setSendSms] = useState(true);
   const [importOpen, setImportOpen] = useState(false);
 
   /** Yapay zekanın çözümlediği satırları forma ekler. */
@@ -356,6 +359,7 @@ export default function OrderForm({
         euroRate: euroNum,
         discountPct: parseFloat(discountPct) || 0,
         vatApplied: vat,
+        sendSms: initialOrder ? false : sendSms,
         lines,
         rows,
         gross,
@@ -382,9 +386,14 @@ export default function OrderForm({
           msg: `Sipariş ${initialOrder.orderId} güncellendi. Yeni toplam: ₺ ${fmt(data.net)}`,
         });
       } else {
+        const smsMsg = data.smsSent
+          ? "Müşteriye SMS gönderildi."
+          : data.smsInfo
+            ? `SMS gönderilmedi: ${data.smsInfo}`
+            : "";
         setResult({
           ok: true,
-          msg: `Sipariş ${data.orderId} oluşturuldu. ${data.emailSent ? "E-posta gönderildi." : "E-posta yapılandırılmadı (SMTP env eksik)."} ${data.waSent ? "WhatsApp mesajı gönderildi." : ""}`,
+          msg: `Sipariş ${data.orderId} oluşturuldu. ${data.emailSent ? "E-posta gönderildi." : "E-posta yapılandırılmadı (SMTP env eksik)."} ${data.waSent ? "WhatsApp mesajı gönderildi." : ""} ${smsMsg}`,
           waLink: data.waLink,
         });
         setRows([emptyRow()]);
@@ -836,6 +845,32 @@ export default function OrderForm({
             </>
           )}
         </div>
+      )}
+
+      {!initialOrder && (
+        <label
+          style={{
+            marginTop: 16,
+            display: "flex",
+            gap: 8,
+            alignItems: "center",
+            cursor: "pointer",
+            fontSize: 14,
+          }}
+        >
+          <input
+            type="checkbox"
+            checked={sendSms}
+            onChange={(e) => setSendSms(e.target.checked)}
+            style={{ width: "auto", margin: 0 }}
+          />
+          Müşteriye &quot;siparişiniz alınmıştır&quot; SMS&apos;i gönder
+          {!customerId && sendSms && (
+            <span style={{ color: "var(--muted)", fontSize: 13 }}>
+              (müşteri defterden seçilirse gönderilir)
+            </span>
+          )}
+        </label>
       )}
 
       <div style={{ marginTop: 16, display: "flex", gap: 12 }}>
