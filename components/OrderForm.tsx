@@ -107,8 +107,10 @@ function computeRow(row: Row, rate: number, euroRate: number): ComputedLine | nu
       const kb = koliBoyText(metres, profile);
       if (kb) unitText = `${fmtQty(metres)} mt (${kb})`;
     }
+    // Model seçilince kutuya otomatik "-" eklenir; renk yazılmadan
+    // gönderilirse sondaki tire ürün adına taşınmasın.
     return {
-      name: row.code.trim().toUpperCase(),
+      name: row.code.trim().toUpperCase().replace(/-+$/, ""),
       unitText,
       unitPriceTL,
       lineTotal: kurus(metres * unitPriceTL),
@@ -508,13 +510,21 @@ export default function OrderForm({
                       list={`profiles-${row.id}`}
                       value={row.code}
                       onChange={(e) => {
-                        const pr = findProfile(e.target.value);
+                        const v = e.target.value;
+                        const pr = findProfile(v);
+                        // Model tam seçildiğinde depo formatına çevirip sona
+                        // otomatik "-" ekle: "4501 S" → "4501S-"; renk kodu
+                        // aynı kutuya devam yazılır → "4501S-1242".
+                        const duz = (s: string) =>
+                          s.toUpperCase().replace(/\s+/g, "");
+                        const tamSecim =
+                          pr && duz(v) === duz(pr.code) && !v.includes("-");
                         update(row.id, {
-                          code: e.target.value,
+                          code: tamSecim ? `${duz(pr.code)}-` : v,
                           usd: pr ? String(pr.priceUSD) : row.usd,
                         });
                       }}
-                      placeholder="örn. KS 2030"
+                      placeholder="örn. 4501S-1242"
                     />
                     <datalist id={`profiles-${row.id}`}>
                       {FRAME_PROFILES.map((f) => (
