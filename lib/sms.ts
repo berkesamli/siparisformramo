@@ -138,12 +138,11 @@ export async function sendSms(
       },
       body: JSON.stringify({
         msgheader: process.env.NETGSM_HEADER,
-        encoding,
-        // NETGSM sürümüne göre alan adı "iysfilter" veya "filter" olabiliyor;
-        // tanımadığı alanı yok saydığı için ikisini birden gönderiyoruz.
-        iysfilter,
-        filter: iysfilter,
         messages: sent.map((no) => ({ msg: text, no })),
+        encoding,
+        iysfilter,
+        // appname zorunludur; gönderilmezse istek reddedilir.
+        appname: process.env.NETGSM_APPNAME || "olgasiparis",
       }),
       // NETGSM zaman zaman yavaş yanıt veriyor; isteği asılı bırakmayalım.
       signal: AbortSignal.timeout(20000),
@@ -151,17 +150,21 @@ export async function sendSms(
 
     const raw = (await res.text()).trim();
 
-    // Yanıt JSON ({"code":"00","jobid":"..."}) veya düz metin ("00 123456")
-    // gelebiliyor; ikisini de karşılıyoruz.
+    // Belgelenmiş yanıt: {"code":"00","jobid":"...","description":"queued"}
+    // Eski uçlar düz metin ("00 123456") döndürebildiği için o biçimi de
+    // karşılıyoruz.
     let code = "";
     let jobId: string | undefined;
+    let description = "";
     try {
       const j = JSON.parse(raw) as {
         code?: string | number;
         jobid?: string | number;
+        description?: string;
       };
       code = String(j.code ?? "").trim();
       if (j.jobid != null) jobId = String(j.jobid);
+      description = String(j.description || "").trim();
     } catch {
       const parts = raw.split(/\s+/);
       code = parts[0] || "";
@@ -177,7 +180,13 @@ export async function sendSms(
       };
     }
     if (!isSuccess(code)) {
-      return { ok: false, code, error: codeMessage(code), raw, invalid, sent };
+      // NETGSM'in kendi açıklaması esastır; kod tablomuz yalnızca ek ipucu
+      // verir ve belgelenmemiş kodları kapsamayabilir.
+      const ipucu = CODES[code];
+      const error = description
+        ? `NETGSM (${code}): ${description}${ipucu ? ` — ${ipucu}` : ""}`
+        : codeMessage(code);
+      return { ok: false, code, error, raw, invalid, sent };
     }
     return { ok: true, code, jobId, raw, invalid, sent };
   } catch (err) {
