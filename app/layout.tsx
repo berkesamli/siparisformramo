@@ -3,6 +3,7 @@ import "./globals.css";
 import { getSessionUser } from "@/lib/auth";
 import { isOwner } from "@/data/users";
 import NavBar from "@/components/NavBar";
+import NewOrderAlert from "@/components/NewOrderAlert";
 
 export const metadata: Metadata = {
   title: "Olga Çerçeve — Sipariş ve Katalog Platformu",
@@ -27,6 +28,8 @@ export default async function RootLayout({
             user={{ name: user.name, role: user.role, owner: isOwner(user.username) }}
           />
         )}
+        {/* Yeni sipariş zili — yalnızca çalışanlarda, tüm panel sayfalarında */}
+        {user?.role === "staff" && <NewOrderAlert />}
         {children}
       </body>
     </html>
