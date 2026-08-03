@@ -1,9 +1,11 @@
 "use client";
 
-// Toptan fiyat listesi — çerçeve profilleri seri seri listelenir, teknik
-// malzemeler ayrı sayfada durur (üstteki butonla yeni sekmede açılır).
-// Arama kutusu ikisini birden tarar: bir malzeme arandığında sonucu bu sayfada
-// da gösterilir, kullanıcı diğer sayfaya geçmek zorunda kalmaz.
+// Toptan fiyat listesi — arama kutusunun altındaki iki kutu ile çerçeve
+// profilleri ve teknik malzemeler arasında geçiş yapılır. Aynı sayfada kalınır;
+// teknik malzemelere ulaşmak için aşağı kaydırmak gerekmez.
+//
+// Arama yapıldığında sekme farkı gözetilmez: her iki gruptan eşleşen ürünler
+// birlikte listelenir, kullanıcı hangi sekmede olduğunu düşünmek zorunda kalmaz.
 
 import { useMemo, useState } from "react";
 import { FRAME_PROFILES, SERIES_ORDER } from "@/data/catalog";
@@ -16,7 +18,96 @@ const fmt = (n: number) =>
 const techPrice = (t: (typeof TECHNICAL_PRODUCTS)[number]): string =>
   t.priceTL != null ? `₺${fmt(t.priceTL)}` : `€${fmt(t.priceEUR || 0)}`;
 
+// Bilinen marka sırası; listede olmayan yeni bir kategori eklenirse sessizce
+// kaybolmasın diye sıranın sonuna eklenir.
+const BILINEN_SIRA = [
+  "Pozzi",
+  "Alfamacchine",
+  "Cassese",
+  "Danlist",
+  "Ro-ma Maestri",
+  "Scappi Cartoni",
+  "OLGA",
+  "NS Serisi",
+];
+
+const CATEGORY_ORDER = [
+  ...BILINEN_SIRA,
+  ...Array.from(new Set(TECHNICAL_PRODUCTS.map((t) => t.category))).filter(
+    (c) => !BILINEN_SIRA.includes(c)
+  ),
+];
+
+function FrameTable({
+  items,
+  seriGoster,
+}: {
+  items: typeof FRAME_PROFILES;
+  seriGoster?: boolean;
+}) {
+  return (
+    <div style={{ overflowX: "auto" }}>
+      <table>
+        <thead>
+          <tr>
+            <th>Ürün Kodu</th>
+            {seriGoster && <th>Seri</th>}
+            <th>Koli Adet</th>
+            <th>Koli Metraj</th>
+            <th>Fiyat (USD/mt)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {items.map((f) => (
+            <tr key={f.code}>
+              <td style={{ fontWeight: 600 }}>{f.code}</td>
+              {seriGoster && <td>{f.series}</td>}
+              <td>{f.koliAdet}</td>
+              <td>{fmt(f.koliMetraj)} MT</td>
+              <td>${fmt(f.priceUSD)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function TechTable({
+  items,
+  kategoriGoster,
+}: {
+  items: typeof TECHNICAL_PRODUCTS;
+  kategoriGoster?: boolean;
+}) {
+  return (
+    <div style={{ overflowX: "auto" }}>
+      <table>
+        <thead>
+          <tr>
+            <th>Ürün</th>
+            {kategoriGoster && <th>Marka / Kategori</th>}
+            <th>Adet / Kutu</th>
+            <th>Fiyat</th>
+          </tr>
+        </thead>
+        <tbody>
+          {items.map((t) => (
+            <tr key={t.code}>
+              <td style={{ fontWeight: 600 }}>{t.name}</td>
+              {kategoriGoster && <td>{t.category}</td>}
+              <td>{t.adetPerKutu.toLocaleString("tr-TR")}</td>
+              <td>{techPrice(t)}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 export default function PriceListBrowser() {
+  const [tab, setTab] = useState<"cerceve" | "teknik">("cerceve");
   const [query, setQuery] = useState("");
   const araniyor = query.trim().length > 0;
 
@@ -31,7 +122,7 @@ export default function PriceListBrowser() {
   const technicals = useMemo(
     () =>
       !araniyor
-        ? []
+        ? TECHNICAL_PRODUCTS
         : TECHNICAL_PRODUCTS.filter((t) =>
             eslesir(query, t.name, t.code, t.category)
           ),
@@ -43,24 +134,26 @@ export default function PriceListBrowser() {
   return (
     <>
       <div className="card no-print" style={{ marginBottom: 20 }}>
-        <div
-          style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}
-        >
-          <input
-            style={{ flex: 1, minWidth: 240 }}
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Ara — çerçeve kodu (2315S, GB022) veya malzeme adı (askı teli, agraf)…"
-            aria-label="Fiyat listesinde ara"
-          />
-          <a
-            href="/portal/fiyat-listesi/teknik"
-            target="_blank"
-            rel="noreferrer"
-            className="btn small secondary"
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Ara — çerçeve kodu (2315S, GB022) veya malzeme adı (askı teli, agraf)…"
+          aria-label="Fiyat listesinde ara"
+        />
+
+        <div style={{ display: "flex", gap: 10, marginTop: 12, flexWrap: "wrap" }}>
+          <button
+            className={`btn small ${tab === "cerceve" ? "" : "secondary"}`}
+            onClick={() => setTab("cerceve")}
           >
-            🔧 Teknik Malzemeler ↗
-          </a>
+            Çerçeve Profilleri ({FRAME_PROFILES.length})
+          </button>
+          <button
+            className={`btn small ${tab === "teknik" ? "" : "secondary"}`}
+            onClick={() => setTab("teknik")}
+          >
+            🔧 Teknik Malzemeler ({TECHNICAL_PRODUCTS.length})
+          </button>
         </div>
 
         <p style={{ margin: "10px 0 0", color: "var(--muted)", fontSize: 13 }}>
@@ -69,117 +162,72 @@ export default function PriceListBrowser() {
               <>
                 <strong>{frames.length}</strong> çerçeve profili,{" "}
                 <strong>{technicals.length}</strong> teknik malzeme bulundu.
+                Arama iki listeyi birden tarar.
               </>
             ) : (
               <>Sonuç bulunamadı — farklı bir kod veya isim deneyin.</>
             )
+          ) : tab === "cerceve" ? (
+            <>Çerçeve profilleri seri seri listeleniyor. Fiyatlar USD/mt.</>
           ) : (
             <>
-              {FRAME_PROFILES.length} çerçeve profili listeleniyor. Teknik
-              malzemeler için sağdaki butonu kullanın; arama kutusu ikisini
-              birden tarar.
+              Teknik malzemeler markaya göre listeleniyor. € Euro, ₺ Türk Lirası;
+              fiyatlar kutu bazındadır.
             </>
           )}
         </p>
       </div>
 
-      {/* ---------- Teknik malzeme sonuçları (arama yapılınca üstte) ---------- */}
-      {araniyor && technicals.length > 0 && (
-        <div className="card" style={{ marginBottom: 20 }}>
-          <h2 style={{ marginTop: 0, color: "var(--brand-light)" }}>
-            Teknik Malzemeler ({technicals.length})
-          </h2>
-          <div style={{ overflowX: "auto" }}>
-            <table>
-              <thead>
-                <tr>
-                  <th>Ürün</th>
-                  <th>Marka / Kategori</th>
-                  <th>Adet / Kutu</th>
-                  <th>Fiyat</th>
-                </tr>
-              </thead>
-              <tbody>
-                {technicals.map((t) => (
-                  <tr key={t.code}>
-                    <td style={{ fontWeight: 600 }}>{t.name}</td>
-                    <td>{t.category}</td>
-                    <td>{t.adetPerKutu.toLocaleString("tr-TR")}</td>
-                    <td>{techPrice(t)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* ---------- Çerçeve profilleri ---------- */}
-      {araniyor
-        ? frames.length > 0 && (
+      {/* ---------- Arama sonuçları: iki grup birlikte ---------- */}
+      {araniyor && (
+        <>
+          {technicals.length > 0 && (
+            <div className="card" style={{ marginBottom: 20 }}>
+              <h2 style={{ marginTop: 0, color: "var(--brand-light)" }}>
+                Teknik Malzemeler ({technicals.length})
+              </h2>
+              <TechTable items={technicals} kategoriGoster />
+            </div>
+          )}
+          {frames.length > 0 && (
             <div className="card" style={{ marginBottom: 20 }}>
               <h2 style={{ marginTop: 0, color: "var(--brand-light)" }}>
                 Çerçeve Profilleri ({frames.length})
               </h2>
-              <div style={{ overflowX: "auto" }}>
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Ürün Kodu</th>
-                      <th>Seri</th>
-                      <th>Koli Adet</th>
-                      <th>Koli Metraj</th>
-                      <th>Fiyat (USD/mt)</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {frames.map((f) => (
-                      <tr key={f.code}>
-                        <td style={{ fontWeight: 600 }}>{f.code}</td>
-                        <td>{f.series}</td>
-                        <td>{f.koliAdet}</td>
-                        <td>{fmt(f.koliMetraj)} MT</td>
-                        <td>${fmt(f.priceUSD)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <FrameTable items={frames} seriGoster />
             </div>
-          )
-        : SERIES_ORDER.map((series) => {
-            const items = FRAME_PROFILES.filter((f) => f.series === series);
-            if (!items.length) return null;
-            return (
-              <div className="card" key={series} style={{ marginBottom: 20 }}>
-                <h2 style={{ marginTop: 0, color: "var(--brand-light)" }}>
-                  {series} Serisi
-                </h2>
-                <div style={{ overflowX: "auto" }}>
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Ürün Kodu</th>
-                        <th>Koli Adet</th>
-                        <th>Koli Metraj</th>
-                        <th>Fiyat (USD/mt)</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {items.map((f) => (
-                        <tr key={f.code}>
-                          <td style={{ fontWeight: 600 }}>{f.code}</td>
-                          <td>{f.koliAdet}</td>
-                          <td>{fmt(f.koliMetraj)} MT</td>
-                          <td>${fmt(f.priceUSD)}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            );
-          })}
+          )}
+        </>
+      )}
+
+      {/* ---------- Gezinme: seçili sekmenin tam listesi ---------- */}
+      {!araniyor &&
+        tab === "cerceve" &&
+        SERIES_ORDER.map((series) => {
+          const items = FRAME_PROFILES.filter((f) => f.series === series);
+          if (!items.length) return null;
+          return (
+            <div className="card" key={series} style={{ marginBottom: 20 }}>
+              <h2 style={{ marginTop: 0, color: "var(--brand-light)" }}>
+                {series} Serisi
+              </h2>
+              <FrameTable items={items} />
+            </div>
+          );
+        })}
+
+      {!araniyor &&
+        tab === "teknik" &&
+        CATEGORY_ORDER.map((cat) => {
+          const items = TECHNICAL_PRODUCTS.filter((t) => t.category === cat);
+          if (!items.length) return null;
+          return (
+            <div className="card" key={cat} style={{ marginBottom: 20 }}>
+              <h2 style={{ marginTop: 0, color: "var(--brand-light)" }}>{cat}</h2>
+              <TechTable items={items} />
+            </div>
+          );
+        })}
     </>
   );
 }
