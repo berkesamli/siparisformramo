@@ -393,7 +393,14 @@ export default function OrderForm({
             : "";
         setResult({
           ok: true,
-          msg: `Sipariş ${data.orderId} oluşturuldu. ${data.emailSent ? "E-posta gönderildi." : "E-posta yapılandırılmadı (SMTP env eksik)."} ${data.waSent ? "WhatsApp mesajı gönderildi." : ""} ${smsMsg}`,
+          msg: [
+            `Sipariş ${data.orderId} oluşturuldu.`,
+            data.emailSent ? "E-posta gönderildi." : "",
+            data.waSent ? "WhatsApp mesajı gönderildi." : "",
+            smsMsg,
+          ]
+            .filter(Boolean)
+            .join(" "),
           waLink: data.waLink,
         });
         setRows([emptyRow()]);
