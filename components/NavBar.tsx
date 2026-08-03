@@ -30,6 +30,7 @@ export default function NavBar({ user }: { user: NavUser | null }) {
     links.push({ href: "/panel/siparisler", label: "Siparişler" });
     links.push({ href: "/panel/perakende", label: "Perakende" });
     links.push({ href: "/etiket", label: "Etiket" });
+    links.push({ href: "/panel/sms", label: "SMS" });
   }
   if (user?.role === "staff" && user.owner) {
     links.push({ href: "/panel/raporlar", label: "Raporlar" });
