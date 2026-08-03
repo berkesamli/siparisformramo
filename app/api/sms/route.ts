@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
-import { sendSms, smsConfigured } from "@/lib/sms";
+import { sendSms, smsConfigured, type IysFilter } from "@/lib/sms";
 import { smsSegments } from "@/lib/sms-format";
 import {
   listSmsRecords,
@@ -36,12 +36,19 @@ export async function POST(req: Request) {
   const body = (await req.json().catch(() => null)) as {
     numbers?: unknown;
     message?: unknown;
+    iysfilter?: unknown;
   } | null;
 
   const numbers = Array.isArray(body?.numbers)
     ? body!.numbers.map((n) => String(n)).filter(Boolean)
     : [];
   const message = String(body?.message || "").trim();
+
+  // Tanınmayan bir değer gelirse bilgilendirmeye düşüyoruz: "0" İYS kontrolü
+  // istemez, yani en dar kapsam. Ticari gönderim ancak açıkça seçilirse yapılır.
+  const gelenFiltre = String(body?.iysfilter || "0");
+  const iysfilter: IysFilter =
+    gelenFiltre === "11" || gelenFiltre === "12" ? gelenFiltre : "0";
 
   if (!numbers.length) {
     return NextResponse.json(
@@ -65,7 +72,7 @@ export async function POST(req: Request) {
     );
   }
 
-  const result = await sendSms(numbers, message);
+  const result = await sendSms(numbers, message, iysfilter);
   const { segments } = smsSegments(message);
 
   // Başarılı da olsa başarısız da olsa kaydı tutuyoruz — hata ayıklarken ve
@@ -83,6 +90,7 @@ export async function POST(req: Request) {
     ok: result.ok,
     jobId: result.jobId,
     error: result.error,
+    iysfilter,
   };
   await saveSmsRecord(rec).catch(() => {
     /* kayıt tutulamazsa gönderimi başarısız sayma */
