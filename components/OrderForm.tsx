@@ -8,6 +8,7 @@ import {
   technicalByCategory,
 } from "@/data/technical";
 import { GLASS_TYPES, GLASS_SIZES, AYNA_SIZES, plateM2 } from "@/data/glass";
+import { kurus, kesin, fmtQty, fmtPrice, fmtTL } from "@/lib/num";
 import CustomerPicker from "@/components/CustomerPicker";
 import OrderTextImport, { type ParsedLine } from "@/components/OrderTextImport";
 
@@ -58,7 +59,9 @@ const emptyRow = (): Row => ({
   otherPrice: "",
 });
 
-const r2 = (n: number) => Math.round(n * 100) / 100;
+// Miktar ve birim fiyatlar tam hassasiyetle (kesin) taşınır; yuvarlama
+// yalnızca satır tutarında ve toplamlarda (kurus) yapılır. Bkz. lib/num.ts
+const r2 = kurus;
 
 // Teknik malzemeyi adıyla bulur ("10luk agraf" → "10'luk Agraf").
 const sadeAd = (s: string) =>
@@ -76,11 +79,7 @@ function findTechnicalByName(q: string) {
     return n === k || n.includes(k) || k.includes(n);
   });
 }
-const fmt = (n: number) =>
-  (Number(n) || 0).toLocaleString("tr-TR", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
+const fmt = fmtTL;
 
 interface ComputedLine {
   name: string;
@@ -95,24 +94,24 @@ function computeRow(row: Row, rate: number, euroRate: number): ComputedLine | nu
     const qty = parseFloat(row.qty) || 0;
     if (!row.code.trim() || qty <= 0) return null;
     const usd = parseFloat(row.usd) || profile?.priceUSD || 0;
-    const unitPriceTL = r2(usd * rate);
+    const unitPriceTL = kesin(usd * rate);
     let metres = qty;
     if (profile) {
       const bl = boyLength(profile);
       if (row.unit === "boy") metres = qty * bl;
       else if (row.unit === "koli") metres = qty * profile.koliMetraj;
     }
-    metres = r2(metres);
-    let unitText = `${fmt(metres)} mt`;
+    metres = kesin(metres);
+    let unitText = `${fmtQty(metres)} mt`;
     if (profile && metres > 0) {
       const kb = koliBoyText(metres, profile);
-      if (kb) unitText = `${fmt(metres)} mt (${kb})`;
+      if (kb) unitText = `${fmtQty(metres)} mt (${kb})`;
     }
     return {
       name: row.code.trim().toUpperCase(),
       unitText,
       unitPriceTL,
-      lineTotal: r2(metres * unitPriceTL),
+      lineTotal: kurus(metres * unitPriceTL),
     };
   }
 
@@ -123,16 +122,17 @@ function computeRow(row: Row, rate: number, euroRate: number): ComputedLine | nu
     const price = parseFloat(row.m2Price) || 0;
     if (!size || plaka <= 0 || price <= 0) return null;
     const m2PerPlaka = plateM2(size);
-    const totalM2 = r2(plaka * m2PerPlaka);
+    const totalM2 = kesin(plaka * m2PerPlaka);
     // Müze camı EUR fiyatlı, diğerleri TL
-    const priceTL = row.glassType === "muze" ? r2(price * euroRate) : price;
+    const priceTL = row.glassType === "muze" ? kesin(price * euroRate) : price;
     const typeName =
       GLASS_TYPES.find((g) => g.key === row.glassType)?.name || "Cam";
     return {
       name: typeName,
-      unitText: `${plaka} plaka × ${fmt(m2PerPlaka)} m² = ${fmt(totalM2)} m² (${size.label})`,
+      // Faturalanan miktar başta: miktar × birim fiyat = satır tutarı
+      unitText: `${fmtQty(totalM2)} m² · ${plaka} plaka × ${fmtQty(m2PerPlaka)} (${size.label})`,
       unitPriceTL: priceTL,
-      lineTotal: r2(totalM2 * priceTL),
+      lineTotal: kurus(totalM2 * priceTL),
     };
   }
 
@@ -142,12 +142,12 @@ function computeRow(row: Row, rate: number, euroRate: number): ComputedLine | nu
     const price = parseFloat(row.m2Price) || 0;
     if (plaka <= 0 || price <= 0) return null;
     const m2PerPlaka = plateM2(size);
-    const totalM2 = r2(plaka * m2PerPlaka);
+    const totalM2 = kesin(plaka * m2PerPlaka);
     return {
       name: "Ayna",
-      unitText: `${plaka} plaka × ${fmt(m2PerPlaka)} m² = ${fmt(totalM2)} m² (${size.label})`,
+      unitText: `${fmtQty(totalM2)} m² · ${plaka} plaka × ${fmtQty(m2PerPlaka)} (${size.label})`,
       unitPriceTL: price,
-      lineTotal: r2(totalM2 * price),
+      lineTotal: kurus(totalM2 * price),
     };
   }
 
@@ -160,11 +160,11 @@ function computeRow(row: Row, rate: number, euroRate: number): ComputedLine | nu
     let priceInfo = "";
     if (product.priceTL != null) {
       kutuPriceTL = manual > 0 ? manual : product.priceTL;
-      priceInfo = `₺${fmt(kutuPriceTL)}/kutu`;
+      priceInfo = `₺${fmtPrice(kutuPriceTL)}/kutu`;
     } else {
       const eur = manual > 0 ? manual : product.priceEUR || 0;
-      kutuPriceTL = r2(eur * euroRate);
-      priceInfo = `€${fmt(eur)}/kutu`;
+      kutuPriceTL = kesin(eur * euroRate);
+      priceInfo = `€${fmtPrice(eur)}/kutu`;
     }
     const fullName = row.kartonKodu.trim()
       ? `${product.name} (${row.kartonKodu.trim()})`
@@ -174,7 +174,7 @@ function computeRow(row: Row, rate: number, euroRate: number): ComputedLine | nu
       name: fullName,
       unitText: `${kutu} kutu × ${product.adetPerKutu} = ${totalAdet} adt (${priceInfo})`,
       unitPriceTL: kutuPriceTL,
-      lineTotal: r2(kutu * kutuPriceTL),
+      lineTotal: kurus(kutu * kutuPriceTL),
     };
   }
 
@@ -184,9 +184,9 @@ function computeRow(row: Row, rate: number, euroRate: number): ComputedLine | nu
   if (!row.name.trim() || qty <= 0) return null;
   return {
     name: row.name.trim(),
-    unitText: `${qty} adt`,
+    unitText: `${fmtQty(qty)} adt`,
     unitPriceTL: price,
-    lineTotal: r2(qty * price),
+    lineTotal: kurus(qty * price),
   };
 }
 
