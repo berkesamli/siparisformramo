@@ -102,6 +102,9 @@ export async function POST(req: Request) {
         ok: false,
         error: result.error,
         code: result.code,
+        // Ham yanıt yalnızca çalışanların gördüğü iç panele döner; kod
+        // çevirileri yanıltıcı olabildiği için asıl teşhis buradan yapılır.
+        raw: result.raw,
         invalid: result.invalid,
       },
       { status: 502 }

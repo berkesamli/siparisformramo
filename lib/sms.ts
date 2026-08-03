@@ -65,6 +65,11 @@ export interface SendResult {
   jobId?: string;
   code?: string;
   error?: string;
+  /**
+   * NETGSM'in döndürdüğü ham yanıt. Kod çevirileri kesin olmadığı için
+   * (belgelenmemiş kodlar var) hata ayıklarken asıl dayanak budur.
+   */
+  raw?: string;
   /** Numarası geçersiz olduğu için hiç denenmeyenler. */
   invalid: string[];
   /** Gönderime giren, tekilleştirilmiş normalize numaralar. */
@@ -134,7 +139,10 @@ export async function sendSms(
       body: JSON.stringify({
         msgheader: process.env.NETGSM_HEADER,
         encoding,
+        // NETGSM sürümüne göre alan adı "iysfilter" veya "filter" olabiliyor;
+        // tanımadığı alanı yok saydığı için ikisini birden gönderiyoruz.
         iysfilter,
+        filter: iysfilter,
         messages: sent.map((no) => ({ msg: text, no })),
       }),
       // NETGSM zaman zaman yavaş yanıt veriyor; isteği asılı bırakmayalım.
@@ -169,9 +177,9 @@ export async function sendSms(
       };
     }
     if (!isSuccess(code)) {
-      return { ok: false, code, error: codeMessage(code), invalid, sent };
+      return { ok: false, code, error: codeMessage(code), raw, invalid, sent };
     }
-    return { ok: true, code, jobId, invalid, sent };
+    return { ok: true, code, jobId, raw, invalid, sent };
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     return { ok: false, error: `NETGSM'e bağlanılamadı: ${msg}`, invalid, sent };

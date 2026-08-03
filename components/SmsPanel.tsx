@@ -158,7 +158,13 @@ export default function SmsPanel() {
           .then((s) => s?.records && setRecords(s.records))
           .catch(() => {});
       } else {
-        setSonuc({ ok: false, text: d.error || "Gönderilemedi." });
+        // Ham yanıtı da gösteriyoruz: kod çevirileri kesin değil, gerçek
+        // sebebi NETGSM'in kendi yanıtı söylüyor.
+        const ham = d.raw ? `  ·  NETGSM ham yanıt: ${d.raw}` : "";
+        setSonuc({
+          ok: false,
+          text: `${d.error || "Gönderilemedi."}${ham}`,
+        });
       }
     } catch {
       setSonuc({ ok: false, text: "Sunucuya ulaşılamadı." });
