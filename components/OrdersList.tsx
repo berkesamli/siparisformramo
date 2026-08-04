@@ -7,8 +7,8 @@ import {
   PAYMENT_LABELS,
   type SavedOrder,
   type OrderStatus,
-  type PaymentStatus,
 } from "@/lib/orders";
+import TahsilatModal, { type TahsilatBaglam } from "./TahsilatModal";
 
 const STATUS_LABELS: Record<OrderStatus, string> = {
   olusturuldu: "Oluşturuldu",
@@ -75,39 +75,9 @@ export default function OrdersList() {
     }
   }
 
-  async function changePayment(o: SavedOrder, payment: PaymentStatus) {
-    let paidAmount: number | undefined;
-    if (payment === "kismi") {
-      const girilen = prompt(
-        `Tahsil edilen tutar (toplam ₺${fmt(o.net)}):`,
-        String(o.paidAmount || "")
-      );
-      if (girilen === null) return;
-      paidAmount = Number(girilen.replace(",", ".")) || 0;
-    }
-    const optimistic: SavedOrder = {
-      ...o,
-      payment,
-      paidAmount:
-        payment === "odendi" ? o.net : payment === "bekliyor" ? 0 : paidAmount ?? 0,
-    };
-    setOrders((os) => (os || []).map((x) => (x.orderId === o.orderId ? optimistic : x)));
-
-    const res = await fetch(
-      `/api/orders/one?d=${o.dateKey}&id=${encodeURIComponent(o.orderId)}`,
-      {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(
-          paidAmount !== undefined ? { paidAmount } : { payment }
-        ),
-      }
-    ).catch(() => null);
-    if (!res || !res.ok) {
-      setError("Ödeme durumu güncellenemedi, sayfayı yenileyin.");
-      load();
-    }
-  }
+  // Ödeme girişi artık tahsilat kaydı üretir (tarih/yöntem/şube ile) —
+  // pay-select'in yerini TahsilatModal aldı.
+  const [tahsilatBaglam, setTahsilatBaglam] = useState<TahsilatBaglam | null>(null);
 
   const visible = (orders || []).filter(
     (o) => statusFilter === "all" || o.status === statusFilter
@@ -199,19 +169,29 @@ export default function OrdersList() {
                       ))}
                     </select>
                   </td>
-                  <td>
-                    <select
-                      className={`pay-select ${o.payment || "bekliyor"}`}
-                      style={{ width: "auto", padding: "4px 8px", fontSize: 13 }}
-                      value={o.payment || "bekliyor"}
-                      onChange={(e) => changePayment(o, e.target.value as PaymentStatus)}
-                    >
-                      {Object.entries(PAYMENT_LABELS).map(([k, v]) => (
-                        <option key={k} value={k}>
-                          {v}
-                        </option>
-                      ))}
-                    </select>
+                  <td style={{ whiteSpace: "nowrap" }}>
+                    <span className={`pay-select ${o.payment || "bekliyor"}`}
+                      style={{ padding: "4px 8px", fontSize: 13, display: "inline-block" }}>
+                      {PAYMENT_LABELS[o.payment || "bekliyor"]}
+                    </span>{" "}
+                    {orderBalance(o) > 0 && (
+                      <button
+                        className="btn small secondary"
+                        title="Tahsilat gir"
+                        onClick={() =>
+                          setTahsilatBaglam({
+                            customerId: o.customerId || undefined,
+                            customerName: o.customer,
+                            orderId: o.orderId,
+                            orderDateKey: o.dateKey,
+                            kalan: orderBalance(o),
+                            branch: o.branch,
+                          })
+                        }
+                      >
+                        💰
+                      </button>
+                    )}
                     {o.payment === "kismi" && (
                       <div style={{ fontSize: 11, color: "var(--error)", marginTop: 2 }}>
                         Kalan ₺{fmt(orderBalance(o))}
@@ -252,6 +232,14 @@ export default function OrdersList() {
             </tbody>
           </table>
         </div>
+      )}
+
+      {tahsilatBaglam && (
+        <TahsilatModal
+          baglam={tahsilatBaglam}
+          onClose={() => setTahsilatBaglam(null)}
+          onSaved={() => load()}
+        />
       )}
     </div>
   );

@@ -88,6 +88,7 @@ export async function POST(req: Request) {
     customer: order.customer,
     // Müşteri defterinden seçildiyse cari takip için bağlanır
     customerId: String(body.customerId || "").slice(0, 40),
+    branch: body.branch === "istanbul" ? "istanbul" : "ankara",
     payment: "bekliyor",
     paidAmount: 0,
     note: order.note,

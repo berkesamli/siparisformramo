@@ -220,6 +220,9 @@ export default function OrderForm({
   const [customer, setCustomer] = useState(initialOrder?.customer ?? "");
   // Müşteri defterinden seçildiyse kaydı sipariş kaydına da bağlarız (cari takip)
   const [customerId, setCustomerId] = useState("");
+  // Siparişin şubesi — müşteri defterden seçilince kartındaki şube önerilir,
+  // personel gerekirse değiştirir (iki şubede de çalışılabiliyor).
+  const [branch, setBranch] = useState<"ankara" | "istanbul">("ankara");
   // Sipariş onay SMS'i — varsayılan açık; müşteri defterden seçilmediyse veya
   // telefonu yoksa sunucu sessizce atlar. Düzenleme modunda gönderilmez.
   const [sendSms, setSendSms] = useState(true);
@@ -356,6 +359,7 @@ export default function OrderForm({
       const payload = {
         customer: customer.trim(),
         customerId,
+        branch,
         note: note.trim(),
         rate: rateNum,
         euroRate: euroNum,
@@ -433,8 +437,23 @@ export default function OrderForm({
               setCustomer(v);
               setCustomerId("");
             }}
-            onPick={(c) => setCustomerId(c.id)}
+            onPick={(c) => {
+              setCustomerId(c.id);
+              if (c.branch === "ankara" || c.branch === "istanbul") {
+                setBranch(c.branch);
+              }
+            }}
           />
+        </div>
+        <div>
+          <label>Şube</label>
+          <select
+            value={branch}
+            onChange={(e) => setBranch(e.target.value as "ankara" | "istanbul")}
+          >
+            <option value="ankara">Ankara</option>
+            <option value="istanbul">İstanbul</option>
+          </select>
         </div>
         <div>
           <label>Dolar Kuru (TL/USD)</label>

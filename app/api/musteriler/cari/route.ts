@@ -3,6 +3,8 @@ import { getSessionUser } from "@/lib/auth";
 import { listAllOrders, orderBalance, type SavedOrder } from "@/lib/orders";
 import { listAllRetailOrders, type SavedRetailOrder } from "@/lib/retail-orders";
 import { getCustomer, customerTitle, normalizeCity } from "@/lib/customers";
+import { listAllTahsilat, type Tahsilat } from "@/lib/tahsilat";
+import { getAcilisBakiye } from "@/lib/acilis-bakiye";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -40,9 +42,12 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Müşteri bulunamadı" }, { status: 404 });
   }
 
-  const [wholesale, retail] = await Promise.all([
+  // Tek istekte üç tarama — başka hiçbir uçta tam tarama yapılmaz.
+  const [wholesale, retail, tahsilatlar, acilis] = await Promise.all([
     listAllOrders(),
     listAllRetailOrders(),
+    listAllTahsilat(),
+    getAcilisBakiye(id),
   ]);
 
   // Eşleşme: önce customerId, yoksa isim benzerliği
@@ -100,14 +105,40 @@ export async function GET(req: NextRequest) {
 
   entries.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 
+  // Tahsilat hareketleri: customerId eşleşmesi veya isim benzerliği.
+  // Açılış devri varsa devir tarihinden önceki hareketler Excel'de kapanmıştır,
+  // bakiyeye tekrar katılmaz.
+  const asOf = acilis?.asOf || "";
+  const movements = tahsilatlar.filter((t: Tahsilat) => {
+    const mine = t.customerId ? t.customerId === id : matchesName(t.customerName);
+    if (!mine) return false;
+    return !asOf || t.dateKey >= asOf;
+  });
+
   const r2 = (n: number) => Math.round(n * 100) / 100;
+  const entriesInScope = asOf
+    ? entries.filter((e) => e.dateKey >= asOf)
+    : entries;
+  const totalAmount = r2(entriesInScope.reduce((s, e) => s + e.total, 0));
+  // Tahsil edilen: gerçek tahsilat kayıtları (TL) esas alınır; hiç kayıt yoksa
+  // eski paidAmount toplamına düşülür (geçiş dönemi uyumu).
+  const tahsilatToplam = r2(
+    movements.filter((t) => t.currency === "TL").reduce((s, t) => s + t.amount, 0)
+  );
+  const eskiPaid = r2(entriesInScope.reduce((s, e) => s + e.paid, 0));
+  const totalPaid = movements.length ? tahsilatToplam : eskiPaid;
+  const opening = acilis ? r2(acilis.amount) : 0;
+  const balance = r2(opening + totalAmount - totalPaid);
+
   const summary = {
     orderCount: entries.length,
-    totalAmount: r2(entries.reduce((s, e) => s + e.total, 0)),
-    totalPaid: r2(entries.reduce((s, e) => s + e.paid, 0)),
-    balance: r2(entries.reduce((s, e) => s + e.balance, 0)),
+    totalAmount,
+    totalPaid,
+    openingBalance: opening,
+    openingAsOf: acilis?.asOf || null,
+    balance,
     lastOrderAt: entries[0]?.createdAt || null,
   };
 
-  return NextResponse.json({ customer, entries, summary });
+  return NextResponse.json({ customer, entries, movements, summary });
 }
