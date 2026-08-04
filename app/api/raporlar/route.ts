@@ -3,12 +3,25 @@ import { getSessionUser } from "@/lib/auth";
 import { listAllOrders, orderBalance, blobConfigured } from "@/lib/orders";
 import { listAllRetailOrders } from "@/lib/retail-orders";
 import { findProfile } from "@/data/catalog";
-import { isOwner } from "@/data/users";
+import { isFinance } from "@/data/users";
+import { listTahsilatByMonths, listAllTahsilat, TAHSILAT_YONTEM_LABELS } from "@/lib/tahsilat";
+import { listGiderByMonths } from "@/lib/gider";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
+
+// Gider tam taramasi yerine son 12 ayin ay onekleri (tum-zamanlar gorunumu)
+function sonOnIkiAy(): string[] {
+  const out: string[] = [];
+  const now = new Date();
+  for (let i = 0; i < 12; i++) {
+    const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - i, 1));
+    out.push(`${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`);
+  }
+  return out;
+}
 
 // Satır adından profil kodunu çıkar: "GC065-1473 (Çerçeve Profili)" → GC065
 function seriesOf(lineName: string): string | null {
@@ -24,21 +37,62 @@ export async function GET(req: NextRequest) {
   if (!user || user.role !== "staff") {
     return NextResponse.json({ error: "Yetkisiz" }, { status: 401 });
   }
-  // Ciro/tahsilat verileri yalnızca firma sahiplerine döndürülür.
-  if (!isOwner(user.username)) {
+  // Ciro/tahsilat verileri finans yetkililerine döndürülür (sahipler dahil).
+  if (!isFinance(user.username)) {
     return NextResponse.json({ error: "Bu rapora erişim yetkiniz yok." }, { status: 403 });
   }
 
   const ay = req.nextUrl.searchParams.get("ay") || "";
+  const sube = req.nextUrl.searchParams.get("sube") || "";
   const inRange = (dateKey: string) => (ay ? dateKey.startsWith(ay) : true);
+  const inSube = (b?: string) => (sube ? (b || "belirsiz") === sube : true);
 
   const [wholesale, retail] = await Promise.all([
     listAllOrders(),
     listAllRetailOrders(),
   ]);
 
-  const w = wholesale.filter((o) => inRange(o.dateKey));
-  const r = retail.filter((o) => inRange(o.dateKey));
+  const w = wholesale.filter((o) => inRange(o.dateKey) && inSube(o.branch));
+  const r = retail.filter((o) => inRange(o.dateKey) && inSube(o.branch));
+
+  // ---- Faturalı / faturasız kırılımı ----
+  // Toptan: faturalı = KDV uygulanmış sipariş; perakende: faturali işareti.
+  const faturaliCiro = r2(
+    w.filter((o) => o.vatApplied).reduce((s, o) => s + o.net, 0) +
+      r.filter((o) => o.faturali).reduce((s, o) => s + o.total, 0)
+  );
+
+  // ---- Kasa bazlı veriler (gerçek tahsilat + gider kayıtları) ----
+  // Ay seçiliyse o ay; tüm zamanlar için tam tahsilat taraması (tek istekte).
+  const [tahsilatKayitlari, giderKayitlari] = await Promise.all([
+    ay ? listTahsilatByMonths([ay]) : listAllTahsilat(),
+    ay ? listGiderByMonths([ay]) : listGiderByMonths(sonOnIkiAy()),
+  ]);
+  const tK = tahsilatKayitlari.filter(
+    (t) => t.currency === "TL" && inSube(t.branch)
+  );
+  const gK = giderKayitlari.filter(
+    (g) => g.currency === "TL" && inSube(g.branch)
+  );
+  const gercekTahsilat = r2(tK.reduce((s, t) => s + t.amount, 0));
+  const giderToplam = r2(gK.reduce((s, g) => s + g.amount, 0));
+  const kasaKar = r2(gercekTahsilat - giderToplam);
+
+  // ---- Prim raporu: tahsil eden bazlı ----
+  const byTahsilEden = new Map<string, { total: number; count: number; yontem: Record<string, number> }>();
+  tK.forEach((t) => {
+    const k = (t.tahsilEden || t.createdBy || "—").trim() || "—";
+    const cur = byTahsilEden.get(k) || { total: 0, count: 0, yontem: {} };
+    cur.total += t.amount;
+    cur.count += 1;
+    const yl = TAHSILAT_YONTEM_LABELS[t.method] || t.method;
+    cur.yontem[yl] = (cur.yontem[yl] || 0) + t.amount;
+    byTahsilEden.set(k, cur);
+  });
+  const tahsilEdenler = [...byTahsilEden.entries()]
+    .map(([name, v]) => ({ name, total: r2(v.total), count: v.count, yontem: v.yontem }))
+    .sort((a, b) => b.total - a.total)
+    .slice(0, 15);
 
   // ---- Ciro ----
   const toptanCiro = r2(w.reduce((s, o) => s + o.net, 0));
@@ -62,13 +116,13 @@ export async function GET(req: NextRequest) {
 
   // ---- Aylık dağılım (tüm zamanlar üzerinden) ----
   const byMonth = new Map<string, { toptan: number; perakende: number }>();
-  wholesale.forEach((o) => {
+  wholesale.filter((o) => inSube(o.branch)).forEach((o) => {
     const k = o.dateKey.slice(0, 7);
     const cur = byMonth.get(k) || { toptan: 0, perakende: 0 };
     cur.toptan += o.net;
     byMonth.set(k, cur);
   });
-  retail.forEach((o) => {
+  retail.filter((o) => inSube(o.branch)).forEach((o) => {
     const k = o.dateKey.slice(0, 7);
     const cur = byMonth.get(k) || { toptan: 0, perakende: 0 };
     cur.perakende += o.total;
@@ -162,6 +216,11 @@ export async function GET(req: NextRequest) {
       perakendeCiro,
       toplamCiro: r2(toptanCiro + perakendeCiro),
       tahsilat,
+      gercekTahsilat,
+      giderToplam,
+      kasaKar,
+      faturaliCiro,
+      faturasizCiro: r2(toptanCiro + perakendeCiro - faturaliCiro),
       bakiye,
       ortalamaSepet:
         w.length + r.length > 0 ? r2((toptanCiro + perakendeCiro) / (w.length + r.length)) : 0,
@@ -171,5 +230,6 @@ export async function GET(req: NextRequest) {
     products,
     series,
     employees,
+    tahsilEdenler,
   });
 }

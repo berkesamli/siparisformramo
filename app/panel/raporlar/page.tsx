@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
-import { isOwner } from "@/data/users";
+import { isFinance } from "@/data/users";
 import Reports from "@/components/Reports";
 
 export const dynamic = "force-dynamic";
@@ -10,7 +10,7 @@ export default async function RaporlarPage() {
   if (!user) redirect("/giris?next=/panel/raporlar");
   if (user.role !== "staff") redirect("/portal");
   // Ciro ve tahsilat raporları yalnızca firma sahiplerine açıktır.
-  if (!isOwner(user.username)) redirect("/panel");
+  if (!isFinance(user.username)) redirect("/panel");
 
   return (
     <main className="container" style={{ maxWidth: 1200 }}>

@@ -25,6 +25,11 @@ interface Data {
     perakendeCiro: number;
     toplamCiro: number;
     tahsilat: number;
+    gercekTahsilat: number;
+    giderToplam: number;
+    kasaKar: number;
+    faturaliCiro: number;
+    faturasizCiro: number;
     bakiye: number;
     ortalamaSepet: number;
   };
@@ -33,6 +38,7 @@ interface Data {
   products: { name: string; total: number; count: number }[];
   series: { name: string; total: number }[];
   employees: { name: string; total: number; count: number }[];
+  tahsilEdenler: { name: string; total: number; count: number; yontem: Record<string, number> }[];
 }
 
 const AY_ADI = [
@@ -46,18 +52,23 @@ const ayLabel = (m: string) => {
 
 export default function Reports() {
   const [ay, setAy] = useState(""); // "" = tüm zamanlar
+  const [sube, setSube] = useState("");
   const [data, setData] = useState<Data | null>(null);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/raporlar${ay ? `?ay=${ay}` : ""}`);
+      const params = new URLSearchParams();
+      if (ay) params.set("ay", ay);
+      if (sube) params.set("sube", sube);
+      const qs = params.toString();
+      const res = await fetch(`/api/raporlar${qs ? `?${qs}` : ""}`);
       if (res.ok) setData(await res.json());
     } finally {
       setLoading(false);
     }
-  }, [ay]);
+  }, [ay, sube]);
 
   useEffect(() => {
     load();
@@ -89,6 +100,12 @@ export default function Reports() {
           value={ay}
           onChange={(e) => setAy(e.target.value)}
         />
+        <select style={{ width: "auto" }} value={sube} onChange={(e) => setSube(e.target.value)}>
+          <option value="">Tüm Şubeler</option>
+          <option value="ankara">Ankara</option>
+          <option value="istanbul">İstanbul</option>
+          <option value="belirsiz">Şubesiz (eski)</option>
+        </select>
         <span style={{ flex: 1 }} />
         <button className="btn small secondary" onClick={load}>↻ Yenile</button>
       </div>
@@ -126,6 +143,36 @@ export default function Reports() {
             <div className="cari-card">
               <span>Ortalama Sipariş</span>
               <strong>₺{fmt(data.summary.ortalamaSepet)}</strong>
+            </div>
+          </div>
+
+          {/* Kasa bazlı satır — gerçek tahsilat/gider kayıtlarından */}
+          <div className="cari-cards">
+            <div className="cari-card">
+              <span>Kasa Tahsilatı</span>
+              <strong style={{ color: "var(--success)" }}>₺{fmt(data.summary.gercekTahsilat || 0)}</strong>
+              <span style={{ fontSize: 11.5 }}>tahsilat kayıtlarından</span>
+            </div>
+            <div className="cari-card">
+              <span>Giderler</span>
+              <strong style={{ color: "var(--error)" }}>₺{fmt(data.summary.giderToplam || 0)}</strong>
+              {!ay && <span style={{ fontSize: 11.5 }}>son 12 ay</span>}
+            </div>
+            <div className={`cari-card ${(data.summary.kasaKar || 0) < 0 ? "borc" : ""}`}>
+              <span>Kasa Kârı</span>
+              <strong style={{ color: (data.summary.kasaKar || 0) >= 0 ? "var(--success)" : "var(--error)" }}>
+                ₺{fmt(data.summary.kasaKar || 0)}
+              </strong>
+              <span style={{ fontSize: 11.5 }}>tahsilat − gider</span>
+            </div>
+            <div className="cari-card">
+              <span>Faturalı Ciro</span>
+              <strong>₺{fmt(data.summary.faturaliCiro || 0)}</strong>
+              <span style={{ fontSize: 11.5 }}>KDV&apos;li siparişler</span>
+            </div>
+            <div className="cari-card">
+              <span>Faturasız Ciro</span>
+              <strong>₺{fmt(data.summary.faturasizCiro || 0)}</strong>
             </div>
           </div>
 
@@ -275,6 +322,29 @@ export default function Reports() {
                     <tr><td colSpan={3} style={{ color: "var(--muted)" }}>Kayıt yok</td></tr>
                   ) : (
                     data.employees.map((e) => (
+                      <tr key={e.name}>
+                        <td style={{ fontWeight: 600 }}>{e.name}</td>
+                        <td style={{ textAlign: "right" }}>{e.count}</td>
+                        <td style={{ textAlign: "right" }}>₺{fmt(e.total)}</td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Prim raporu — Alaattin'in prim çizelgesinin karşılığı */}
+            <div className="card" style={{ padding: 0 }}>
+              <h3 className="rep-th">Tahsil Eden Bazlı (Prim)</h3>
+              <table>
+                <thead>
+                  <tr><th>Tahsil Eden</th><th style={{ textAlign: "right" }}>İşlem</th><th style={{ textAlign: "right" }}>Tahsilat</th></tr>
+                </thead>
+                <tbody>
+                  {(data.tahsilEdenler || []).length === 0 ? (
+                    <tr><td colSpan={3} style={{ color: "var(--muted)" }}>Kayıt yok</td></tr>
+                  ) : (
+                    (data.tahsilEdenler || []).map((e) => (
                       <tr key={e.name}>
                         <td style={{ fontWeight: 600 }}>{e.name}</td>
                         <td style={{ textAlign: "right" }}>{e.count}</td>
