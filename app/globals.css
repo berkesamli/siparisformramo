@@ -1267,3 +1267,19 @@ h2 { font-size: 18px; font-weight: 700; margin: 20px 0 12px; }
   .ti-line { flex-wrap: wrap; }
   .ti-kind { min-width: 0; }
 }
+
+/* ---- Tahsilat / finans modali ---- */
+.modal-backdrop {
+  position: fixed; inset: 0; z-index: 80;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex; align-items: center; justify-content: center;
+  padding: 16px;
+}
+.modal-card {
+  background: var(--bg, #fff);
+  border-radius: 14px;
+  padding: 22px;
+  width: 100%; max-width: 520px;
+  max-height: 92vh; overflow-y: auto;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.35);
+}

@@ -9,6 +9,10 @@ export interface User {
   password: string;
   name: string;
   role: Role;
+  // Çalışanın varsayılan şubesi (opsiyonel) — sipariş/tahsilat formlarında
+  // öneri olarak kullanılır; personel iki şubede de çalışabildiği için
+  // kayıt anında her zaman değiştirilebilir.
+  branch?: "ankara" | "istanbul";
 }
 
 // Gerçek kullanıcılar USERS_JSON ortam değişkeninde tanımlıdır (Vercel →
@@ -70,4 +74,20 @@ export function ownerUsernames(): string[] {
 export function isOwner(username: string | undefined | null): boolean {
   if (!username) return false;
   return ownerUsernames().includes(normalizeUsername(username));
+}
+
+// Finans ekranları (kasa, giderler, çek/senet, tahsilat listeleri) sahiplere ve
+// FINANCE_USERNAMES ile eklenen kişilere açıktır. Sahipler otomatik dahildir:
+// FINANCE_USERNAMES="tugba" → sahipler + Tuğba görür.
+export function financeUsernames(): string[] {
+  const raw = process.env.FINANCE_USERNAMES;
+  const extra = raw
+    ? raw.split(",").map((s) => s.trim()).filter(Boolean).map(normalizeUsername)
+    : [];
+  return [...new Set([...ownerUsernames(), ...extra])];
+}
+
+export function isFinance(username: string | undefined | null): boolean {
+  if (!username) return false;
+  return financeUsernames().includes(normalizeUsername(username));
 }

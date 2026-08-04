@@ -1,11 +1,14 @@
 "use client";
 
-// Müşteri cari kartı: sipariş geçmişi, toplam ciro, tahsilat ve kalan bakiye.
+// Müşteri cari kartı: sipariş geçmişi, tahsilat hareketleri, açılış bakiyesi,
+// toplam ciro ve kalan bakiye. "Tahsilat Ekle" ile buradan ödeme girilir.
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { customerTitle, type Customer } from "@/lib/customers";
 import type { CariEntry } from "@/app/api/musteriler/cari/route";
+import { TAHSILAT_YONTEM_LABELS, type Tahsilat } from "@/lib/tahsilat";
+import TahsilatModal from "./TahsilatModal";
 
 const fmt = (n: number) =>
   (Number(n) || 0).toLocaleString("tr-TR", {
@@ -17,6 +20,8 @@ interface Summary {
   orderCount: number;
   totalAmount: number;
   totalPaid: number;
+  openingBalance: number;
+  openingAsOf: string | null;
   balance: number;
   lastOrderAt: string | null;
 }
@@ -24,30 +29,33 @@ interface Summary {
 export default function CustomerAccount({ id }: { id: string }) {
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [entries, setEntries] = useState<CariEntry[]>([]);
+  const [movements, setMovements] = useState<Tahsilat[]>([]);
   const [summary, setSummary] = useState<Summary | null>(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
+  const [modalOpen, setModalOpen] = useState(false);
 
-  useEffect(() => {
-    let alive = true;
+  const load = useCallback(() => {
     fetch(`/api/musteriler/cari?id=${encodeURIComponent(id)}`)
       .then(async (r) => {
         const d = await r.json();
-        if (!alive) return;
         if (!r.ok) {
           setErr(d.error || "Kayıt getirilemedi");
         } else {
           setCustomer(d.customer);
           setEntries(d.entries || []);
+          setMovements(d.movements || []);
           setSummary(d.summary);
+          setErr("");
         }
       })
-      .catch(() => alive && setErr("Sunucuya ulaşılamadı"))
-      .finally(() => alive && setLoading(false));
-    return () => {
-      alive = false;
-    };
+      .catch(() => setErr("Sunucuya ulaşılamadı"))
+      .finally(() => setLoading(false));
   }, [id]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
 
   if (loading) return <p style={{ color: "var(--muted)" }}>Yükleniyor...</p>;
   if (err) return <div className="notice err">{err}</div>;
@@ -61,6 +69,9 @@ export default function CustomerAccount({ id }: { id: string }) {
           {customer.branch === "istanbul" ? "İSTANBUL" : "ANKARA"}
         </span>
         <span style={{ flex: 1 }} />
+        <button className="btn small" onClick={() => setModalOpen(true)}>
+          💰 Tahsilat Ekle
+        </button>
         <Link href="/etiket" className="btn small secondary">
           ← Müşteriler
         </Link>
@@ -96,6 +107,54 @@ export default function CustomerAccount({ id }: { id: string }) {
           </strong>
         </div>
       </div>
+
+      {summary && summary.openingBalance !== 0 && (
+        <p className="notice info">
+          Devir (açılış) bakiyesi: <strong>₺{fmt(summary.openingBalance)}</strong>
+          {summary.openingAsOf && <> — {summary.openingAsOf} tarihi itibarıyla, Excel&apos;den aktarıldı.</>}
+        </p>
+      )}
+
+      <h2>Tahsilat Hareketleri</h2>
+      {movements.length === 0 ? (
+        <div className="card" style={{ textAlign: "center", color: "var(--muted)" }}>
+          Henüz tahsilat kaydı yok. &quot;Tahsilat Ekle&quot; ile ödeme girebilirsiniz.
+        </div>
+      ) : (
+        <div className="card" style={{ padding: 0, overflowX: "auto" }}>
+          <table>
+            <thead>
+              <tr>
+                <th>Tarih</th>
+                <th>Yöntem</th>
+                <th>Şube</th>
+                <th style={{ textAlign: "right" }}>Tutar</th>
+                <th>Sipariş</th>
+                <th>Kaydeden</th>
+                <th>Not</th>
+              </tr>
+            </thead>
+            <tbody>
+              {movements.map((t) => (
+                <tr key={t.id}>
+                  <td>{t.dateKey.split("-").reverse().join(".")}</td>
+                  <td>{TAHSILAT_YONTEM_LABELS[t.method] || t.method}</td>
+                  <td style={{ fontSize: 12.5 }}>
+                    {t.branch === "istanbul" ? "İST" : "ANK"}
+                  </td>
+                  <td style={{ textAlign: "right", color: "var(--success)", fontWeight: 600 }}>
+                    {t.currency === "TL" ? "₺" : t.currency === "USD" ? "$" : "€"}
+                    {fmt(t.amount)}
+                  </td>
+                  <td style={{ fontSize: 12.5 }}>{t.orderId || "—"}</td>
+                  <td style={{ fontSize: 12.5 }}>{t.tahsilEden || t.createdBy}</td>
+                  <td style={{ fontSize: 12.5, color: "var(--muted)" }}>{t.note || ""}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       <h2>Sipariş Geçmişi</h2>
       {entries.length === 0 ? (
@@ -154,6 +213,19 @@ export default function CustomerAccount({ id }: { id: string }) {
             </tbody>
           </table>
         </div>
+      )}
+
+      {modalOpen && (
+        <TahsilatModal
+          baglam={{
+            customerId: customer.id,
+            customerName: customerTitle(customer),
+            kalan: summary?.balance,
+            branch: customer.branch,
+          }}
+          onClose={() => setModalOpen(false)}
+          onSaved={load}
+        />
       )}
     </div>
   );

@@ -73,6 +73,10 @@ export interface SavedRetailOrder {
   customerEmail: string;
   customerAddress?: string;
   customerId?: string; // müşteri defterindeki kayıt (varsa)
+  branch?: "ankara" | "istanbul";
+  // Perakendede KDV kavramı olmadığı için faturalı işareti ayrı tutulur
+  // (toptanda faturalı = vatApplied'dan türetilir).
+  faturali?: boolean;
   payment?: PaymentStatus;
   paidAmount?: number;
   usdRate: number;

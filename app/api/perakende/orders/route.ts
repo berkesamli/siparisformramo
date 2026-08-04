@@ -172,6 +172,7 @@ export async function PATCH(req: NextRequest) {
   const body = await req.json().catch(() => null);
   const order = await getRetailOrder(d, id);
   if (!order) return NextResponse.json({ error: "Sipariş bulunamadı" }, { status: 404 });
+  const oncekiPaidAmount = Number(order.paidAmount) || 0;
 
   if (body?.status !== undefined) {
     const status = body.status as RetailStatus;
@@ -199,6 +200,38 @@ export async function PATCH(req: NextRequest) {
       order.payment = "odendi";
       order.paidAmount = order.total;
     } else order.payment = "kismi";
+  }
+
+  // Ödeme artışı tahsilat kaydı üretir — kasa ve cari hareketler eksiksiz
+  // kalsın (azalış = düzeltme, kayıt üretmez).
+  const delta = r2((Number(order.paidAmount) || 0) - oncekiPaidAmount);
+  if (delta > 0) {
+    try {
+      const { saveTahsilat, newTahsilatId, istanbulDateKey } = await import(
+        "@/lib/tahsilat"
+      );
+      const { applyTahsilatDelta } = await import("@/lib/finans-ozet");
+      const t = {
+        id: newTahsilatId(),
+        dateKey: istanbulDateKey(),
+        createdAt: new Date().toISOString(),
+        createdBy: user.name,
+        branch: (order.branch || "ankara") as "ankara" | "istanbul",
+        customerId: order.customerId || undefined,
+        customerName: order.customerName,
+        orderId: order.orderId,
+        orderDateKey: order.dateKey,
+        amount: delta,
+        currency: "TL" as const,
+        method: "diger" as const,
+        note: "Perakende listesinden ödeme durumu değişikliği",
+        kaynak: "panel" as const,
+      };
+      await saveTahsilat(t);
+      await applyTahsilatDelta(t, 1);
+    } catch {
+      /* tahsilat kaydı üretilemese de sipariş güncellemesi geçerli kalır */
+    }
   }
 
   order.updatedAt = new Date().toISOString();

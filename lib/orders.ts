@@ -41,6 +41,9 @@ export interface SavedOrder {
   employee: string;
   customer: string;
   customerId?: string; // müşteri defterindeki kayıt (varsa)
+  // Siparişin şubesi — formda seçilir, müşterinin şubesi önerilir. Eski
+  // kayıtlarda yoktur; raporlar müşteri eşleşmesinden türetir, yoksa "belirsiz".
+  branch?: "ankara" | "istanbul";
   payment?: PaymentStatus;
   paidAmount?: number; // tahsil edilen tutar (kısmi ödemede)
   note: string;
