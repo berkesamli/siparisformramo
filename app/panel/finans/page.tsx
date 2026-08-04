@@ -2,38 +2,38 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getSessionUser } from "@/lib/auth";
 import { isFinance } from "@/data/users";
+import FinansDashboard from "@/components/FinansDashboard";
 
 export const dynamic = "force-dynamic";
 
-// Finans giriş sayfası — Faz 3'te dashboard (kasa özeti, kâr, vade uyarıları)
-// buraya gelecek; şimdilik modül kapıları.
 export default async function FinansPage() {
   const user = await getSessionUser();
   if (!user) redirect("/giris?next=/panel/finans");
   if (user.role !== "staff" || !isFinance(user.username)) redirect("/panel");
 
   const moduller = [
-    { href: "/panel/finans/giderler", baslik: "💸 Giderler", aciklama: "Kira, elektrik, maaş, malzeme… kategorili gider kaydı ve aylık döküm." },
-    { href: "/panel/finans/ceksenet", baslik: "🧾 Çek / Senet", aciklama: "Portföy, vade uyarıları, tahsil/ciro/karşılıksız takibi." },
-    { href: "/panel/finans/personel", baslik: "👥 Personel", aciklama: "Avans, maaş ve prim ödemeleri — kişi bazlı aylık takip." },
-    { href: "/panel/raporlar", baslik: "📊 Raporlar", aciklama: "Ciro, tahsilat ve kırılımlar." },
+    { href: "/panel/finans/kasa", baslik: "🧮 Kasa Raporu" },
+    { href: "/panel/finans/giderler", baslik: "💸 Giderler" },
+    { href: "/panel/finans/ceksenet", baslik: "🧾 Çek / Senet" },
+    { href: "/panel/finans/personel", baslik: "👥 Personel" },
+    { href: "/panel/raporlar", baslik: "📊 Raporlar" },
   ];
 
   return (
-    <main className="container">
-      <h1>Finans</h1>
-      <p className="subtitle">
-        Kasa, gider, çek/senet ve personel — tek panelden. Kasa raporu ve genel
-        bakış ekranı bir sonraki aşamada bu sayfaya eklenecek.
-      </p>
-      <div className="cari-cards">
+    <main className="container" style={{ maxWidth: 1200 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+        <h1 style={{ flex: 1, minWidth: 200 }}>Finans</h1>
         {moduller.map((m) => (
-          <Link key={m.href} href={m.href} className="cari-card" style={{ textDecoration: "none" }}>
-            <strong style={{ fontSize: 17 }}>{m.baslik}</strong>
-            <span style={{ fontSize: 13 }}>{m.aciklama}</span>
+          <Link key={m.href} href={m.href} className="btn small secondary">
+            {m.baslik}
           </Link>
         ))}
       </div>
+      <p className="subtitle">
+        Kasa özeti, aylık tahsilat/gider ve vadesi yaklaşan çekler — şube
+        filtresiyle.
+      </p>
+      <FinansDashboard />
     </main>
   );
 }
