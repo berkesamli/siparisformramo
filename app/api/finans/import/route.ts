@@ -8,6 +8,8 @@ import {
   type ParaBirimi,
 } from "@/lib/tahsilat";
 import { saveAcilisBakiye, type AcilisBakiye } from "@/lib/acilis-bakiye";
+import { saveCekSenet, type CekSenet, type CekSenetDurum } from "@/lib/ceksenet";
+import { saveGider, type Gider, type GiderYontem } from "@/lib/gider";
 import { rebuildOzet } from "@/lib/finans-ozet";
 import { kurus } from "@/lib/num";
 
@@ -129,6 +131,104 @@ export async function POST(req: Request) {
       // Özet deltası burada uygulanmaz — toplu aktarım sonrası "rebuild"
       // çağrısı tüm ayları tek seferde doğru kurar (daha az yazma, daha
       // güvenli sonuç).
+    }
+  } else if (body.kind === "ceksenet") {
+    const DURUMLAR: CekSenetDurum[] = [
+      "portfoyde",
+      "tahsil",
+      "ciro",
+      "karsiliksiz",
+      "odendi",
+      "iade",
+    ];
+    for (const raw of records as Partial<CekSenet>[]) {
+      const id = String(raw.id || "");
+      const tutar = kurus(Number(raw.tutar) || 0);
+      const vade = String(raw.vade || "");
+      const durum = (raw.durum || "portfoyde") as CekSenetDurum;
+      if (
+        !/^CS-[\dA-Za-z-]+$/.test(id) ||
+        tutar <= 0 ||
+        !/^\d{4}-\d{2}-\d{2}$/.test(vade) ||
+        !DURUMLAR.includes(durum)
+      ) {
+        hatalar.push(`ceksenet: geçersiz kayıt (${id || raw.customerName || "?"})`);
+        continue;
+      }
+      const now = new Date().toISOString();
+      const cs: CekSenet = {
+        id,
+        createdAt: now,
+        createdBy: user.name,
+        tur: raw.tur === "verilen" ? "verilen" : "alinan",
+        kind: raw.kind === "senet" ? "senet" : "cek",
+        branch: raw.branch === "istanbul" ? "istanbul" : "ankara",
+        banka: String(raw.banka || "").slice(0, 100) || undefined,
+        bankaSube: String(raw.bankaSube || "").slice(0, 100) || undefined,
+        hesapNo: String(raw.hesapNo || "").slice(0, 60) || undefined,
+        belgeNo: String(raw.belgeNo || "").slice(0, 60) || undefined,
+        cekSahibi: String(raw.cekSahibi || "").slice(0, 200) || undefined,
+        tutar,
+        vade,
+        customerId: String(raw.customerId || "").slice(0, 40) || undefined,
+        customerName: String(raw.customerName || "").slice(0, 200) || undefined,
+        supplier: String(raw.supplier || "").slice(0, 200) || undefined,
+        durum,
+        tahsilDate: String(raw.tahsilDate || "").slice(0, 10) || undefined,
+        ciroTarget: String(raw.ciroTarget || "").slice(0, 200) || undefined,
+        history: Array.isArray(raw.history) && raw.history.length
+          ? raw.history
+          : [
+              {
+                durum,
+                date: String(raw.tahsilDate || vade).slice(0, 10),
+                by: user.name,
+                note: "Excel aktarımı",
+              },
+            ],
+        note: String(raw.note || "").slice(0, 300) || undefined,
+        kaynak: "excel",
+      };
+      // Excel aktarımında otomatik Tahsilat ÜRETİLMEZ — geçmiş cari zaten
+      // devir bakiyesinde kapanmıştır; çift sayım olmasın.
+      if (await saveCekSenet(cs)) yazilan++;
+    }
+  } else if (body.kind === "gider") {
+    const YONTEMLER: GiderYontem[] = ["nakit", "havale", "krediKarti", "cek", "diger"];
+    for (const raw of records as Partial<Gider>[]) {
+      const id = String(raw.id || "");
+      const dateKey = String(raw.dateKey || "");
+      const amount = kurus(Number(raw.amount) || 0);
+      const method = (raw.method || "diger") as GiderYontem;
+      const category = String(raw.category || "").trim().slice(0, 60);
+      if (
+        !/^G-[\dA-Za-z-]+$/.test(id) ||
+        !/^\d{4}-\d{2}-\d{2}$/.test(dateKey) ||
+        amount <= 0 ||
+        !category ||
+        !YONTEMLER.includes(method)
+      ) {
+        hatalar.push(`gider: geçersiz kayıt (${id || category || "?"})`);
+        continue;
+      }
+      const g: Gider = {
+        id,
+        dateKey,
+        createdAt: new Date().toISOString(),
+        createdBy: user.name,
+        branch: raw.branch === "istanbul" ? "istanbul" : "ankara",
+        category: category.toLocaleLowerCase("tr-TR"),
+        description: String(raw.description || "").slice(0, 300),
+        amount,
+        currency: raw.currency === "USD" || raw.currency === "EUR" ? raw.currency : "TL",
+        method,
+        supplier: String(raw.supplier || "").slice(0, 200) || undefined,
+        personelId: String(raw.personelId || "").slice(0, 40) || undefined,
+        note: String(raw.note || "").slice(0, 300) || undefined,
+        kaynak: "excel",
+      };
+      if (await saveGider(g)) yazilan++;
+      // Özet, aktarım sonrası "rebuild" ile kurulur.
     }
   } else {
     return NextResponse.json(

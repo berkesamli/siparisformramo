@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { getSessionUser } from "@/lib/auth";
-import { isOwner } from "@/data/users";
+import { isOwner, isFinance } from "@/data/users";
 import NavBar from "@/components/NavBar";
 import NewOrderAlert from "@/components/NewOrderAlert";
 
@@ -25,7 +25,12 @@ export default async function RootLayout({
             giriş ekranını görür (sayfalar ayrıca kendi kontrolünü yapar). */}
         {user && (
           <NavBar
-            user={{ name: user.name, role: user.role, owner: isOwner(user.username) }}
+            user={{
+              name: user.name,
+              role: user.role,
+              owner: isOwner(user.username),
+              finance: isFinance(user.username),
+            }}
           />
         )}
         {/* Yeni sipariş zili — yalnızca çalışanlarda, tüm panel sayfalarında */}
