@@ -144,5 +144,7 @@ export async function GET(req: Request) {
       topla((r) => r.currency === "EUR" && r.yon === "C"),
   };
 
-  return NextResponse.json({ ok: true, bas, son, rows: rows.slice(0, 1500), ozet });
+  // Tüm yıl görünümü ~2-3 bin satıra ulaşabilir; özet her durumda tam listeden
+  // hesaplanır, yalnızca tablo satırları sınırlanır.
+  return NextResponse.json({ ok: true, bas, son, rows: rows.slice(0, 4000), ozet });
 }

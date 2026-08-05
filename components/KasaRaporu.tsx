@@ -74,6 +74,18 @@ export default function KasaRaporu() {
   return (
     <div>
       <div className="card no-print" style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+        <button
+          className={`btn small ${bas === bugun().slice(0, 7) + "-01" && son === bugun() ? "" : "secondary"}`}
+          onClick={() => { setBas(bugun().slice(0, 7) + "-01"); setSon(bugun()); }}
+        >
+          Bu Ay
+        </button>
+        <button
+          className={`btn small ${bas === bugun().slice(0, 4) + "-01-01" ? "" : "secondary"}`}
+          onClick={() => { setBas(bugun().slice(0, 4) + "-01-01"); setSon(bugun()); }}
+        >
+          {bugun().slice(0, 4)} Tümü
+        </button>
         <input type="date" style={{ width: "auto" }} value={bas} onChange={(e) => setBas(e.target.value)} />
         <span style={{ color: "var(--muted)" }}>→</span>
         <input type="date" style={{ width: "auto" }} value={son} onChange={(e) => setSon(e.target.value)} />
