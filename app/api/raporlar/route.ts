@@ -68,11 +68,15 @@ export async function GET(req: NextRequest) {
     ay ? listTahsilatByMonths([ay]) : listAllTahsilat(),
     ay ? listGiderByMonths([ay]) : listGiderByMonths(sonOnIkiAy()),
   ]);
+  // Pilot dönemi: raporlar yalnızca PANELDEN girilen kayıtları sayar.
+  // Excel'den aktarılan İstanbul geçmişi (kaynak: excel/migrasyon) rapora
+  // karıştırılmaz — o veriler Blob'da durur, finans ekranları açıldığında
+  // bu filtre kaldırılarak yeniden görünür kılınabilir.
   const tK = tahsilatKayitlari.filter(
-    (t) => t.currency === "TL" && inSube(t.branch)
+    (t) => t.currency === "TL" && t.kaynak === "panel" && inSube(t.branch)
   );
   const gK = giderKayitlari.filter(
-    (g) => g.currency === "TL" && inSube(g.branch)
+    (g) => g.currency === "TL" && g.kaynak === "panel" && inSube(g.branch)
   );
   const gercekTahsilat = r2(tK.reduce((s, t) => s + t.amount, 0));
   const giderToplam = r2(gK.reduce((s, g) => s + g.amount, 0));
