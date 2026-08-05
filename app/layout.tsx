@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { getSessionUser } from "@/lib/auth";
-import { isOwner, isFinance } from "@/data/users";
+import { isOwner, isFinance, finansAktif } from "@/data/users";
 import NavBar from "@/components/NavBar";
 import NewOrderAlert from "@/components/NewOrderAlert";
 
@@ -29,7 +29,7 @@ export default async function RootLayout({
               name: user.name,
               role: user.role,
               owner: isOwner(user.username),
-              finance: isFinance(user.username),
+              finance: finansAktif() && isFinance(user.username),
             }}
           />
         )}

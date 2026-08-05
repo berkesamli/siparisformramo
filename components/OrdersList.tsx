@@ -28,7 +28,7 @@ const fmt = (n: number) =>
     maximumFractionDigits: 2,
   });
 
-export default function OrdersList() {
+export default function OrdersList({ eldenSatis = false }: { eldenSatis?: boolean }) {
   const [filter, setFilter] = useState<{ range?: string; date?: string }>({
     range: "today",
   });
@@ -122,15 +122,17 @@ export default function OrdersList() {
         <button className="btn small secondary" onClick={load}>
           ↻ Yenile
         </button>
-        <button
-          className="btn small"
-          title="Ayaküstü perakende / teknik malzeme satışı — siparişsiz kasa girişi"
-          onClick={() =>
-            setTahsilatBaglam({ customerName: "PERAKENDE", serbest: true })
-          }
-        >
-          💰 Elden Satış
-        </button>
+        {eldenSatis && (
+          <button
+            className="btn small"
+            title="Ayaküstü perakende / teknik malzeme satışı — siparişsiz kasa girişi"
+            onClick={() =>
+              setTahsilatBaglam({ customerName: "PERAKENDE", serbest: true })
+            }
+          >
+            💰 Elden Satış
+          </button>
+        )}
       </div>
 
       {error && <div className="notice err">{error}</div>}

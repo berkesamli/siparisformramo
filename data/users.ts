@@ -91,3 +91,11 @@ export function isFinance(username: string | undefined | null): boolean {
   if (!username) return false;
   return financeUsernames().includes(normalizeUsername(username));
 }
+
+// Finans ekranları (menü + kasa/gider/çek/personel sayfaları) şimdilik kapalı:
+// önce sipariş akışına alışılacak. Aktarılan veriler Blob'da durur; açmak için
+// Vercel'e FINANS_AKTIF=1 ekleyip yeniden dağıtmak yeterlidir — kod değişmez.
+// (Raporlar sayfası bundan bağımsızdır, finans yetkililerine açık kalır.)
+export function finansAktif(): boolean {
+  return process.env.FINANS_AKTIF === "1";
+}

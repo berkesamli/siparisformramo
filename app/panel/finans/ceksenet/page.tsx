@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getSessionUser } from "@/lib/auth";
-import { isFinance } from "@/data/users";
+import { isFinance, finansAktif } from "@/data/users";
 import CekSenetManager from "@/components/CekSenetManager";
 
 export const dynamic = "force-dynamic";
@@ -9,6 +9,7 @@ export const dynamic = "force-dynamic";
 export default async function CekSenetPage() {
   const user = await getSessionUser();
   if (!user) redirect("/giris?next=/panel/finans/ceksenet");
+  if (!finansAktif()) redirect("/panel");
   if (user.role !== "staff" || !isFinance(user.username)) redirect("/panel");
 
   return (
