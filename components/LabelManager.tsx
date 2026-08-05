@@ -292,7 +292,7 @@ export default function LabelManager() {
               </div>
               <div>
                 <label>İl / Şehir</label>
-                <input value={form.city} onChange={set("city")} placeholder="Ankara" />
+                <input value={form.city} onChange={set("city")} placeholder="Şehir girin" />
               </div>
               <div>
                 <label>İlçe</label>
