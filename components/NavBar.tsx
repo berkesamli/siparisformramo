@@ -37,6 +37,7 @@ export default function NavBar({ user }: { user: NavUser | null }) {
     links.push({ href: "/panel/finans", label: "Finans" });
   }
   if (user?.role === "staff" && user.owner) {
+    links.push({ href: "/panel/maliyet", label: "Maliyet" });
     links.push({ href: "/panel/raporlar", label: "Raporlar" });
   }
   // Çekmece menüde Stok Yükle de listelensin
