@@ -99,3 +99,20 @@ export function isFinance(username: string | undefined | null): boolean {
 export function finansAktif(): boolean {
   return process.env.FINANS_AKTIF === "1";
 }
+
+// Maliyet & kârlılık ekranı — alış fiyatları en dar çevrenin bilgisidir.
+// MALIYET_USERNAMES ile değiştirilebilir; varsayılan yalnızca Berke ve Özgür.
+const DEFAULT_MALIYET = ["berke", "özgür"];
+
+export function maliyetUsernames(): string[] {
+  const raw = process.env.MALIYET_USERNAMES;
+  const list = raw
+    ? raw.split(",").map((s) => s.trim()).filter(Boolean)
+    : DEFAULT_MALIYET;
+  return list.map(normalizeUsername);
+}
+
+export function isMaliyet(username: string | undefined | null): boolean {
+  if (!username) return false;
+  return maliyetUsernames().includes(normalizeUsername(username));
+}

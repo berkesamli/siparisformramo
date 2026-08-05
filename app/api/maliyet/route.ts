@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
-import { isOwner } from "@/data/users";
+import { isMaliyet } from "@/data/users";
 import {
   getMaliyetData,
   saveMaliyetData,
+  kodIndeksi,
+  gecerliKalem,
   birimMaliyetTL,
   normKod,
-  type MaliyetKaydi,
+  newPartiId,
+  type PartiKalemi,
   type AlisBirimi,
 } from "@/lib/maliyet";
 import { listAllOrders } from "@/lib/orders";
@@ -17,18 +20,17 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-// Alış fiyatları ve kod bazlı kâr analizi — YALNIZCA firma sahipleri.
-// (FINANS_AKTIF bayrağından bağımsızdır; bu bölüm ayrıca istendi.)
+// Parti (konteyner) bazlı alış fiyatları ve kâr analizi.
+// Erişim: yalnızca MALIYET_USERNAMES (varsayılan berke + özgür).
 
-async function sahip() {
+async function yetkili() {
   const user = await getSessionUser();
-  if (!user || user.role !== "staff" || !isOwner(user.username)) return null;
+  if (!user || user.role !== "staff" || !isMaliyet(user.username)) return null;
   return user;
 }
 
-// GET  → kayıtlı alış fiyatları; ?analiz=1&ay=YYYY-MM ile satış analizi
 export async function GET(req: NextRequest) {
-  const user = await sahip();
+  const user = await yetkili();
   if (!user) {
     return NextResponse.json({ ok: false, error: "Yetkisiz." }, { status: 401 });
   }
@@ -38,17 +40,19 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok: true, data });
   }
 
-  // ---- Satış analizi: toptan sipariş satırları kod bazında toplanır ----
   const ay = req.nextUrl.searchParams.get("ay") || "";
   const orders = (await listAllOrders()).filter((o) =>
     ay ? o.dateKey.startsWith(ay) : true
   );
+  const indeks = kodIndeksi(data);
 
   interface KodAnaliz {
     code: string;
     metraj: number;
     ciro: number;
-    maliyet: number | null; // alış girilmemişse null
+    maliyet: number;
+    maliyetTam: boolean; // tüm satırların maliyeti hesaplanabildi mi
+    durum: "" | "alis-yok" | "yuzde-bekliyor";
     satirSayisi: number;
   }
   const map = new Map<string, KodAnaliz>();
@@ -57,30 +61,34 @@ export async function GET(req: NextRequest) {
     const usd = Number(o.rate) || 0;
     const eur = Number(o.euroRate) || usd;
     for (const l of o.lines) {
-      // "4501S-1242" → taban kod; katalogda karşılığı varsa onun kodu
       const ham = String(l.name || "").trim().split(/[\s(]/)[0];
       if (!ham) continue;
       const p = findProfile(ham);
       const kod = p ? normKod(p.code) : normKod(ham.split("-")[0]);
       if (!kod) continue;
-      // metraj = satır tutarı / birim TL fiyat (satırlar mt bazlı fiyatlanır)
-      const metre =
-        l.unitPriceTL > 0 ? l.lineTotal / l.unitPriceTL : 0;
+      const metre = l.unitPriceTL > 0 ? l.lineTotal / l.unitPriceTL : 0;
+
       const cur = map.get(kod) || {
         code: p ? p.code : ham.split("-")[0],
-        metraj: 0,
-        ciro: 0,
-        maliyet: 0 as number | null,
-        satirSayisi: 0,
+        metraj: 0, ciro: 0, maliyet: 0,
+        maliyetTam: true, durum: "" as KodAnaliz["durum"], satirSayisi: 0,
       };
       cur.metraj += metre;
       cur.ciro += l.lineTotal;
       cur.satirSayisi += 1;
-      const mk = data.items[kod];
-      if (mk && usd > 0 && cur.maliyet != null) {
-        cur.maliyet += metre * birimMaliyetTL(mk, data.defaultPct, usd, eur);
-      } else if (!mk) {
-        cur.maliyet = null; // alışı girilmemiş kod — kâr hesaplanamaz
+
+      const secim = gecerliKalem(indeks.get(kod), o.dateKey);
+      if (!secim) {
+        cur.maliyetTam = false;
+        cur.durum = "alis-yok";
+      } else {
+        const bm = usd > 0 ? birimMaliyetTL(secim, usd, eur) : null;
+        if (bm == null) {
+          cur.maliyetTam = false;
+          if (cur.durum !== "alis-yok") cur.durum = "yuzde-bekliyor";
+        } else {
+          cur.maliyet += metre * bm;
+        }
       }
       map.set(kod, cur);
     }
@@ -91,83 +99,117 @@ export async function GET(req: NextRequest) {
       code: k.code,
       metraj: Math.round(k.metraj * 100) / 100,
       ciro: kurus(k.ciro),
-      maliyet: k.maliyet != null ? kurus(k.maliyet) : null,
-      kar: k.maliyet != null ? kurus(k.ciro - k.maliyet) : null,
+      maliyet: k.maliyetTam ? kurus(k.maliyet) : null,
+      kar: k.maliyetTam ? kurus(k.ciro - k.maliyet) : null,
       marj:
-        k.maliyet != null && k.ciro > 0
+        k.maliyetTam && k.ciro > 0
           ? Math.round(((k.ciro - k.maliyet) / k.ciro) * 1000) / 10
           : null,
+      durum: k.maliyetTam ? "" : k.durum,
       satirSayisi: k.satirSayisi,
     }))
     .sort((a, b) => b.ciro - a.ciro);
 
-  const toplamCiro = kurus(analiz.reduce((s, a) => s + a.ciro, 0));
-  const maliyetliler = analiz.filter((a) => a.maliyet != null);
-  const toplamMaliyet = kurus(maliyetliler.reduce((s, a) => s + (a.maliyet || 0), 0));
-  const maliyetliCiro = kurus(maliyetliler.reduce((s, a) => s + a.ciro, 0));
+  const tamlar = analiz.filter((a) => a.maliyet != null);
+  const maliyetliCiro = kurus(tamlar.reduce((s, a) => s + a.ciro, 0));
+  const toplamMaliyet = kurus(tamlar.reduce((s, a) => s + (a.maliyet || 0), 0));
 
   return NextResponse.json({
     ok: true,
     data,
     analiz,
     ozet: {
-      toplamCiro,
+      toplamCiro: kurus(analiz.reduce((s, a) => s + a.ciro, 0)),
       maliyetliCiro,
       toplamMaliyet,
       toplamKar: kurus(maliyetliCiro - toplamMaliyet),
-      kapsam: analiz.length ? Math.round((maliyetliler.length / analiz.length) * 100) : 0,
+      kapsam: analiz.length
+        ? Math.round((tamlar.length / analiz.length) * 100)
+        : 0,
     },
   });
 }
 
-// POST → { defaultPct?, items?: [{code, alis, currency, pct?, note?}], sil?: [code] }
+// POST eylemleri:
+//   { yeniParti: { ad, tarih, note? } }
+//   { partiId, pct }                  → yüzdeyi (sonradan) gir/güncelle
+//   { partiId, items: [{code, alis, currency}] }
+//   { partiId, sil: [code] }
+//   { partiSil: partiId }             → boş/yanlış açılan partiyi kaldır
 export async function POST(req: NextRequest) {
-  const user = await sahip();
+  const user = await yetkili();
   if (!user) {
     return NextResponse.json({ ok: false, error: "Yetkisiz." }, { status: 401 });
   }
-  const body = (await req.json().catch(() => null)) as {
-    defaultPct?: unknown;
-    items?: unknown[];
-    sil?: unknown[];
-  } | null;
+  const body = (await req.json().catch(() => null)) as Record<string, unknown> | null;
   if (!body) {
     return NextResponse.json({ ok: false, error: "Geçersiz istek." }, { status: 400 });
   }
 
   const data = await getMaliyetData();
-
-  if (body.defaultPct !== undefined) {
-    const pct = Number(body.defaultPct);
-    if (!Number.isFinite(pct) || pct < 0 || pct > 500) {
-      return NextResponse.json({ ok: false, error: "Geçersiz yüzde." }, { status: 400 });
-    }
-    data.defaultPct = Math.round(pct * 100) / 100;
-  }
-
   const hatalar: string[] = [];
-  for (const raw of (body.items || []) as Partial<MaliyetKaydi>[]) {
-    const code = String(raw.code || "").trim();
-    const alis = Number(raw.alis);
-    const currency = (raw.currency || "USD") as AlisBirimi;
-    if (!code || !Number.isFinite(alis) || alis <= 0 ||
-        !["USD", "EUR", "TL"].includes(currency)) {
-      hatalar.push(`geçersiz kayıt: ${code || "?"}`);
-      continue;
+
+  if (body.yeniParti && typeof body.yeniParti === "object") {
+    const yp = body.yeniParti as { ad?: unknown; tarih?: unknown; note?: unknown };
+    const ad = String(yp.ad || "").trim().slice(0, 120);
+    const tarih = String(yp.tarih || "");
+    if (!ad || !/^\d{4}-\d{2}-\d{2}$/.test(tarih)) {
+      return NextResponse.json(
+        { ok: false, error: "Parti adı ve geliş tarihi gerekli." },
+        { status: 400 }
+      );
     }
-    const pct = raw.pct != null && raw.pct !== ("" as unknown) ? Number(raw.pct) : undefined;
-    data.items[normKod(code)] = {
-      code,
-      alis: Math.round(alis * 10000) / 10000,
-      currency,
-      pct: pct != null && Number.isFinite(pct) && pct >= 0 ? pct : undefined,
-      note: String(raw.note || "").trim().slice(0, 200) || undefined,
-      updatedAt: new Date().toISOString(),
+    data.partiler.push({
+      id: newPartiId(),
+      ad,
+      tarih,
+      pct: null,
+      note: String(yp.note || "").trim().slice(0, 300) || undefined,
+      createdAt: new Date().toISOString(),
       by: user.name,
-    };
+      items: {},
+    });
   }
-  for (const c of (body.sil || []) as string[]) {
-    delete data.items[normKod(String(c))];
+
+  const partiId = String(body.partiId || "");
+  if (partiId) {
+    const parti = data.partiler.find((x) => x.id === partiId);
+    if (!parti) {
+      return NextResponse.json({ ok: false, error: "Parti bulunamadı." }, { status: 404 });
+    }
+    if (body.pct !== undefined) {
+      if (body.pct === null || body.pct === "") {
+        parti.pct = null;
+      } else {
+        const pct = Number(body.pct);
+        if (!Number.isFinite(pct) || pct < 0 || pct > 500) {
+          return NextResponse.json({ ok: false, error: "Geçersiz yüzde." }, { status: 400 });
+        }
+        parti.pct = Math.round(pct * 100) / 100;
+      }
+    }
+    for (const raw of (body.items || []) as Partial<PartiKalemi>[]) {
+      const code = String(raw.code || "").trim();
+      const alis = Number(raw.alis);
+      const currency = (raw.currency || "USD") as AlisBirimi;
+      if (!code || !Number.isFinite(alis) || alis <= 0 ||
+          !["USD", "EUR", "TL"].includes(currency)) {
+        hatalar.push(`geçersiz kalem: ${code || "?"}`);
+        continue;
+      }
+      parti.items[normKod(code)] = {
+        code,
+        alis: Math.round(alis * 10000) / 10000,
+        currency,
+      };
+    }
+    for (const c of (body.sil || []) as string[]) {
+      delete parti.items[normKod(String(c))];
+    }
+  }
+
+  if (body.partiSil) {
+    data.partiler = data.partiler.filter((x) => x.id !== String(body.partiSil));
   }
 
   data.updatedAt = new Date().toISOString();
