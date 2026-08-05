@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getSessionUser } from "@/lib/auth";
-import { isFinance } from "@/data/users";
+import { isFinance, finansAktif } from "@/data/users";
 import KasaRaporu from "@/components/KasaRaporu";
 import PrintButton from "@/components/PrintButton";
 
@@ -10,6 +10,7 @@ export const dynamic = "force-dynamic";
 export default async function KasaPage() {
   const user = await getSessionUser();
   if (!user) redirect("/giris?next=/panel/finans/kasa");
+  if (!finansAktif()) redirect("/panel");
   if (user.role !== "staff" || !isFinance(user.username)) redirect("/panel");
 
   return (

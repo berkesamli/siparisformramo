@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getSessionUser } from "@/lib/auth";
 import OrdersList from "@/components/OrdersList";
+import { finansAktif } from "@/data/users";
 
 export default async function OrdersPage() {
   const user = await getSessionUser();
@@ -21,7 +22,7 @@ export default async function OrdersPage() {
           + Yeni Sipariş
         </Link>
       </div>
-      <OrdersList />
+      <OrdersList eldenSatis={finansAktif()} />
     </main>
   );
 }

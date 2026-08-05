@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getSessionUser } from "@/lib/auth";
-import { isFinance } from "@/data/users";
+import { isFinance, finansAktif } from "@/data/users";
 import FinansDashboard from "@/components/FinansDashboard";
 
 export const dynamic = "force-dynamic";
@@ -9,6 +9,7 @@ export const dynamic = "force-dynamic";
 export default async function FinansPage() {
   const user = await getSessionUser();
   if (!user) redirect("/giris?next=/panel/finans");
+  if (!finansAktif()) redirect("/panel");
   if (user.role !== "staff" || !isFinance(user.username)) redirect("/panel");
 
   const moduller = [
