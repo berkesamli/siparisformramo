@@ -15,6 +15,11 @@ export interface TahsilatBaglam {
   kalan?: number;
   /** Önerilen şube (müşteri kartından). */
   branch?: "ankara" | "istanbul";
+  /**
+   * Elden satış modu: müşteri adı serbestçe yazılabilir (ayaküstü perakende,
+   * teknik malzeme satışı gibi kartsız küçük tahsilatlar için).
+   */
+  serbest?: boolean;
 }
 
 const YONTEMLER = [
@@ -52,6 +57,7 @@ export default function TahsilatModal({
   );
   const [tahsilEden, setTahsilEden] = useState("");
   const [note, setNote] = useState("");
+  const [ad, setAd] = useState(baglam.customerName || "");
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState("");
 
@@ -60,6 +66,10 @@ export default function TahsilatModal({
   async function kaydet() {
     if (tutar <= 0) {
       setErr("Tutar sıfırdan büyük olmalı.");
+      return;
+    }
+    if (baglam.serbest && !ad.trim()) {
+      setErr("Müşteri / açıklama alanı boş olamaz.");
       return;
     }
     setSaving(true);
@@ -75,7 +85,7 @@ export default function TahsilatModal({
           currency,
           branch,
           customerId: baglam.customerId,
-          customerName: baglam.customerName,
+          customerName: baglam.serbest ? ad.trim() : baglam.customerName,
           orderId: baglam.orderId,
           orderDateKey: baglam.orderDateKey,
           tahsilEden: tahsilEden.trim() || undefined,
@@ -96,16 +106,30 @@ export default function TahsilatModal({
   return (
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-        <h2 style={{ marginTop: 0 }}>💰 Tahsilat Gir</h2>
-        <p className="subtitle" style={{ marginTop: -6 }}>
-          {baglam.customerName}
-          {baglam.orderId ? ` — ${baglam.orderId}` : ""}
-          {baglam.kalan != null && baglam.kalan > 0 && (
-            <> · kalan bakiye ₺ {fmt(baglam.kalan)}</>
-          )}
-        </p>
+        <h2 style={{ marginTop: 0 }}>
+          {baglam.serbest ? "💰 Elden Satış / Tahsilat" : "💰 Tahsilat Gir"}
+        </h2>
+        {!baglam.serbest && (
+          <p className="subtitle" style={{ marginTop: -6 }}>
+            {baglam.customerName}
+            {baglam.orderId ? ` — ${baglam.orderId}` : ""}
+            {baglam.kalan != null && baglam.kalan > 0 && (
+              <> · kalan bakiye ₺ {fmt(baglam.kalan)}</>
+            )}
+          </p>
+        )}
 
         <div className="rw-grid2">
+          {baglam.serbest && (
+            <div style={{ gridColumn: "1 / -1" }}>
+              <label>Müşteri / Açıklama</label>
+              <input
+                value={ad}
+                onChange={(e) => setAd(e.target.value)}
+                placeholder="örn. PERAKENDE — çerçeve yapımı, teknik malzeme satışı…"
+              />
+            </div>
+          )}
           <div>
             <label>Tarih</label>
             <input

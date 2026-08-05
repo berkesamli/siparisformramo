@@ -4,6 +4,7 @@
 // Tarih aralığı + şube filtresi; nakit/banka/döviz/portföy kırılımı.
 
 import { useCallback, useEffect, useState } from "react";
+import TahsilatModal from "./TahsilatModal";
 
 const fmt = (n: number) =>
   (Number(n) || 0).toLocaleString("tr-TR", {
@@ -45,6 +46,7 @@ export default function KasaRaporu() {
   const [ozet, setOzet] = useState<Ozet | null>(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
+  const [eldenAcik, setEldenAcik] = useState(false);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -82,7 +84,18 @@ export default function KasaRaporu() {
         </select>
         <span style={{ flex: 1 }} />
         <span style={{ fontSize: 13, color: "var(--muted)" }}>{rows.length} hareket</span>
+        <button className="btn small" onClick={() => setEldenAcik(true)}>
+          + Elden Tahsilat
+        </button>
       </div>
+
+      {eldenAcik && (
+        <TahsilatModal
+          baglam={{ customerName: "PERAKENDE", serbest: true, branch: (sube as "ankara" | "istanbul") || "ankara" }}
+          onClose={() => setEldenAcik(false)}
+          onSaved={load}
+        />
+      )}
 
       {ozet && (
         <div className="cari-cards">
