@@ -1,33 +1,42 @@
-// Alış fiyatları ve maliyet — finans/maliyetler.json (tek dosya).
+// Alış fiyatları ve maliyet — PARTİ (konteyner) bazlı. finans/maliyetler.json.
 //
-// Yalnızca firma sahipleri görür ve düzenler. Maliyet hesabı yüzdeseldir:
-//   birim maliyet = alış fiyatı × (1 + genel gider yüzdesi / 100)
-// Genel gider yüzdesi (nakliye, gümrük, fire, işçilik payı) tek yerden
-// tanımlanır; gerekirse kod bazında özel yüzde ile ezilebilir.
+// Her gelen konteynerin maliyeti farklıdır: parti açılır (ad + geliş tarihi),
+// o partinin birim alış fiyatları girilir; partinin genel gider yüzdesi
+// (nakliye, gümrük, fire) sonradan da girilebilir — yüzde girilmeden kâr
+// hesaplanmaz, "yüzde bekliyor" görünür.
 //
-// Tek dosya tercihi bilinçli: ~200-400 kayıt küçük bir JSON'dur, okuma tek
-// get'tir ve düzenleme yalnız 3 kişide olduğundan yarış riski yoktur.
+// Analizde bir satışın maliyeti, sipariş tarihinden ÖNCEKİ EN SON partide o
+// kod için girilen fiyattan hesaplanır (satış hangi partinin malından
+// yapıldıysa ona en yakın doğru varsayım). Sipariş ilk partiden eskiyse ilk
+// partinin fiyatı kullanılır.
+//
+// Erişim: yalnızca MALIYET_USERNAMES (varsayılan: berke, özgür).
 
 import { blobConfigured } from "./orders";
 
 export type AlisBirimi = "USD" | "EUR" | "TL";
 
-export interface MaliyetKaydi {
-  code: string; // profil/ürün kodu (renk eki OLMADAN: "4501 S", "GB211")
-  alis: number; // birim alış fiyatı (profillerde /mt)
+export interface PartiKalemi {
+  code: string; // görünen kod ("4501 S")
+  alis: number; // birim alış (/mt)
   currency: AlisBirimi;
-  /** Kod bazlı özel genel gider yüzdesi — boşsa genel yüzde uygulanır. */
-  pct?: number;
+}
+
+export interface Parti {
+  id: string; // PT-xxxxx
+  ad: string; // örn. "Ağustos 2026 — 40'lık"
+  tarih: string; // geliş tarihi YYYY-MM-DD
+  /** Genel gider yüzdesi — null: henüz girilmedi, kâr hesaplanmaz. */
+  pct: number | null;
   note?: string;
-  updatedAt: string;
+  createdAt: string;
   by: string;
+  items: Record<string, PartiKalemi>; // anahtar: normKod
 }
 
 export interface MaliyetData {
   updatedAt: string;
-  /** Genel gider yüzdesi (%). Örn. 18 → maliyet = alış × 1,18 */
-  defaultPct: number;
-  items: Record<string, MaliyetKaydi>; // anahtar: normalize kod
+  partiler: Parti[];
 }
 
 const PATH = "finans/maliyetler.json";
@@ -35,14 +44,19 @@ const PATH = "finans/maliyetler.json";
 export const normKod = (s: string) =>
   String(s || "").toUpperCase().replace(/\s+/g, "");
 
+export function newPartiId(): string {
+  return "PT" + Math.random().toString(36).slice(2, 8).toUpperCase();
+}
+
 export async function getMaliyetData(): Promise<MaliyetData> {
-  const bos: MaliyetData = { updatedAt: "", defaultPct: 0, items: {} };
+  const bos: MaliyetData = { updatedAt: "", partiler: [] };
   if (!blobConfigured()) return bos;
   try {
     const { get } = await import("@vercel/blob");
     const r = await get(PATH, { access: "private", useCache: false });
     if (!r || r.statusCode !== 200 || !r.stream) return bos;
-    return JSON.parse(await new Response(r.stream).text()) as MaliyetData;
+    const d = JSON.parse(await new Response(r.stream).text()) as MaliyetData;
+    return d.partiler ? d : bos; // eski şema gelirse boş başla
   } catch {
     return bos;
   }
@@ -60,17 +74,50 @@ export async function saveMaliyetData(d: MaliyetData): Promise<boolean> {
   return true;
 }
 
+export interface MaliyetSecim {
+  parti: Parti;
+  kalem: PartiKalemi;
+}
+
 /**
- * Birim maliyeti TL olarak hesaplar. Kur, siparişin kendi kuru olmalı ki
- * satışla maliyet aynı günün parasıyla karşılaştırılsın.
+ * Kod → tarih sıralı kalem listesi çıkarır; sipariş tarihine göre geçerli
+ * partiyi seçmekte kullanılır.
  */
+export function kodIndeksi(d: MaliyetData): Map<string, MaliyetSecim[]> {
+  const map = new Map<string, MaliyetSecim[]>();
+  const sirali = [...d.partiler].sort((a, b) => a.tarih.localeCompare(b.tarih));
+  for (const parti of sirali) {
+    for (const [nk, kalem] of Object.entries(parti.items)) {
+      const list = map.get(nk) || [];
+      list.push({ parti, kalem });
+      map.set(nk, list);
+    }
+  }
+  return map;
+}
+
+/** Sipariş tarihi için geçerli kalem: tarih ≤ sipariş olan son parti, yoksa ilk. */
+export function gecerliKalem(
+  list: MaliyetSecim[] | undefined,
+  orderDateKey: string
+): MaliyetSecim | null {
+  if (!list || !list.length) return null;
+  let secim: MaliyetSecim | null = null;
+  for (const s of list) {
+    if (s.parti.tarih <= orderDateKey) secim = s;
+    else break;
+  }
+  return secim || list[0];
+}
+
+/** Birim maliyet TL — partinin yüzdesi girilmemişse null. */
 export function birimMaliyetTL(
-  k: MaliyetKaydi,
-  defaultPct: number,
+  s: MaliyetSecim,
   usdRate: number,
   eurRate: number
-): number {
+): number | null {
+  if (s.parti.pct == null) return null;
+  const k = s.kalem;
   const kur = k.currency === "USD" ? usdRate : k.currency === "EUR" ? eurRate : 1;
-  const pct = k.pct != null && k.pct >= 0 ? k.pct : defaultPct;
-  return k.alis * kur * (1 + pct / 100);
+  return k.alis * kur * (1 + s.parti.pct / 100);
 }

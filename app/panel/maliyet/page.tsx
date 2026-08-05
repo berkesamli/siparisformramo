@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
-import { isOwner } from "@/data/users";
+import { isMaliyet } from "@/data/users";
 import MaliyetManager from "@/components/MaliyetManager";
 
 export const dynamic = "force-dynamic";
@@ -9,14 +9,14 @@ export const dynamic = "force-dynamic";
 export default async function MaliyetPage() {
   const user = await getSessionUser();
   if (!user) redirect("/giris?next=/panel/maliyet");
-  if (user.role !== "staff" || !isOwner(user.username)) redirect("/panel");
+  if (user.role !== "staff" || !isMaliyet(user.username)) redirect("/panel");
 
   return (
     <main className="container" style={{ maxWidth: 1200 }}>
       <h1>Maliyet &amp; Kârlılık</h1>
       <p className="subtitle">
         Ürün alış fiyatları, yüzdesel genel gider ve kod bazlı satış/kâr
-        analizi. Bu ekran yalnızca firma sahiplerine görünür.
+        analizi. Parti (konteyner) bazlı: her gelen konteynerin fiyatları ve yüzdesi ayrı girilir.
       </p>
       <MaliyetManager />
     </main>

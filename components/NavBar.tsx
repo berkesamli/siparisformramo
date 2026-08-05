@@ -11,6 +11,7 @@ interface NavUser {
   role: "staff" | "customer";
   owner?: boolean; // firma sahibi — raporları görebilir
   finance?: boolean; // finans ekranları (kasa, gider, çek/senet, personel)
+  maliyet?: boolean; // alış fiyatları & kârlılık — en dar çevre
 }
 
 export default function NavBar({ user }: { user: NavUser | null }) {
@@ -36,8 +37,10 @@ export default function NavBar({ user }: { user: NavUser | null }) {
   if (user?.role === "staff" && user.finance) {
     links.push({ href: "/panel/finans", label: "Finans" });
   }
-  if (user?.role === "staff" && user.owner) {
+  if (user?.role === "staff" && user.maliyet) {
     links.push({ href: "/panel/maliyet", label: "Maliyet" });
+  }
+  if (user?.role === "staff" && user.owner) {
     links.push({ href: "/panel/raporlar", label: "Raporlar" });
   }
   // Çekmece menüde Stok Yükle de listelensin
