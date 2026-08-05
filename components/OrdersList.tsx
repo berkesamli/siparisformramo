@@ -122,6 +122,15 @@ export default function OrdersList() {
         <button className="btn small secondary" onClick={load}>
           ↻ Yenile
         </button>
+        <button
+          className="btn small"
+          title="Ayaküstü perakende / teknik malzeme satışı — siparişsiz kasa girişi"
+          onClick={() =>
+            setTahsilatBaglam({ customerName: "PERAKENDE", serbest: true })
+          }
+        >
+          💰 Elden Satış
+        </button>
       </div>
 
       {error && <div className="notice err">{error}</div>}
