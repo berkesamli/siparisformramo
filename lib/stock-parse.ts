@@ -22,6 +22,31 @@ const norm = (s: unknown) =>
     .replace(/İ/g, "I")
     .trim();
 
+// STOK İSMİ içindeki ürün tanımı kelimeleri — kod bu kelimelerin
+// öncesinde biter. Renk adları (KOREA SILVER, ANT GOLD, SHINING BLACK
+// WITH YELLOW GOLD...) koda dahildir.
+const TANIM_KELIMELERI = new Set([
+  "LAMINE",
+  "PROFIL",
+  "SCAPPI",
+  "PASPARTU",
+  "KARTON",
+  "TELALI",
+  "KADIFE",
+  "DÜZ",
+]);
+
+// "KS3514-KOREA SILVER LAMİNE PROFİL" → "KS3514-KOREA SILVER"
+export function extractCode(name: string): string {
+  const tokens = String(name).trim().split(/\s+/);
+  const kept: string[] = [];
+  for (const t of tokens) {
+    if (TANIM_KELIMELERI.has(norm(t))) break;
+    kept.push(t.toLocaleUpperCase("tr-TR"));
+  }
+  return kept.join(" ");
+}
+
 export function parseStockWorkbook(buffer: Buffer, sourceName: string): StockData {
   const wb = XLSX.read(buffer, { type: "buffer" });
   const ws = wb.Sheets[wb.SheetNames[0]];
@@ -61,8 +86,11 @@ export function parseStockWorkbook(buffer: Buffer, sourceName: string): StockDat
     // Şimdilik yalnızca çerçeve profilleri
     if (!norm(name).includes("PROFIL")) continue;
 
-    // "GC065-1473BX LAMİNE PROFİL" → kod = ilk kelime
-    const code = name.split(/\s+/)[0].toLocaleUpperCase("tr-TR");
+    // "GC065-1473BX LAMİNE PROFİL"            → kod = GC065-1473BX
+    // "KS3514-KOREA SILVER LAMİNE PROFİL"     → kod = KS3514-KOREA SILVER
+    // Renk adı birden çok kelime olabilir; kod, açıklama kelimesine
+    // (LAMİNE/PROFİL vb.) kadar olan kısımdır — ilk boşlukta kesilmez.
+    const code = extractCode(name);
     if (!code) continue;
 
     let item = map.get(code);
