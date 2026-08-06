@@ -947,6 +947,8 @@ h2 { font-size: 18px; font-weight: 700; margin: 20px 0 12px; }
   cursor: pointer;
   transition: background 0.15s ease;
 }
+.lbl-item-info { flex: 1; min-width: 0; }
+.lbl-item-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .lbl-item:last-child { border-bottom: none; }
 .lbl-item:hover { background: #faf7f1; }
 .lbl-item.sel { background: rgba(169, 102, 13, 0.07); box-shadow: inset 3px 0 0 var(--brand); }
@@ -1002,6 +1004,29 @@ h2 { font-size: 18px; font-weight: 700; margin: 20px 0 12px; }
 @media (max-width: 1080px) {
   .lbl-layout { grid-template-columns: 1fr; }
   .lbl-layout aside .card { position: static !important; }
+}
+
+/* Telefon: müşteri satırı iki satıra kırılır — üstte isim/bilgi,
+   altta şube rozeti + işlem butonları (daha geniş dokunma alanı). */
+@media (max-width: 640px) {
+  .lbl-item { flex-wrap: wrap; row-gap: 8px; padding: 12px; }
+  .lbl-item-info { flex: 1 1 100%; }
+  .lbl-item-actions { margin-left: auto; }
+  .lbl-item-actions .btn.small { padding: 8px 14px; font-size: 14px; }
+  .lbl-item-title { white-space: normal; }
+  .lbl-list { max-height: 380px; }
+}
+
+/* Çok dar ekranda etiket önizleme yazıları taşmasın */
+@media (max-width: 480px) {
+  .lbl-preview { font-size: 9.5px; }
+  .lbl-hdr img { width: 36px; }
+  .lbl-firm { font-size: 12px; }
+  .lbl-tel { font-size: 10px; }
+  .lbl-addr { font-size: 9px; }
+  .lbl-to-name { font-size: 11.5px; }
+  .lbl-to-addr { font-size: 10.5px; }
+  .lbl-to-contact { font-size: 9.5px; }
 }
 
 /* ---- Müşteri seçici (sipariş formlarında) ---- */
