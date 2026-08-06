@@ -4,7 +4,7 @@
 // "etiket" uygulamasının portu: kayıtlı müşteriler, arama, şehir filtresi,
 // müşteri ekle/düzenle/sil, gönderici şubesine göre değişen etiket önizlemesi.
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   BRANCHES,
   branchInfo,
@@ -45,6 +45,16 @@ export default function LabelManager() {
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
   const [copies, setCopies] = useState("1");
+  const previewRef = useRef<HTMLElement | null>(null);
+
+  // Dar ekranda önizleme listenin altında kalır — müşteri seçilince
+  // etiket görünsün diye oraya kaydır (masaüstünde zaten yan yana).
+  function selectCustomer(id: string) {
+    setSelectedId(id);
+    if (typeof window !== "undefined" && window.matchMedia("(max-width: 1080px)").matches) {
+      previewRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }
 
   const load = useCallback(async (preferId?: string) => {
     setLoading(true);
@@ -216,9 +226,9 @@ export default function LabelManager() {
                 <div
                   key={c.id}
                   className={`lbl-item ${selectedId === c.id ? "sel" : ""}`}
-                  onClick={() => setSelectedId(c.id)}
+                  onClick={() => selectCustomer(c.id)}
                 >
-                  <div style={{ flex: 1, minWidth: 0 }}>
+                  <div className="lbl-item-info">
                     <div className="lbl-item-title">{customerTitle(c)}</div>
                     <div className="lbl-item-meta">
                       {[c.phone, [c.district, c.city].filter(Boolean).join(" / ")]
@@ -226,29 +236,31 @@ export default function LabelManager() {
                         .join(" · ") || "—"}
                     </div>
                   </div>
-                  <span className={`lbl-branch ${c.branch}`}>
-                    {c.branch === "istanbul" ? "İST" : "ANK"}
+                  <span className="lbl-item-actions">
+                    <span className={`lbl-branch ${c.branch}`}>
+                      {c.branch === "istanbul" ? "İST" : "ANK"}
+                    </span>
+                    <a
+                      className="btn small secondary"
+                      href={`/musteri?id=${encodeURIComponent(c.id)}`}
+                      title="Cari kart: sipariş geçmişi ve bakiye"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      💳
+                    </a>
+                    <button
+                      className="btn small secondary"
+                      onClick={(e) => { e.stopPropagation(); startEdit(c); }}
+                    >
+                      ✏️
+                    </button>
+                    <button
+                      className="btn small danger"
+                      onClick={(e) => { e.stopPropagation(); remove(c); }}
+                    >
+                      🗑
+                    </button>
                   </span>
-                  <a
-                    className="btn small secondary"
-                    href={`/musteri?id=${encodeURIComponent(c.id)}`}
-                    title="Cari kart: sipariş geçmişi ve bakiye"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    💳
-                  </a>
-                  <button
-                    className="btn small secondary"
-                    onClick={(e) => { e.stopPropagation(); startEdit(c); }}
-                  >
-                    ✏️
-                  </button>
-                  <button
-                    className="btn small danger"
-                    onClick={(e) => { e.stopPropagation(); remove(c); }}
-                  >
-                    🗑
-                  </button>
                 </div>
               ))
             )}
@@ -333,7 +345,7 @@ export default function LabelManager() {
       </div>
 
       {/* ---- Sağ: etiket önizleme ---- */}
-      <aside>
+      <aside ref={previewRef}>
         <div className="card" style={{ position: "sticky", top: 90, padding: 18 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
             <b style={{ fontSize: 15 }}>Kargo Etiketi</b>
