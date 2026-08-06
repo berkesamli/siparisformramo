@@ -35,6 +35,28 @@ export default function OrdersList({ eldenSatis = false }: { eldenSatis?: boolea
   const [orders, setOrders] = useState<SavedOrder[] | null>(null);
   const [error, setError] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  // Mesai sonrası siparişler gözden kaçmasın: son 7 günün kontrol
+  // edilmemiş sipariş sayısı, hangi filtre açık olursa olsun üstte görünür.
+  const [kontrolsuzSayi, setKontrolsuzSayi] = useState<number | null>(null);
+  const [sadeceKontrolsuz, setSadeceKontrolsuz] = useState(false);
+
+  const refreshKontrolsuz = useCallback(async () => {
+    try {
+      const res = await fetch("/api/orders?range=week");
+      const data = await res.json();
+      if (data.ok) {
+        setKontrolsuzSayi(
+          (data.orders as SavedOrder[]).filter((o) => !o.kontrol).length
+        );
+      }
+    } catch {
+      /* bant gösterilmez, liste etkilenmez */
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshKontrolsuz();
+  }, [refreshKontrolsuz]);
 
   const load = useCallback(async () => {
     setOrders(null);
@@ -75,26 +97,106 @@ export default function OrdersList({ eldenSatis = false }: { eldenSatis?: boolea
     }
   }
 
+  async function toggleKontrol(o: SavedOrder) {
+    const yeni = !o.kontrol;
+    // iyimser güncelleme — işaret anında görünsün
+    setOrders((os) =>
+      (os || []).map((x) =>
+        x.orderId === o.orderId
+          ? { ...x, kontrol: yeni ? { by: "…", at: new Date().toISOString() } : undefined }
+          : x
+      )
+    );
+    setKontrolsuzSayi((n) => (n === null ? n : Math.max(0, n + (yeni ? -1 : 1))));
+    const res = await fetch(
+      `/api/orders/one?d=${o.dateKey}&id=${encodeURIComponent(o.orderId)}`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ kontrol: yeni }),
+      }
+    ).catch(() => null);
+    if (!res || !res.ok) {
+      setError("Kontrol işareti kaydedilemedi, sayfayı yenileyin.");
+      load();
+      refreshKontrolsuz();
+    } else {
+      // sunucunun yazdığı isim/zaman gelsin
+      const d = await res.json().catch(() => null);
+      if (d?.ok) {
+        setOrders((os) =>
+          (os || []).map((x) =>
+            x.orderId === o.orderId
+              ? { ...x, kontrol: d.kontrol || undefined }
+              : x
+          )
+        );
+      }
+    }
+  }
+
   // Ödeme girişi artık tahsilat kaydı üretir (tarih/yöntem/şube ile) —
   // pay-select'in yerini TahsilatModal aldı.
   const [tahsilatBaglam, setTahsilatBaglam] = useState<TahsilatBaglam | null>(null);
 
   const visible = (orders || []).filter(
-    (o) => statusFilter === "all" || o.status === statusFilter
+    (o) =>
+      (statusFilter === "all" || o.status === statusFilter) &&
+      (!sadeceKontrolsuz || !o.kontrol)
   );
 
   return (
     <div className="card">
+      {/* Mesai sonrası girilen siparişler ertesi sabah gözden kaçmasın:
+          son 7 günün kontrol edilmemişleri her filtrede üstte uyarır. */}
+      {(kontrolsuzSayi ?? 0) > 0 && !sadeceKontrolsuz && (
+        <div
+          className="notice info"
+          style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", marginBottom: 14 }}
+        >
+          <span style={{ flex: 1 }}>
+            🔔 Son 7 günde <b>kontrol edilmemiş {kontrolsuzSayi} sipariş</b> var
+            — akşam 19:00&apos;dan sonra girilenler dahil.
+          </span>
+          <button
+            className="btn small"
+            onClick={() => {
+              setFilter({ range: "week" });
+              setStatusFilter("all");
+              setSadeceKontrolsuz(true);
+            }}
+          >
+            Göster
+          </button>
+        </div>
+      )}
+      {sadeceKontrolsuz && (
+        <div
+          className="notice info"
+          style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", marginBottom: 14 }}
+        >
+          <span style={{ flex: 1 }}>
+            Yalnızca <b>kontrol edilmemiş</b> siparişler listeleniyor (son 7 gün).
+            Her siparişi inceleyip ✔ ile işaretleyin.
+          </span>
+          <button
+            className="btn small secondary"
+            onClick={() => setSadeceKontrolsuz(false)}
+          >
+            Tümünü Göster
+          </button>
+        </div>
+      )}
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginBottom: 16 }}>
         <button
           className={`btn small ${filter.range === "today" && !filter.date ? "" : "secondary"}`}
-          onClick={() => setFilter({ range: "today" })}
+          onClick={() => { setFilter({ range: "today" }); setSadeceKontrolsuz(false); }}
         >
           Bugün
         </button>
         <button
-          className={`btn small ${filter.range === "week" ? "" : "secondary"}`}
-          onClick={() => setFilter({ range: "week" })}
+          className={`btn small ${filter.range === "week" && !sadeceKontrolsuz ? "" : "secondary"}`}
+          onClick={() => { setFilter({ range: "week" }); setSadeceKontrolsuz(false); }}
         >
           Son 7 Gün
         </button>
@@ -102,11 +204,11 @@ export default function OrdersList({ eldenSatis = false }: { eldenSatis?: boolea
           type="date"
           style={{ width: "auto" }}
           value={filter.date || ""}
-          onChange={(e) =>
-            e.target.value
-              ? setFilter({ date: e.target.value })
-              : setFilter({ range: "today" })
-          }
+          onChange={(e) => {
+            setSadeceKontrolsuz(false);
+            if (e.target.value) setFilter({ date: e.target.value });
+            else setFilter({ range: "today" });
+          }}
         />
         <span style={{ flex: 1 }} />
         <select
@@ -150,6 +252,7 @@ export default function OrdersList({ eldenSatis = false }: { eldenSatis?: boolea
                 <th>Tutar</th>
                 <th>Durum</th>
                 <th>Ödeme</th>
+                <th>Kontrol</th>
                 <th>İşlemler</th>
               </tr>
             </thead>
@@ -210,6 +313,26 @@ export default function OrdersList({ eldenSatis = false }: { eldenSatis?: boolea
                     )}
                   </td>
                   <td style={{ whiteSpace: "nowrap" }}>
+                    {o.kontrol ? (
+                      <button
+                        className="btn small secondary"
+                        style={{ color: "#15803d", borderColor: "#bbe3c8" }}
+                        title={`${o.kontrol.by} kontrol etti — ${new Date(o.kontrol.at).toLocaleString("tr-TR", { dateStyle: "short", timeStyle: "short", timeZone: "Europe/Istanbul" })}. Geri almak için tıklayın.`}
+                        onClick={() => toggleKontrol(o)}
+                      >
+                        ✔ {o.kontrol.by.split(" ")[0]}
+                      </button>
+                    ) : (
+                      <button
+                        className="btn small secondary"
+                        title="Siparişi inceledikten sonra işaretleyin"
+                        onClick={() => toggleKontrol(o)}
+                      >
+                        Kontrol Et
+                      </button>
+                    )}
+                  </td>
+                  <td style={{ whiteSpace: "nowrap" }}>
                     <a
                       className="btn small secondary"
                       href={`/api/orders/pdf?d=${o.dateKey}&id=${encodeURIComponent(o.orderId)}`}
@@ -235,8 +358,10 @@ export default function OrdersList({ eldenSatis = false }: { eldenSatis?: boolea
               ))}
               {!visible.length && (
                 <tr>
-                  <td colSpan={7} style={{ color: "var(--muted)" }}>
-                    Bu filtreye uyan sipariş yok.
+                  <td colSpan={9} style={{ color: "var(--muted)" }}>
+                    {sadeceKontrolsuz
+                      ? "🎉 Son 7 günün tüm siparişleri kontrol edildi."
+                      : "Bu filtreye uyan sipariş yok."}
                   </td>
                 </tr>
               )}

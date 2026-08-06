@@ -14,6 +14,8 @@ export interface PdfOrder {
   note: string;
   discountPct: number;
   vatApplied: boolean;
+  rate?: number; // sipariş anındaki dolar kuru (TL/USD)
+  euroRate?: number; // sipariş anındaki euro kuru (TL/EUR)
   lines: { name: string; unitText: string; unitPriceTL: number; lineTotal: number }[];
   gross: number;
   discount: number;
@@ -108,6 +110,12 @@ export function generateOrderPdf(order: PdfOrder): Promise<Buffer> {
     const leftRows: [string, string][] = [["Müşteri", order.customer || "-"]];
     const rightRows: [string, string][] = [["Çalışan", order.employee]];
     if (order.status) rightRows.push(["Durum", order.status]);
+    // Sipariş anında geçerli olan kur — fiyatların hangi kurla
+    // hesaplandığı belgede kalsın diye.
+    if (order.rate && order.rate > 0)
+      rightRows.push(["Dolar Kuru", `₺ ${fmtPrice(order.rate)}`]);
+    if (order.euroRate && order.euroRate > 0)
+      rightRows.push(["Euro Kuru", `₺ ${fmtPrice(order.euroRate)}`]);
 
     const h1 = infoBox(M, "Müşteri Bilgileri", leftRows, half);
     const h2 = infoBox(M + half + 16, "Sipariş Bilgileri", rightRows, half);

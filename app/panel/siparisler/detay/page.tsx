@@ -88,6 +88,12 @@ export default async function OrderDetailPage({
         <div style={{ display: "flex", gap: 30, flexWrap: "wrap", fontSize: 14 }}>
           <div><strong>Müşteri:</strong> {order.customer || "—"}</div>
           <div><strong>Çalışan:</strong> {order.employee}</div>
+          {order.rate > 0 && (
+            <div><strong>Dolar Kuru:</strong> ₺ {fmt(order.rate)}</div>
+          )}
+          {order.euroRate > 0 && (
+            <div><strong>Euro Kuru:</strong> ₺ {fmt(order.euroRate)}</div>
+          )}
         </div>
 
         <table style={{ marginTop: 16 }}>
