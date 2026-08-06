@@ -34,6 +34,8 @@ export async function GET(req: Request) {
     note: order.note,
     discountPct: order.discountPct,
     vatApplied: order.vatApplied,
+    rate: order.rate,
+    euroRate: order.euroRate,
     lines: order.lines,
     gross: order.gross,
     discount: order.discount,

@@ -68,6 +68,15 @@ export async function PATCH(req: Request) {
     order.status = status;
   }
 
+  // Kontrol işareti: true → işaretle (kim/ne zaman), false → geri al
+  if (body?.kontrol !== undefined) {
+    if (body.kontrol) {
+      order.kontrol = { by: user.name, at: new Date().toISOString() };
+    } else {
+      delete order.kontrol;
+    }
+  }
+
   // Ödeme (cari) güncelleme
   if (body?.payment !== undefined) {
     const payment = String(body.payment) as PaymentStatus;
@@ -131,6 +140,7 @@ export async function PATCH(req: Request) {
     status: order.status,
     payment: order.payment,
     paidAmount: order.paidAmount,
+    kontrol: order.kontrol || null,
   });
 }
 

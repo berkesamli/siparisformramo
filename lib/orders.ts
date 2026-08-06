@@ -46,6 +46,9 @@ export interface SavedOrder {
   branch?: "ankara" | "istanbul";
   payment?: PaymentStatus;
   paidAmount?: number; // tahsil edilen tutar (kısmi ödemede)
+  // Merkez kontrolü: mesai sonrası (19:00+) girilen siparişler ertesi gün
+  // gözden kaçmasın diye her sipariş tek tek "kontrol edildi" işaretlenir.
+  kontrol?: { by: string; at: string };
   note: string;
   rate: number;
   euroRate: number;
