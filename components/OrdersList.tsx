@@ -28,13 +28,18 @@ const fmt = (n: number) =>
     maximumFractionDigits: 2,
   });
 
+const visibleCount = (list: SavedOrder[], durum: string) =>
+  list.filter((o) => durum === "all" || o.status === durum).length;
+
 export default function OrdersList({ eldenSatis = false }: { eldenSatis?: boolean }) {
-  const [filter, setFilter] = useState<{ range?: string; date?: string }>({
+  const [filter, setFilter] = useState<{ range?: string; date?: string; q?: string }>({
     range: "today",
   });
   const [orders, setOrders] = useState<SavedOrder[] | null>(null);
   const [error, setError] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  // Arama kutusu — yazılan metin, "Ara" ile filtreye taşınır (tüm geçmişte arar)
+  const [aramaMetni, setAramaMetni] = useState("");
   // Mesai sonrası siparişler gözden kaçmasın: son 7 günün kontrol
   // edilmemiş sipariş sayısı, hangi filtre açık olursa olsun üstte görünür.
   const [kontrolsuzSayi, setKontrolsuzSayi] = useState<number | null>(null);
@@ -61,9 +66,11 @@ export default function OrdersList({ eldenSatis = false }: { eldenSatis?: boolea
   const load = useCallback(async () => {
     setOrders(null);
     setError("");
-    const qs = filter.date
-      ? `date=${filter.date}`
-      : `range=${filter.range || "today"}`;
+    const qs = filter.q
+      ? `q=${encodeURIComponent(filter.q)}`
+      : filter.date
+        ? `date=${filter.date}`
+        : `range=${filter.range || "today"}`;
     try {
       const res = await fetch(`/api/orders?${qs}`);
       const data = await res.json();
@@ -187,16 +194,61 @@ export default function OrdersList({ eldenSatis = false }: { eldenSatis?: boolea
           </button>
         </div>
       )}
+      {/* Arama — müşteri adı, sipariş no, çalışan veya not içinde, tüm geçmişte */}
+      <form
+        style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}
+        onSubmit={(e) => {
+          e.preventDefault();
+          const q = aramaMetni.trim();
+          setSadeceKontrolsuz(false);
+          setStatusFilter("all");
+          setFilter(q ? { q } : { range: "today" });
+        }}
+      >
+        <input
+          style={{ flex: 1, minWidth: 200 }}
+          placeholder="Ara: müşteri adı / sipariş no / çalışan"
+          value={aramaMetni}
+          onChange={(e) => setAramaMetni(e.target.value)}
+        />
+        <button className="btn small" type="submit">
+          🔍 Ara
+        </button>
+        {filter.q && (
+          <button
+            className="btn small secondary"
+            type="button"
+            onClick={() => {
+              setAramaMetni("");
+              setFilter({ range: "today" });
+            }}
+          >
+            ✕ Aramayı Temizle
+          </button>
+        )}
+      </form>
+      {filter.q && (
+        <div className="notice info" style={{ marginBottom: 12 }}>
+          🔍 <b>&quot;{filter.q}&quot;</b> için tüm sipariş geçmişinde arama sonuçları
+          {orders ? ` — ${visibleCount(orders, statusFilter)} sipariş bulundu.` : "…"}
+        </div>
+      )}
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginBottom: 16 }}>
         <button
-          className={`btn small ${filter.range === "today" && !filter.date ? "" : "secondary"}`}
-          onClick={() => { setFilter({ range: "today" }); setSadeceKontrolsuz(false); }}
+          className={`btn small ${filter.range === "today" && !filter.date && !filter.q ? "" : "secondary"}`}
+          onClick={() => { setFilter({ range: "today" }); setSadeceKontrolsuz(false); setAramaMetni(""); }}
         >
           Bugün
         </button>
         <button
+          className={`btn small ${filter.range === "yesterday" ? "" : "secondary"}`}
+          onClick={() => { setFilter({ range: "yesterday" }); setSadeceKontrolsuz(false); setAramaMetni(""); }}
+        >
+          Dün
+        </button>
+        <button
           className={`btn small ${filter.range === "week" && !sadeceKontrolsuz ? "" : "secondary"}`}
-          onClick={() => { setFilter({ range: "week" }); setSadeceKontrolsuz(false); }}
+          onClick={() => { setFilter({ range: "week" }); setSadeceKontrolsuz(false); setAramaMetni(""); }}
         >
           Son 7 Gün
         </button>
@@ -206,6 +258,7 @@ export default function OrdersList({ eldenSatis = false }: { eldenSatis?: boolea
           value={filter.date || ""}
           onChange={(e) => {
             setSadeceKontrolsuz(false);
+            setAramaMetni("");
             if (e.target.value) setFilter({ date: e.target.value });
             else setFilter({ range: "today" });
           }}
@@ -272,6 +325,7 @@ export default function OrdersList({ eldenSatis = false }: { eldenSatis?: boolea
                   <td style={{ whiteSpace: "nowrap" }}>₺ {fmt(o.net)}</td>
                   <td>
                     <select
+                      className={`status-select ${o.status}`}
                       style={{ width: "auto", padding: "4px 8px", fontSize: 13 }}
                       value={o.status}
                       onChange={(e) => changeStatus(o, e.target.value as OrderStatus)}
