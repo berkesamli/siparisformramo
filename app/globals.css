@@ -230,6 +230,8 @@ h2 { font-size: 18px; font-weight: 700; margin: 20px 0 12px; }
 .notice.ok { background: rgba(6, 122, 85, 0.07); border: 1px solid rgba(6, 122, 85, 0.25); color: #065f46; }
 .notice.err { background: rgba(185, 28, 28, 0.06); border: 1px solid rgba(185, 28, 28, 0.25); color: #991b1b; }
 .notice.info { background: rgba(169, 102, 13, 0.06); border: 1px solid rgba(169, 102, 13, 0.25); color: var(--brand-dark); }
+/* Uyarı (mükerrer sipariş vb.) — bilgi renginden ayrışsın, hata kadar sert olmasın */
+.notice.warn { background: #fff8e6; border: 1px solid #e9b949; color: #8a5a00; }
 
 /* ---- Ana sayfa hero kartları ---- */
 .hero-grid {
@@ -1086,6 +1088,28 @@ h2 { font-size: 18px; font-weight: 700; margin: 20px 0 12px; }
 .pay-select.bekliyor { color: var(--error); }
 .pay-select.kismi { color: var(--warning); }
 .pay-select.odendi { color: var(--success); }
+
+/* Sipariş durumu — her aşama kendi rengiyle, listede tek bakışta ayrışsın */
+.status-select {
+  font-weight: 700;
+  border-width: 1.5px;
+  border-style: solid;
+}
+.status-select.olusturuldu {
+  background: #fff4e5;
+  border-color: #f0b866;
+  color: #a2600a;
+}
+.status-select.hazirlaniyor {
+  background: #e8f1fe;
+  border-color: #8db4f0;
+  color: #17458f;
+}
+.status-select.tamamlandi {
+  background: #e6f6ec;
+  border-color: #86ceA3;
+  color: #14663a;
+}
 
 .cari-cards {
   display: grid;

@@ -10,6 +10,7 @@ import {
 import {
   saveOrder,
   listOrders,
+  listAllOrders,
   lastNDateKeys,
   istanbulDateKey,
   sanitizeLines,
@@ -19,12 +20,16 @@ import {
   saveDailyRates,
   type SavedOrder,
 } from "@/lib/orders";
+import { eslesir } from "@/lib/search-norm";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 
-// Sipariş listesi: ?range=today | ?range=week | ?date=YYYY-MM-DD
+// Sipariş listesi:
+//   ?range=today | yesterday | week   ?date=YYYY-MM-DD
+//   ?q=<metin>            → tüm siparişlerde arama (müşteri / sipariş no / çalışan / not)
+//   ?musteri=<customerId> → o müşterinin son siparişleri (mükerrer sipariş uyarısı)
 export async function GET(req: Request) {
   const user = await getSessionUser();
   if (!user || user.role !== "staff") {
@@ -33,10 +38,39 @@ export async function GET(req: Request) {
   const url = new URL(req.url);
   const date = url.searchParams.get("date");
   const range = url.searchParams.get("range") || "today";
+  const q = (url.searchParams.get("q") || "").trim();
+  const musteri = (url.searchParams.get("musteri") || "").trim();
+  const musteriAd = (url.searchParams.get("musteriAd") || "").trim();
+
+  // Müşteri bazlı son siparişler — sipariş formundaki mükerrer uyarısı için.
+  // Defterden seçildiyse customerId, seçilmediyse yazılan ada göre eşleşir.
+  if (musteri || musteriAd) {
+    const gun = Math.min(30, Math.max(1, Number(url.searchParams.get("gun")) || 7));
+    const izin = new Set(lastNDateKeys(gun));
+    const hepsi = await listAllOrders();
+    const orders = hepsi.filter(
+      (o) =>
+        izin.has(o.dateKey) &&
+        (musteri
+          ? o.customerId === musteri
+          : eslesir(musteriAd, o.customer))
+    );
+    return NextResponse.json({ ok: true, orders });
+  }
+
+  // Serbest arama — müşteri adı, sipariş numarası, çalışan veya not içinde
+  if (q) {
+    const hepsi = await listAllOrders();
+    const orders = hepsi
+      .filter((o) => eslesir(q, o.customer, o.orderId, o.employee, o.note))
+      .slice(0, 200);
+    return NextResponse.json({ ok: true, orders, arama: q });
+  }
 
   let dateKeys: string[];
   if (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) dateKeys = [date];
   else if (range === "week") dateKeys = lastNDateKeys(7);
+  else if (range === "yesterday") dateKeys = [lastNDateKeys(2)[1]];
   else dateKeys = lastNDateKeys(1);
 
   const orders = await listOrders(dateKeys);

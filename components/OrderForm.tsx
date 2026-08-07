@@ -192,6 +192,27 @@ function computeRow(row: Row, rate: number, euroRate: number): ComputedLine | nu
   };
 }
 
+/** Mükerrer sipariş uyarısında gösterilen özet kayıt. */
+interface RecentOrder {
+  orderId: string;
+  dateKey: string;
+  employee: string;
+  net: number;
+  lines?: unknown[];
+}
+
+/** "bugün" / "dün" / "3 gün önce" — uyarıyı okunur kılan gün etiketi. */
+function gunEtiketi(dateKey: string): string {
+  const bugun = new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Istanbul" });
+  if (dateKey === bugun) return "bugün";
+  const fark = Math.round(
+    (new Date(bugun).getTime() - new Date(dateKey).getTime()) / 86400000
+  );
+  if (fark === 1) return "dün";
+  if (fark > 1) return `${fark} gün önce`;
+  return dateKey;
+}
+
 export interface InitialOrder {
   dateKey: string;
   orderId: string;
@@ -297,6 +318,30 @@ export default function OrderForm({
     waLink?: string;
   } | null>(null);
 
+  // ---- Mükerrer sipariş kontrolü ----
+  // Aynı müşteriye başka bir çalışan yakın zamanda sipariş girdiyse formda
+  // uyarı çıkar; kaydetmeden önce de onay istenir. Defterden seçilen müşteride
+  // customerId, elle yazılanda ad üzerinden eşleşir.
+  const [sonSiparisler, setSonSiparisler] = useState<RecentOrder[]>([]);
+  useEffect(() => {
+    if (initialOrder) return; // düzenleme modunda gereksiz
+    const ad = customer.trim();
+    if (!customerId && ad.length < 3) {
+      setSonSiparisler([]);
+      return;
+    }
+    const t = setTimeout(() => {
+      const qs = customerId
+        ? `musteri=${encodeURIComponent(customerId)}`
+        : `musteriAd=${encodeURIComponent(ad)}`;
+      fetch(`/api/orders?${qs}&gun=7`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((d) => setSonSiparisler(d?.ok ? d.orders || [] : []))
+        .catch(() => setSonSiparisler([]));
+    }, 500);
+    return () => clearTimeout(t);
+  }, [customer, customerId, initialOrder]);
+
   // Günün kuru daha önce girildiyse formu otomatik doldur
   useEffect(() => {
     fetch("/api/rates")
@@ -353,6 +398,18 @@ export default function OrderForm({
     if (!lines.length) {
       setResult({ ok: false, msg: "En az bir geçerli satır girin." });
       return;
+    }
+    // Aynı müşteriye yakın zamanda sipariş varsa son bir onay iste —
+    // iki çalışanın habersiz aynı siparişi girmesini engeller.
+    if (!initialOrder && sonSiparisler.length > 0) {
+      const liste = sonSiparisler
+        .map((o) => `• ${o.orderId} — ${gunEtiketi(o.dateKey)} — ${o.employee} — ₺ ${fmt(o.net)}`)
+        .join("\n");
+      const onay = confirm(
+        `Bu müşteriye son 7 günde ${sonSiparisler.length} sipariş girilmiş:\n\n${liste}\n\n` +
+          "Aynı sipariş ikinci kez girilmiş olabilir. Yine de kaydedilsin mi?"
+      );
+      if (!onay) return;
     }
     setSending(true);
     try {
@@ -481,6 +538,34 @@ export default function OrderForm({
           💡 Bugün için girilen kur otomatik yüklendi — gerekirse
           değiştirebilirsiniz.
         </p>
+      )}
+
+      {/* Mükerrer sipariş uyarısı — aynı müşteriye başka bir çalışan
+          yakın zamanda sipariş girdiyse burada görünür. */}
+      {!initialOrder && sonSiparisler.length > 0 && (
+        <div className="notice warn" style={{ marginTop: 12 }}>
+          <b>⚠️ Dikkat: bu müşteriye son 7 günde {sonSiparisler.length} sipariş girilmiş.</b>
+          <div style={{ marginTop: 8, display: "grid", gap: 4, fontSize: 13 }}>
+            {sonSiparisler.map((o) => (
+              <div key={o.orderId}>
+                <a
+                  href={`/panel/siparisler/detay?d=${o.dateKey}&id=${encodeURIComponent(o.orderId)}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  style={{ fontWeight: 700 }}
+                >
+                  {o.orderId}
+                </a>{" "}
+                · {gunEtiketi(o.dateKey)} · {o.employee} · ₺ {fmt(o.net)}
+                {o.lines?.length ? ` · ${o.lines.length} kalem` : ""}
+              </div>
+            ))}
+          </div>
+          <div style={{ marginTop: 8, fontSize: 12.5 }}>
+            Aynı siparişin ikinci kez girilmediğinden emin olun — numaraya
+            tıklayıp içeriğini kontrol edebilirsiniz.
+          </div>
+        </div>
       )}
 
       <h2>Sipariş Satırları</h2>
