@@ -10,7 +10,9 @@ export default async function OrdersPage() {
   if (user.role !== "staff") redirect("/portal");
 
   return (
-    <main className="container">
+    // Sipariş tablosu 9 kolon — 1200px'lik standart genişlikte İşlemler
+    // sütunu taşıyordu; geniş ekranlarda bütün tabloya yer açılır.
+    <main className="container" style={{ maxWidth: 1480 }}>
       <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
         <div style={{ flex: 1 }}>
           <h1>Siparişler</h1>

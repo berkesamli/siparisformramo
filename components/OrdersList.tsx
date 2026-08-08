@@ -294,7 +294,7 @@ export default function OrdersList({ eldenSatis = false }: { eldenSatis?: boolea
       {!orders && !error && <p style={{ color: "var(--text-2)" }}>Yükleniyor…</p>}
 
       {orders && (
-        <div style={{ overflowX: "auto" }}>
+        <div className="ord-table-wrap">
           <table>
             <thead>
               <tr>
@@ -306,7 +306,7 @@ export default function OrdersList({ eldenSatis = false }: { eldenSatis?: boolea
                 <th>Durum</th>
                 <th>Ödeme</th>
                 <th>Kontrol</th>
-                <th>İşlemler</th>
+                <th className="ord-actions">İşlemler</th>
               </tr>
             </thead>
             <tbody>
@@ -386,24 +386,27 @@ export default function OrdersList({ eldenSatis = false }: { eldenSatis?: boolea
                       </button>
                     )}
                   </td>
-                  <td style={{ whiteSpace: "nowrap" }}>
+                  {/* İşlemler sütunu sağa sabitlenir: tablo kaydırılsa bile
+                      PDF / Fiş / Düzenle her zaman ekranda kalır. */}
+                  <td className="ord-actions">
                     <a
                       className="btn small secondary"
                       href={`/api/orders/pdf?d=${o.dateKey}&id=${encodeURIComponent(o.orderId)}`}
-                      style={{ marginRight: 6 }}
+                      title="Sipariş fişini PDF olarak indir"
                     >
                       ⬇ PDF
                     </a>
                     <Link
                       className="btn small secondary"
                       href={`/panel/siparisler/detay?d=${o.dateKey}&id=${encodeURIComponent(o.orderId)}`}
-                      style={{ marginRight: 6 }}
+                      title="Fişi görüntüle / yazdır"
                     >
                       🖨️ Fiş
                     </Link>
                     <Link
                       className="btn small secondary"
                       href={`/panel/siparisler/duzenle?d=${o.dateKey}&id=${encodeURIComponent(o.orderId)}`}
+                      title="Siparişi düzenle"
                     >
                       ✏️ Düzenle
                     </Link>

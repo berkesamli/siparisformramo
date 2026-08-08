@@ -1089,6 +1089,60 @@ h2 { font-size: 18px; font-weight: 700; margin: 20px 0 12px; }
 .pay-select.kismi { color: var(--warning); }
 .pay-select.odendi { color: var(--success); }
 
+/* ---- Sipariş listesi tablosu ----
+   9 kolonlu tablo dar ekranda taşıyor. Kaydırma çubuğu (macOS'ta gizli
+   olduğu için) fark edilmiyordu; bu yüzden İşlemler sütunu sağa
+   sabitlenir ve çubuk her zaman görünür kılınır. */
+.ord-table-wrap {
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--brand) transparent;
+}
+.ord-table-wrap::-webkit-scrollbar { height: 10px; }
+.ord-table-wrap::-webkit-scrollbar-track {
+  background: rgba(169, 102, 13, 0.07);
+  border-radius: 999px;
+}
+.ord-table-wrap::-webkit-scrollbar-thumb {
+  background: rgba(169, 102, 13, 0.45);
+  border-radius: 999px;
+}
+.ord-table-wrap::-webkit-scrollbar-thumb:hover { background: var(--brand); }
+
+.ord-table-wrap th.ord-actions,
+.ord-table-wrap td.ord-actions {
+  position: sticky;
+  right: 0;
+  z-index: 2;
+  white-space: nowrap;
+  background: var(--card);
+  /* Kaydırınca altından geçen içeriği ayırmak için sol kenar gölgesi */
+  box-shadow: -8px 0 12px -6px rgba(38, 32, 26, 0.18);
+}
+.ord-table-wrap td.ord-actions > * + * { margin-left: 6px; }
+/* Satır üzerine gelindiğinde sabit sütun da aynı rengi alsın */
+.ord-table-wrap tbody tr:hover td.ord-actions { background: #faf7f1; }
+/* Müşteri adı gereksiz yere 4-5 satıra bölünmesin */
+.ord-table-wrap td:nth-child(3) { min-width: 170px; }
+
+/* 1280-1400 arası dizüstü ekranlarda tablo hiç kaydırmadan sığsın */
+@media (min-width: 901px) and (max-width: 1400px) {
+  .ord-table-wrap th,
+  .ord-table-wrap td { padding-left: 7px; padding-right: 7px; }
+  .ord-table-wrap td:nth-child(3) { min-width: 150px; }
+  .ord-table-wrap .btn.small { padding: 6px 9px; }
+}
+
+/* Telefonda sabit sütun ekranın yarısını kaplardı — orada normal
+   yatay kaydırma daha kullanışlı. */
+@media (max-width: 900px) {
+  .ord-table-wrap th.ord-actions,
+  .ord-table-wrap td.ord-actions {
+    position: static;
+    box-shadow: none;
+  }
+}
+
 /* Sipariş durumu — her aşama kendi rengiyle, listede tek bakışta ayrışsın */
 .status-select {
   font-weight: 700;
