@@ -6,6 +6,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { customerTitle, normalizeCity, type Customer } from "@/lib/customers";
+import { eslesir } from "@/lib/search-norm";
 
 export default function CustomerPicker({
   value,
@@ -43,13 +44,13 @@ export default function CustomerPicker({
   }, []);
 
   const matches = useMemo(() => {
-    const q = value.trim().toLowerCase();
+    // eslesir(): Türkçe karakter ve büyük/küçük harf duyarsız arama.
+    // Düz toLowerCase() yetmiyor — "YILMAZ".toLowerCase() "yilmaz" verir,
+    // kullanıcı "yılmaz" yazınca eşleşmezdi.
+    const q = value.trim();
     const list = q
       ? customers.filter((c) =>
-          [customerTitle(c), c.company, c.firstName, c.lastName, c.phone, c.city]
-            .join(" ")
-            .toLowerCase()
-            .includes(q)
+          eslesir(q, customerTitle(c), c.company, c.firstName, c.lastName, c.phone, c.city)
         )
       : customers;
     return list.slice(0, 8);
