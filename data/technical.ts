@@ -12,6 +12,9 @@ export interface TechnicalProduct {
   priceTL?: number;
   isKarton?: boolean;
   stok?: StockStatus;
+  // Ürün görseli (tam URL). Sipariş formundaki seçicide küçük önizleme
+  // olarak çıkar. Boş bırakılabilir — görseller zamanla eklenir.
+  image?: string;
 }
 
 export const TECHNICAL_PRODUCTS: TechnicalProduct[] = [

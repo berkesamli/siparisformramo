@@ -2,14 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { FRAME_PROFILES, findProfile, boyLength, koliBoyText } from "@/data/catalog";
-import {
-  TECHNICAL_PRODUCTS,
-  getTechnicalProduct,
-  technicalByCategory,
-} from "@/data/technical";
+import { TECHNICAL_PRODUCTS, getTechnicalProduct } from "@/data/technical";
 import { GLASS_TYPES, GLASS_SIZES, AYNA_SIZES, plateM2 } from "@/data/glass";
 import { kurus, kesin, fmtQty, fmtPrice, fmtTL } from "@/lib/num";
 import CustomerPicker from "@/components/CustomerPicker";
+import TechnicalPicker from "@/components/TechnicalPicker";
 import OrderTextImport, { type ParsedLine } from "@/components/OrderTextImport";
 
 type Kind = "frame" | "glass" | "ayna" | "technical" | "other";
@@ -384,7 +381,6 @@ export default function OrderForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const techCategories = useMemo(() => technicalByCategory(), []);
   const rateNum = parseFloat(rate) || 0;
   const euroNum = parseFloat(euroRate) || 0;
 
@@ -807,23 +803,22 @@ export default function OrderForm({
 
               {row.kind === "technical" && (
                 <>
-                  <div>
+                  <div style={{ minWidth: 230 }}>
                     <label>Ürün</label>
-                    <select
+                    {/* 117 ürünlük açılır listede aşağıya inmek zordu —
+                        aranabilir seçici kullanılıyor. */}
+                    <TechnicalPicker
                       value={row.techCode}
-                      onChange={(e) => update(row.id, { techCode: e.target.value })}
-                    >
-                      <option value="">Ürün Seçiniz…</option>
-                      {Object.entries(techCategories).map(([cat, products]) => (
-                        <optgroup key={cat} label={cat}>
-                          {products.map((t) => (
-                            <option key={t.code} value={t.code}>
-                              {t.name}
-                            </option>
-                          ))}
-                        </optgroup>
-                      ))}
-                    </select>
+                      onPick={(t) =>
+                        update(row.id, {
+                          techCode: t.code,
+                          // Fiyat alanı boşsa listedeki fiyatla dolsun
+                          kutuPrice:
+                            row.kutuPrice ||
+                            String(t.priceTL ?? t.priceEUR ?? ""),
+                        })
+                      }
+                    />
                   </div>
                   {tech?.isKarton && (
                     <div>
