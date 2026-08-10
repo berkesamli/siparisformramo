@@ -446,7 +446,7 @@ export default function OrdersList({
                     {sadeceKontrolsuz
                       ? "🎉 Son 7 günün tüm siparişleri kontrol edildi."
                       : tamamlananlar
-                        ? "Bu aralıkta tamamlanmış sipariş yok. Bir siparişin buraya düşmesi için durumu “Tamamlandı”, ödemesi alınmış ve kontrol edilmiş olmalı."
+                        ? "Bu aralıkta tamamlanmış sipariş yok. Bir siparişin buraya düşmesi için durumu “Tamamlandı” olmalı ve kontrol edilmiş olmalı."
                         : "Bu filtreye uyan sipariş yok."}
                   </td>
                 </tr>

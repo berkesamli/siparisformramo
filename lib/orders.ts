@@ -33,16 +33,16 @@ export function orderBalance(o: {
 }
 
 /**
- * Sipariş "tamamlandı" sayılır: üretimi bitmiş + ödemesi alınmış + merkez
- * kontrolünden geçmiş. Bu üçü tamamlanınca sipariş aktif listeden çıkar,
- * "Tamamlanan Siparişler" bölümünde arşivlenir.
+ * Sipariş "tamamlandı" sayılır: durumu tamamlandı + merkez kontrolünden
+ * geçmiş. Bu iki şart sağlanınca sipariş aktif listeden çıkar, "Tamamlanan
+ * Siparişler" bölümünde arşivlenir. Ödeme durumu ayrı takip edilir (cari
+ * hesapta izlenir), arşivlemeyi engellemez.
  */
 export function siparisTamamlandi(o: {
   status: OrderStatus;
-  payment?: PaymentStatus;
   kontrol?: { by: string; at: string };
 }): boolean {
-  return o.status === "tamamlandi" && o.payment === "odendi" && !!o.kontrol;
+  return o.status === "tamamlandi" && !!o.kontrol;
 }
 
 export interface SavedOrder {
