@@ -13,6 +13,7 @@ import {
   type Branch,
   type Customer,
 } from "@/lib/customers";
+import { eslesir } from "@/lib/search-norm";
 
 const BOS: Omit<Customer, "id" | "createdAt" | "updatedAt"> = {
   firstName: "",
@@ -90,15 +91,18 @@ export default function LabelManager() {
   }, [customers]);
 
   const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    // eslesir(): Türkçe karakter ve büyük/küçük harf duyarsız.
+    // Düz toLowerCase() yetmiyordu — "YILMAZ".toLowerCase() "yilmaz" verir,
+    // kullanıcı "yılmaz" yazınca kayıt bulunamıyordu.
+    const q = query.trim();
     return customers.filter((c) => {
       if (cityFilter && normalizeCity(c.city) !== cityFilter) return false;
       if (!q) return true;
-      const hay = [
+      return eslesir(
+        q,
         customerTitle(c), c.company, c.firstName, c.lastName, c.email,
-        c.phone, c.addr1, c.addr2, c.city, c.district,
-      ].join(" ").toLowerCase();
-      return hay.includes(q);
+        c.phone, c.addr1, c.addr2, c.city, c.district
+      );
     });
   }, [customers, query, cityFilter]);
 
