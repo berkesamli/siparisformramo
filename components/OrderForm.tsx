@@ -312,6 +312,9 @@ export default function OrderForm({
   const [vat, setVat] = useState(initialOrder?.vatApplied ?? false);
   const [sending, setSending] = useState(false);
   const [ratesAuto, setRatesAuto] = useState(false);
+  // Günün kuru yetkili tarafından belirlendiyse çalışanlarda alan kilitlenir
+  const [kurKilitli, setKurKilitli] = useState<{ by: string; at: string } | null>(null);
+  const [kurYetkilisi, setKurYetkilisi] = useState(false);
   const [result, setResult] = useState<{
     ok: boolean;
     msg: string;
@@ -342,12 +345,16 @@ export default function OrderForm({
     return () => clearTimeout(t);
   }, [customer, customerId, initialOrder]);
 
-  // Günün kuru daha önce girildiyse formu otomatik doldur
+  // Günün kuru daha önce girildiyse formu otomatik doldur.
+  // Kur yetkili (firma sahibi) tarafından belirlendiyse alan kilitlenir —
+  // herkes aynı kurdan sipariş girsin diye.
   useEffect(() => {
     fetch("/api/rates")
       .then((r) => r.json())
       .then((d) => {
-        if (d.ok && d.rates) {
+        if (!d.ok) return;
+        if (d.yetkili) setKurYetkilisi(true);
+        if (d.rates) {
           let used = false;
           if (d.rates.rate > 0) {
             setRate((prev) => {
@@ -364,6 +371,13 @@ export default function OrderForm({
             });
           }
           if (used) setRatesAuto(true);
+          // Düzenlemede sipariş kendi kurunu korur — kilit uygulanmaz
+          if (d.rates.sabit && !d.yetkili && !initialOrder) {
+            setKurKilitli({ by: d.rates.by, at: d.rates.updatedAt });
+            // Kilitliyse formdaki değer her hâlükârda günün kuru olsun
+            if (d.rates.rate > 0) setRate(String(d.rates.rate));
+            if (d.rates.euroRate > 0) setEuroRate(String(d.rates.euroRate));
+          }
         }
       })
       .catch(() => {});
@@ -520,6 +534,8 @@ export default function OrderForm({
             value={rate}
             onChange={(e) => setRate(e.target.value)}
             placeholder="örn. 45"
+            disabled={!!kurKilitli}
+            title={kurKilitli ? "Günün kuru yetkili tarafından belirlendi" : undefined}
           />
         </div>
         <div>
@@ -530,14 +546,39 @@ export default function OrderForm({
             value={euroRate}
             onChange={(e) => setEuroRate(e.target.value)}
             placeholder="örn. 48"
+            disabled={!!kurKilitli}
+            title={kurKilitli ? "Günün kuru yetkili tarafından belirlendi" : undefined}
           />
         </div>
       </div>
-      {ratesAuto && (
+      {kurKilitli ? (
         <p style={{ color: "var(--muted)", fontSize: 12, marginTop: 6 }}>
-          💡 Bugün için girilen kur otomatik yüklendi — gerekirse
-          değiştirebilirsiniz.
+          🔒 Günün kuru <b>{kurKilitli.by}</b> tarafından belirlendi (
+          {new Date(kurKilitli.at).toLocaleTimeString("tr-TR", {
+            hour: "2-digit",
+            minute: "2-digit",
+            timeZone: "Europe/Istanbul",
+          })}
+          ) — siparişler bu kurdan girilir.
         </p>
+      ) : (
+        <>
+          {ratesAuto && (
+            <p style={{ color: "var(--muted)", fontSize: 12, marginTop: 6 }}>
+              💡 Bugün için girilen kur otomatik yüklendi — gerekirse
+              değiştirebilirsiniz.
+            </p>
+          )}
+          {kurYetkilisi && (
+            <p style={{ color: "var(--muted)", fontSize: 12, marginTop: 6 }}>
+              💱 Günün kurunu{" "}
+              <a href="/panel/kur" style={{ fontWeight: 700 }}>
+                Günlük Kur
+              </a>{" "}
+              ekranından belirlerseniz tüm çalışanlar aynı kurdan sipariş girer.
+            </p>
+          )}
+        </>
       )}
 
       {/* Mükerrer sipariş uyarısı — aynı müşteriye başka bir çalışan

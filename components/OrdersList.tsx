@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import {
   orderBalance,
+  siparisTamamlandi,
   PAYMENT_LABELS,
   type SavedOrder,
   type OrderStatus,
@@ -28,10 +29,16 @@ const fmt = (n: number) =>
     maximumFractionDigits: 2,
   });
 
-const visibleCount = (list: SavedOrder[], durum: string) =>
-  list.filter((o) => durum === "all" || o.status === durum).length;
 
-export default function OrdersList({ eldenSatis = false }: { eldenSatis?: boolean }) {
+export default function OrdersList({
+  eldenSatis = false,
+  // Arşiv modu: yalnızca tamamlanmış siparişleri (durum + ödeme + kontrol)
+  // listeler. Normal modda bu siparişler aktif listeden gizlenir.
+  tamamlananlar = false,
+}: {
+  eldenSatis?: boolean;
+  tamamlananlar?: boolean;
+}) {
   const [filter, setFilter] = useState<{ range?: string; date?: string; q?: string }>({
     range: "today",
   });
@@ -148,15 +155,21 @@ export default function OrdersList({ eldenSatis = false }: { eldenSatis?: boolea
 
   const visible = (orders || []).filter(
     (o) =>
+      // Tamamlananlar arşivde, diğerleri aktif listede
+      siparisTamamlandi(o) === tamamlananlar &&
       (statusFilter === "all" || o.status === statusFilter) &&
       (!sadeceKontrolsuz || !o.kontrol)
   );
+  // Aktif listede gizlenen tamamlanmış sipariş sayısı (arşive yönlendirme için)
+  const arsivlenen = tamamlananlar
+    ? 0
+    : (orders || []).filter((o) => siparisTamamlandi(o)).length;
 
   return (
     <div className="card">
       {/* Mesai sonrası girilen siparişler ertesi sabah gözden kaçmasın:
           son 7 günün kontrol edilmemişleri her filtrede üstte uyarır. */}
-      {(kontrolsuzSayi ?? 0) > 0 && !sadeceKontrolsuz && (
+      {(kontrolsuzSayi ?? 0) > 0 && !sadeceKontrolsuz && !tamamlananlar && (
         <div
           className="notice info"
           style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", marginBottom: 14 }}
@@ -230,7 +243,7 @@ export default function OrdersList({ eldenSatis = false }: { eldenSatis?: boolea
       {filter.q && (
         <div className="notice info" style={{ marginBottom: 12 }}>
           🔍 <b>&quot;{filter.q}&quot;</b> için tüm sipariş geçmişinde arama sonuçları
-          {orders ? ` — ${visibleCount(orders, statusFilter)} sipariş bulundu.` : "…"}
+          {orders ? ` — ${visible.length} sipariş bulundu.` : "…"}
         </div>
       )}
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginBottom: 16 }}>
@@ -277,7 +290,21 @@ export default function OrdersList({ eldenSatis = false }: { eldenSatis?: boolea
         <button className="btn small secondary" onClick={load}>
           ↻ Yenile
         </button>
-        {eldenSatis && (
+        {!tamamlananlar && (
+          <Link
+            className="btn small secondary"
+            href="/panel/siparisler/tamamlanan"
+            title="Durumu tamamlandı, ödemesi alınmış ve kontrol edilmiş siparişler"
+          >
+            ✅ Tamamlananlar{arsivlenen > 0 ? ` (${arsivlenen})` : ""}
+          </Link>
+        )}
+        {tamamlananlar && (
+          <Link className="btn small secondary" href="/panel/siparisler">
+            ← Aktif Siparişler
+          </Link>
+        )}
+        {eldenSatis && !tamamlananlar && (
           <button
             className="btn small"
             title="Ayaküstü perakende / teknik malzeme satışı — siparişsiz kasa girişi"
@@ -418,7 +445,9 @@ export default function OrdersList({ eldenSatis = false }: { eldenSatis?: boolea
                   <td colSpan={9} style={{ color: "var(--muted)" }}>
                     {sadeceKontrolsuz
                       ? "🎉 Son 7 günün tüm siparişleri kontrol edildi."
-                      : "Bu filtreye uyan sipariş yok."}
+                      : tamamlananlar
+                        ? "Bu aralıkta tamamlanmış sipariş yok. Bir siparişin buraya düşmesi için durumu “Tamamlandı”, ödemesi alınmış ve kontrol edilmiş olmalı."
+                        : "Bu filtreye uyan sipariş yok."}
                   </td>
                 </tr>
               )}

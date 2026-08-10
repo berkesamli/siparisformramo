@@ -41,12 +41,17 @@ export default function NavBar({ user }: { user: NavUser | null }) {
     links.push({ href: "/panel/maliyet", label: "Maliyet" });
   }
   if (user?.role === "staff" && user.owner) {
+    links.push({ href: "/panel/kur", label: "Günlük Kur" });
     links.push({ href: "/panel/raporlar", label: "Raporlar" });
   }
-  // Çekmece menüde Stok Yükle de listelensin
+  // Çekmece menüde Stok Yükle ve Tamamlananlar da listelensin
   const drawerLinks =
     user?.role === "staff"
-      ? [...links, { href: "/panel/stok", label: "Stok Yükle" }]
+      ? [
+          ...links,
+          { href: "/panel/siparisler/tamamlanan", label: "Tamamlanan Siparişler" },
+          { href: "/panel/stok", label: "Stok Yükle" },
+        ]
       : links;
 
   async function logout() {
