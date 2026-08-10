@@ -32,6 +32,19 @@ export function orderBalance(o: {
   return Math.max(0, Math.round((o.net - paid) * 100) / 100);
 }
 
+/**
+ * Sipariş "tamamlandı" sayılır: üretimi bitmiş + ödemesi alınmış + merkez
+ * kontrolünden geçmiş. Bu üçü tamamlanınca sipariş aktif listeden çıkar,
+ * "Tamamlanan Siparişler" bölümünde arşivlenir.
+ */
+export function siparisTamamlandi(o: {
+  status: OrderStatus;
+  payment?: PaymentStatus;
+  kontrol?: { by: string; at: string };
+}): boolean {
+  return o.status === "tamamlandi" && o.payment === "odendi" && !!o.kontrol;
+}
+
 export interface SavedOrder {
   orderId: string;
   dateKey: string; // YYYY-MM-DD (İstanbul)
@@ -229,6 +242,11 @@ export interface DailyRates {
   euroRate: number; // TL/EUR
   updatedAt: string;
   by: string;
+  // Yetkili (firma sahibi) tarafından belirlendiyse true — bu durumda diğer
+  // çalışanların sipariş formunda kur alanı kilitlenir. Kur girilmeden
+  // sipariş alınırsa eski davranış sürer (ilk sipariş günün kurunu yazar,
+  // ama kimseyi kilitlemez).
+  sabit?: boolean;
 }
 
 const ratesPath = (dateKey: string) => `rates/${dateKey}.json`;
