@@ -1083,6 +1083,17 @@ h2 { font-size: 18px; font-weight: 700; margin: 20px 0 12px; }
 }
 .cp-foot:hover { text-decoration: none; background: #f2ece1; }
 
+/* ---- Birim fiyat para birimi seçici ($ / ₺) ---- */
+.fx-wrap { display: flex; gap: 6px; align-items: stretch; }
+.fx-wrap input { flex: 1; min-width: 0; }
+.fx-sel {
+  width: 56px;
+  flex-shrink: 0;
+  padding: 8px 6px;
+  font-weight: 700;
+  text-align: center;
+}
+
 /* ---- Teknik malzeme seçici (aranabilir liste) ---- */
 .tp-menu { max-height: 340px; overflow-y: auto; }
 .tp-cat {

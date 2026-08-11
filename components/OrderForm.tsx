@@ -19,8 +19,9 @@ interface Row {
   unit: "metre" | "boy" | "koli";
   qty: string;
   usd: string;
-  // Elle TL/mt — doluysa USD × kur yerine bu fiyat geçer (47,85 → 47 gibi
-  // müşteriyle anlaşılan yuvarlak fiyatlar için).
+  // Birim fiyat para birimi: varsayılan USD (liste fiyatı × kur). Müşteriyle
+  // yuvarlak TL anlaşıldığında (47,85 → 47) ₺ seçilir, aynı kutuya TL yazılır.
+  fx: "usd" | "tl";
   tl: string;
   // glass / ayna
   glassType: string;
@@ -46,6 +47,7 @@ const emptyRow = (): Row => ({
   unit: "metre",
   qty: "",
   usd: "",
+  fx: "usd",
   tl: "",
   glassType: "duz",
   sizeIndex: 0,
@@ -95,9 +97,10 @@ function computeRow(row: Row, rate: number, euroRate: number): ComputedLine | nu
     const qty = parseFloat(row.qty) || 0;
     if (!row.code.trim() || qty <= 0) return null;
     const usd = parseFloat(row.usd) || profile?.priceUSD || 0;
-    // Elle TL fiyat girildiyse o geçerli; boşsa USD × kur
+    // ₺ seçiliyse kutudaki TL fiyat geçerli; USD'de (veya TL boşsa) USD × kur
     const tlManuel = parseFloat(row.tl) || 0;
-    const unitPriceTL = tlManuel > 0 ? kesin(tlManuel) : kesin(usd * rate);
+    const unitPriceTL =
+      row.fx === "tl" && tlManuel > 0 ? kesin(tlManuel) : kesin(usd * rate);
     let metres = qty;
     if (profile) {
       const bl = boyLength(profile);
@@ -704,39 +707,52 @@ export default function OrderForm({
                     />
                   </div>
                   <div>
-                    <label>USD/mt</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={row.usd}
-                      onChange={(e) => update(row.id, { usd: e.target.value })}
-                      placeholder={profile ? String(profile.priceUSD) : "USD"}
-                      disabled={!!(parseFloat(row.tl) > 0)}
-                      title={
-                        parseFloat(row.tl) > 0
-                          ? "Elle TL fiyat girildi — USD fiyatı devre dışı"
-                          : undefined
-                      }
-                    />
-                  </div>
-                  <div>
-                    <label>TL/mt (elle)</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={row.tl}
-                      onChange={(e) => update(row.id, { tl: e.target.value })}
-                      placeholder={
-                        rateNum > 0 && (parseFloat(row.usd) || profile?.priceUSD)
-                          ? `oto ₺${fmtPrice(
-                              kesin(
-                                (parseFloat(row.usd) || profile?.priceUSD || 0) * rateNum
-                              )
-                            )}`
-                          : "boş = USD×kur"
-                      }
-                      title="Müşteriyle anlaşılan yuvarlak TL fiyat — doluysa USD×kur yerine bu geçer"
-                    />
+                    <label>{row.fx === "tl" ? "TL/mt (elle)" : "USD/mt"}</label>
+                    {/* Tek fiyat kutusu + para birimi seçici. Varsayılan $:
+                        liste fiyatı × kur. Müşteriyle yuvarlak TL anlaşılırsa
+                        (47,85 → 47) ₺ seçilir, aynı kutuya TL yazılır. */}
+                    <div className="fx-wrap">
+                      <select
+                        className="fx-sel"
+                        value={row.fx}
+                        onChange={(e) =>
+                          update(row.id, { fx: e.target.value as Row["fx"] })
+                        }
+                        title="Fiyat para birimi — ₺ seçilirse kur yerine yazdığınız TL geçer"
+                      >
+                        <option value="usd">$</option>
+                        <option value="tl">₺</option>
+                      </select>
+                      {row.fx === "tl" ? (
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={row.tl}
+                          onChange={(e) => update(row.id, { tl: e.target.value })}
+                          placeholder={
+                            rateNum > 0 &&
+                            (parseFloat(row.usd) || profile?.priceUSD)
+                              ? `oto ₺${fmtPrice(
+                                  kesin(
+                                    (parseFloat(row.usd) ||
+                                      profile?.priceUSD ||
+                                      0) * rateNum
+                                  )
+                                )}`
+                              : "TL fiyat"
+                          }
+                          title="Elle TL/mt — boş bırakılırsa USD × kur kullanılır"
+                        />
+                      ) : (
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={row.usd}
+                          onChange={(e) => update(row.id, { usd: e.target.value })}
+                          placeholder={profile ? String(profile.priceUSD) : "USD"}
+                        />
+                      )}
+                    </div>
                   </div>
                 </>
               )}
