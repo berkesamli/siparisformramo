@@ -47,10 +47,13 @@ export async function GET(req: NextRequest) {
   const inRange = (dateKey: string) => (ay ? dateKey.startsWith(ay) : true);
   const inSube = (b?: string) => (sube ? (b || "belirsiz") === sube : true);
 
-  const [wholesale, retail] = await Promise.all([
+  const [wholesaleAll, retailAll] = await Promise.all([
     listAllOrders(),
     listAllRetailOrders(),
   ]);
+  // İptal edilen siparişler hiçbir rapora/ciroya dahil edilmez
+  const wholesale = wholesaleAll.filter((o) => o.status !== "iptal");
+  const retail = retailAll.filter((o) => o.status !== "İptal");
 
   const w = wholesale.filter((o) => inRange(o.dateKey) && inSube(o.branch));
   const r = retail.filter((o) => inRange(o.dateKey) && inSube(o.branch));

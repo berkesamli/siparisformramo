@@ -41,8 +41,9 @@ export async function GET(req: NextRequest) {
   }
 
   const ay = req.nextUrl.searchParams.get("ay") || "";
-  const orders = (await listAllOrders()).filter((o) =>
-    ay ? o.dateKey.startsWith(ay) : true
+  // İptal edilen siparişler satış/kâr analizine girmez
+  const orders = (await listAllOrders()).filter(
+    (o) => o.status !== "iptal" && (ay ? o.dateKey.startsWith(ay) : true)
   );
   const indeks = kodIndeksi(data);
 

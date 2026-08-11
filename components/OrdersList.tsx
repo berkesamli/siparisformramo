@@ -15,12 +15,7 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
   olusturuldu: "Oluşturuldu",
   hazirlaniyor: "Hazırlanıyor",
   tamamlandi: "Tamamlandı",
-};
-
-const STATUS_COLORS: Record<OrderStatus, string> = {
-  olusturuldu: "az",
-  hazirlaniyor: "var",
-  tamamlandi: "var",
+  iptal: "İptal",
 };
 
 const fmt = (n: number) =>
@@ -57,8 +52,11 @@ export default function OrdersList({
       const res = await fetch("/api/orders?range=week");
       const data = await res.json();
       if (data.ok) {
+        // İptal edilen sipariş kontrol beklemez
         setKontrolsuzSayi(
-          (data.orders as SavedOrder[]).filter((o) => !o.kontrol).length
+          (data.orders as SavedOrder[]).filter(
+            (o) => !o.kontrol && o.status !== "iptal"
+          ).length
         );
       }
     } catch {
@@ -93,6 +91,15 @@ export default function OrdersList({
   }, [load]);
 
   async function changeStatus(o: SavedOrder, status: OrderStatus) {
+    // İptal geri alınabilir ama ciddi bir işlem — önce onay iste
+    if (status === "iptal") {
+      const onay = confirm(
+        `${o.orderId} — ${o.customer || "müşteri"} siparişi iptal edilsin mi?\n\n` +
+          "İptal edilen sipariş silinmez ama ciroya, raporlara ve müşteri " +
+          "bakiyesine dahil edilmez. Gerekirse durumu tekrar değiştirilebilir."
+      );
+      if (!onay) return;
+    }
     // iyimser güncelleme
     setOrders((os) =>
       (os || []).map((x) => (x.orderId === o.orderId ? { ...x, status } : x))
@@ -158,7 +165,8 @@ export default function OrdersList({
       // Tamamlananlar arşivde, diğerleri aktif listede
       siparisTamamlandi(o) === tamamlananlar &&
       (statusFilter === "all" || o.status === statusFilter) &&
-      (!sadeceKontrolsuz || !o.kontrol)
+      // Kontrol bekleyenler görünümünde iptaller listelenmez
+      (!sadeceKontrolsuz || (!o.kontrol && o.status !== "iptal"))
   );
   // Aktif listede gizlenen tamamlanmış sipariş sayısı (arşive yönlendirme için)
   const arsivlenen = tamamlananlar
@@ -286,6 +294,7 @@ export default function OrdersList({
           <option value="olusturuldu">Oluşturuldu</option>
           <option value="hazirlaniyor">Hazırlanıyor</option>
           <option value="tamamlandi">Tamamlandı</option>
+          <option value="iptal">İptal</option>
         </select>
         <button className="btn small secondary" onClick={load}>
           ↻ Yenile
@@ -349,7 +358,16 @@ export default function OrdersList({
                   </td>
                   <td>{o.customer || "—"}</td>
                   <td>{o.employee}</td>
-                  <td style={{ whiteSpace: "nowrap" }}>₺ {fmt(o.net)}</td>
+                  <td
+                    style={{
+                      whiteSpace: "nowrap",
+                      // İptalde tutar üstü çizili — ciroya girmediği belli olsun
+                      textDecoration: o.status === "iptal" ? "line-through" : undefined,
+                      color: o.status === "iptal" ? "var(--muted)" : undefined,
+                    }}
+                  >
+                    ₺ {fmt(o.net)}
+                  </td>
                   <td>
                     <select
                       className={`status-select ${o.status}`}

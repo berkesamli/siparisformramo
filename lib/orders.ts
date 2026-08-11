@@ -4,13 +4,22 @@
 import type { OrderLine } from "./notify";
 import { kurus } from "./num";
 
-export type OrderStatus = "olusturuldu" | "hazirlaniyor" | "tamamlandi";
+export type OrderStatus = "olusturuldu" | "hazirlaniyor" | "tamamlandi" | "iptal";
 
 export const STATUS_LABELS: Record<OrderStatus, string> = {
   olusturuldu: "Oluşturuldu",
   hazirlaniyor: "Hazırlanıyor",
   tamamlandi: "Tamamlandı",
+  iptal: "İptal",
 };
+
+/**
+ * İptal edilen sipariş silinmez (kaydı ve fişi durur) ama ciroya,
+ * raporlara, cari bakiyeye ve maliyet analizine dahil edilmez.
+ */
+export function siparisIptal(o: { status: OrderStatus }): boolean {
+  return o.status === "iptal";
+}
 
 // ---- Ödeme (cari) takibi ----
 export type PaymentStatus = "bekliyor" | "kismi" | "odendi";

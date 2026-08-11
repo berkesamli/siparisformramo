@@ -51,6 +51,8 @@ export async function GET(req: Request) {
     const orders = hepsi.filter(
       (o) =>
         izin.has(o.dateKey) &&
+        // İptal edilen sipariş mükerrer uyarısına girmez
+        o.status !== "iptal" &&
         (musteri
           ? o.customerId === musteri
           : eslesir(musteriAd, o.customer))

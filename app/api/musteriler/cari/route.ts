@@ -70,6 +70,8 @@ export async function GET(req: NextRequest) {
   wholesale.forEach((o: SavedOrder) => {
     const mine = o.customerId ? o.customerId === id : matchesName(o.customer);
     if (!mine) return;
+    // İptal edilen sipariş cari bakiyeye ve hareketlere girmez
+    if (o.status === "iptal") return;
     const paid = o.payment === "odendi" ? o.net : Number(o.paidAmount) || 0;
     entries.push({
       kind: "toptan",
@@ -86,6 +88,7 @@ export async function GET(req: NextRequest) {
   retail.forEach((o: SavedRetailOrder) => {
     const mine = o.customerId ? o.customerId === id : matchesName(o.customerName);
     if (!mine) return;
+    if (o.status === "İptal") return;
     const paid = o.payment === "odendi" ? o.total : Number(o.paidAmount) || 0;
     entries.push({
       kind: "perakende",
