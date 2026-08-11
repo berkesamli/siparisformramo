@@ -19,6 +19,9 @@ interface Row {
   unit: "metre" | "boy" | "koli";
   qty: string;
   usd: string;
+  // Elle TL/mt — doluysa USD × kur yerine bu fiyat geçer (47,85 → 47 gibi
+  // müşteriyle anlaşılan yuvarlak fiyatlar için).
+  tl: string;
   // glass / ayna
   glassType: string;
   sizeIndex: number;
@@ -43,6 +46,7 @@ const emptyRow = (): Row => ({
   unit: "metre",
   qty: "",
   usd: "",
+  tl: "",
   glassType: "duz",
   sizeIndex: 0,
   plakaAdet: "",
@@ -91,7 +95,9 @@ function computeRow(row: Row, rate: number, euroRate: number): ComputedLine | nu
     const qty = parseFloat(row.qty) || 0;
     if (!row.code.trim() || qty <= 0) return null;
     const usd = parseFloat(row.usd) || profile?.priceUSD || 0;
-    const unitPriceTL = kesin(usd * rate);
+    // Elle TL fiyat girildiyse o geçerli; boşsa USD × kur
+    const tlManuel = parseFloat(row.tl) || 0;
+    const unitPriceTL = tlManuel > 0 ? kesin(tlManuel) : kesin(usd * rate);
     let metres = qty;
     if (profile) {
       const bl = boyLength(profile);
@@ -705,6 +711,31 @@ export default function OrderForm({
                       value={row.usd}
                       onChange={(e) => update(row.id, { usd: e.target.value })}
                       placeholder={profile ? String(profile.priceUSD) : "USD"}
+                      disabled={!!(parseFloat(row.tl) > 0)}
+                      title={
+                        parseFloat(row.tl) > 0
+                          ? "Elle TL fiyat girildi — USD fiyatı devre dışı"
+                          : undefined
+                      }
+                    />
+                  </div>
+                  <div>
+                    <label>TL/mt (elle)</label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      value={row.tl}
+                      onChange={(e) => update(row.id, { tl: e.target.value })}
+                      placeholder={
+                        rateNum > 0 && (parseFloat(row.usd) || profile?.priceUSD)
+                          ? `oto ₺${fmtPrice(
+                              kesin(
+                                (parseFloat(row.usd) || profile?.priceUSD || 0) * rateNum
+                              )
+                            )}`
+                          : "boş = USD×kur"
+                      }
+                      title="Müşteriyle anlaşılan yuvarlak TL fiyat — doluysa USD×kur yerine bu geçer"
                     />
                   </div>
                 </>

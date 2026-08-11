@@ -1194,6 +1194,11 @@ h2 { font-size: 18px; font-weight: 700; margin: 20px 0 12px; }
   border-color: #86ceA3;
   color: #14663a;
 }
+.status-select.iptal {
+  background: #fdeaea;
+  border-color: #e39a9a;
+  color: #a12626;
+}
 
 .cari-cards {
   display: grid;
