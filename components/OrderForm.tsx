@@ -37,6 +37,9 @@ interface Row {
   name: string;
   otherQty: string;
   otherPrice: string;
+  // Satır iskontosu (%) — her satırda ayrı oran olabilir (çerçevede %10,
+  // teknik malzemede %5 gibi). Genel iskonto özetten ayrıca uygulanır.
+  iskonto: string;
 }
 
 let rowSeq = 1;
@@ -60,6 +63,7 @@ const emptyRow = (): Row => ({
   name: "",
   otherQty: "",
   otherPrice: "",
+  iskonto: "",
 });
 
 // Miktar ve birim fiyatlar tam hassasiyetle (kesin) taşınır; yuvarlama
@@ -91,6 +95,28 @@ interface ComputedLine {
   lineTotal: number;
 }
 
+/**
+ * Satır iskontosunu uygular: indirim birim fiyata yansır ki fişte
+ * miktar × birim fiyat = tutar her zaman birebir tutsun; oran ürün
+ * adının yanına yazılır, müşteri de görebilir.
+ */
+function satirBitir(
+  row: Row,
+  name: string,
+  unitText: string,
+  unitPriceTL: number,
+  qtyNum: number
+): ComputedLine {
+  const pct = Math.min(100, Math.max(0, parseFloat(row.iskonto) || 0));
+  const birim = pct > 0 ? kesin(unitPriceTL * (1 - pct / 100)) : unitPriceTL;
+  return {
+    name: pct > 0 ? `${name} (%${fmtQty(pct)} isk.)` : name,
+    unitText,
+    unitPriceTL: birim,
+    lineTotal: kurus(qtyNum * birim),
+  };
+}
+
 function computeRow(row: Row, rate: number, euroRate: number): ComputedLine | null {
   if (row.kind === "frame") {
     const profile = findProfile(row.code);
@@ -115,12 +141,13 @@ function computeRow(row: Row, rate: number, euroRate: number): ComputedLine | nu
     }
     // Model seçilince kutuya otomatik "-" eklenir; renk yazılmadan
     // gönderilirse sondaki tire ürün adına taşınmasın.
-    return {
-      name: row.code.trim().toUpperCase().replace(/-+$/, ""),
+    return satirBitir(
+      row,
+      row.code.trim().toUpperCase().replace(/-+$/, ""),
       unitText,
       unitPriceTL,
-      lineTotal: kurus(metres * unitPriceTL),
-    };
+      metres
+    );
   }
 
   if (row.kind === "glass") {
@@ -135,13 +162,14 @@ function computeRow(row: Row, rate: number, euroRate: number): ComputedLine | nu
     const priceTL = row.glassType === "muze" ? kesin(price * euroRate) : price;
     const typeName =
       GLASS_TYPES.find((g) => g.key === row.glassType)?.name || "Cam";
-    return {
-      name: typeName,
+    return satirBitir(
+      row,
+      typeName,
       // Faturalanan miktar başta: miktar × birim fiyat = satır tutarı
-      unitText: `${fmtQty(totalM2)} m² · ${plaka} plaka × ${fmtQty(m2PerPlaka)} (${size.label})`,
-      unitPriceTL: priceTL,
-      lineTotal: kurus(totalM2 * priceTL),
-    };
+      `${fmtQty(totalM2)} m² · ${plaka} plaka × ${fmtQty(m2PerPlaka)} (${size.label})`,
+      priceTL,
+      totalM2
+    );
   }
 
   if (row.kind === "ayna") {
@@ -151,12 +179,13 @@ function computeRow(row: Row, rate: number, euroRate: number): ComputedLine | nu
     if (plaka <= 0 || price <= 0) return null;
     const m2PerPlaka = plateM2(size);
     const totalM2 = kesin(plaka * m2PerPlaka);
-    return {
-      name: "Ayna",
-      unitText: `${fmtQty(totalM2)} m² · ${plaka} plaka × ${fmtQty(m2PerPlaka)} (${size.label})`,
-      unitPriceTL: price,
-      lineTotal: kurus(totalM2 * price),
-    };
+    return satirBitir(
+      row,
+      "Ayna",
+      `${fmtQty(totalM2)} m² · ${plaka} plaka × ${fmtQty(m2PerPlaka)} (${size.label})`,
+      price,
+      totalM2
+    );
   }
 
   if (row.kind === "technical") {
@@ -178,24 +207,20 @@ function computeRow(row: Row, rate: number, euroRate: number): ComputedLine | nu
       ? `${product.name} (${row.kartonKodu.trim()})`
       : product.name;
     const totalAdet = kutu * product.adetPerKutu;
-    return {
-      name: fullName,
-      unitText: `${kutu} kutu × ${product.adetPerKutu} = ${totalAdet} adt (${priceInfo})`,
-      unitPriceTL: kutuPriceTL,
-      lineTotal: kurus(kutu * kutuPriceTL),
-    };
+    return satirBitir(
+      row,
+      fullName,
+      `${kutu} kutu × ${product.adetPerKutu} = ${totalAdet} adt (${priceInfo})`,
+      kutuPriceTL,
+      kutu
+    );
   }
 
   // other
   const qty = parseFloat(row.otherQty) || 0;
   const price = parseFloat(row.otherPrice) || 0;
   if (!row.name.trim() || qty <= 0) return null;
-  return {
-    name: row.name.trim(),
-    unitText: `${fmtQty(qty)} adt`,
-    unitPriceTL: price,
-    lineTotal: kurus(qty * price),
-  };
+  return satirBitir(row, row.name.trim(), `${fmtQty(qty)} adt`, price, qty);
 }
 
 /** Mükerrer sipariş uyarısında gösterilen özet kayıt. */
@@ -932,6 +957,22 @@ export default function OrderForm({
                   </div>
                 </>
               )}
+
+              {/* Satır iskontosu — her türde geçerli; oran satırdan satıra
+                  değişebilir (çerçeve %10, teknik %5 gibi). */}
+              <div>
+                <label>İskonto %</label>
+                <input
+                  type="number"
+                  step="0.5"
+                  min="0"
+                  max="100"
+                  value={row.iskonto}
+                  onChange={(e) => update(row.id, { iskonto: e.target.value })}
+                  placeholder="0"
+                  title="Bu satıra özel indirim — birim fiyata yansır, fişte oran ürünün yanında görünür"
+                />
+              </div>
             </div>
 
             <div
