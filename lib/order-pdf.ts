@@ -44,7 +44,8 @@ export function generateOrderPdf(order: PdfOrder): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     // font seçeneği ile başlatınca pdfkit standart (Helvetica) fontlarını hiç
     // yüklemez — Türkçe karakterler ve Vercel paketi için gereklidir.
-    const doc = new PDFDocument({ size: "A4", margin: M, font: FONT });
+    // bufferPages: sayfa sayısı bitince belli olur, "Sayfa X/Y" sona yazılır.
+    const doc = new PDFDocument({ size: "A4", margin: M, font: FONT, bufferPages: true });
     const chunks: Buffer[] = [];
     doc.on("data", (c: Buffer) => chunks.push(c));
     doc.on("end", () => resolve(Buffer.concat(chunks)));
@@ -52,6 +53,34 @@ export function generateOrderPdf(order: PdfOrder): Promise<Buffer> {
 
     const W = doc.page.width;
     const pageWidth = W - M * 2;
+
+    // Devam sayfası başlığı — uzun siparişlerde 2. sayfa başka evrakla
+    // karışmasın: firma adı + sipariş no küçük puntoyla her devam
+    // sayfasının üstüne yazılır. Yeni y konumunu döndürür.
+    const devamSayfasi = (): number => {
+      doc.addPage();
+      doc
+        .font(FONT_BOLD)
+        .fontSize(8)
+        .fillColor(BRAND)
+        .text("OLGA ÇERÇEVE", M, 20, { characterSpacing: 1.2, lineBreak: false });
+      doc
+        .font(FONT)
+        .fontSize(8)
+        .fillColor(GRAY)
+        .text(`Sipariş Fişi ${order.orderId} — devam`, M, 20, {
+          width: pageWidth,
+          align: "right",
+          lineBreak: false,
+        });
+      doc
+        .moveTo(M, 34)
+        .lineTo(M + pageWidth, 34)
+        .strokeColor(BRAND)
+        .lineWidth(0.8)
+        .stroke();
+      return 46;
+    };
 
     // ===== Üst alan: beyaz zemin + gerçek logo, altta bronz ayraç =====
     const bandH = 96;
@@ -146,8 +175,7 @@ export function generateOrderPdf(order: PdfOrder): Promise<Buffer> {
       doc.font(opts.header ? FONT_BOLD : FONT).fontSize(opts.header ? 8.5 : 9);
       const h = cellHeight(texts);
       if (y + h > doc.page.height - 150) {
-        doc.addPage();
-        y = M;
+        y = devamSayfasi();
       }
       if (opts.header) {
         doc.roundedRect(M, y, pageWidth, h, 4).fill(BRAND);
@@ -196,8 +224,7 @@ export function generateOrderPdf(order: PdfOrder): Promise<Buffer> {
     ];
     const totH = 20;
     if (y + totals.length * totH + 60 > doc.page.height - 80) {
-      doc.addPage();
-      y = M;
+      y = devamSayfasi();
     }
     totals.forEach(([k, v, grand]) => {
       if (grand) {
@@ -222,8 +249,7 @@ export function generateOrderPdf(order: PdfOrder): Promise<Buffer> {
       doc.font(FONT).fontSize(9);
       const nh = doc.heightOfString(order.note, { width: pageWidth - 24 }) + 32;
       if (y + nh > doc.page.height - 90) {
-        doc.addPage();
-        y = M;
+        y = devamSayfasi();
       }
       doc.roundedRect(M, y, pageWidth, nh, 6).fill(CREAM);
       doc
@@ -268,6 +294,27 @@ export function generateOrderPdf(order: PdfOrder): Promise<Buffer> {
         fy + 24,
         { width: pageWidth, align: "center", lineBreak: false }
       );
+
+    // Birden çok sayfa olduysa her sayfanın altına sipariş no + sayfa
+    // numarası — kağıtlar ayrı ayrı elden geçse de hangi siparişin kaçıncı
+    // sayfası olduğu belli olur.
+    const sayfalar = doc.bufferedPageRange();
+    if (sayfalar.count > 1) {
+      for (let i = 0; i < sayfalar.count; i++) {
+        doc.switchToPage(i);
+        doc.page.margins.bottom = 0;
+        doc
+          .font(FONT)
+          .fontSize(7.5)
+          .fillColor(GRAY)
+          .text(
+            `${order.orderId} · Sayfa ${i + 1} / ${sayfalar.count}`,
+            M,
+            doc.page.height - 26,
+            { width: pageWidth, align: "right", lineBreak: false }
+          );
+      }
+    }
 
     doc.end();
   });
