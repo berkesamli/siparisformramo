@@ -28,6 +28,9 @@ interface Row {
   sizeIndex: number;
   plakaAdet: string;
   m2Price: string;
+  // Müze camı fiyat para birimi: varsayılan € (liste × euro kuru).
+  // ₺ seçilirse m² fiyatı doğrudan TL yazılır.
+  glassFx: "eur" | "tl";
   // technical
   techCode: string;
   kartonKodu: string;
@@ -56,6 +59,7 @@ const emptyRow = (): Row => ({
   sizeIndex: 0,
   plakaAdet: "",
   m2Price: "",
+  glassFx: "eur",
   techCode: "",
   kartonKodu: "",
   kutuAdet: "",
@@ -158,8 +162,11 @@ function computeRow(row: Row, rate: number, euroRate: number): ComputedLine | nu
     if (!size || plaka <= 0 || price <= 0) return null;
     const m2PerPlaka = plateM2(size);
     const totalM2 = kesin(plaka * m2PerPlaka);
-    // Müze camı EUR fiyatlı, diğerleri TL
-    const priceTL = row.glassType === "muze" ? kesin(price * euroRate) : price;
+    // Müze camı EUR fiyatlı (₺ seçilirse elle TL yazılır), diğerleri TL
+    const priceTL =
+      row.glassType === "muze" && row.glassFx !== "tl"
+        ? kesin(price * euroRate)
+        : price;
     const typeName =
       GLASS_TYPES.find((g) => g.key === row.glassType)?.name || "Cam";
     return satirBitir(
@@ -824,14 +831,49 @@ export default function OrderForm({
                   </div>
                   <div>
                     <label>
-                      m² Fiyatı ({row.glassType === "muze" ? "EUR" : "TL"})
+                      m² Fiyatı (
+                      {row.glassType === "muze"
+                        ? row.glassFx === "tl"
+                          ? "TL, elle"
+                          : "EUR"
+                        : "TL"}
+                      )
                     </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={row.m2Price}
-                      onChange={(e) => update(row.id, { m2Price: e.target.value })}
-                    />
+                    {row.glassType === "muze" ? (
+                      // Müze camı: çerçevedeki $/₺ gibi €/₺ seçilebilir —
+                      // ₺'de m² fiyatı kur hesabı olmadan doğrudan yazılır.
+                      <div className="fx-wrap">
+                        <select
+                          className="fx-sel"
+                          value={row.glassFx}
+                          onChange={(e) =>
+                            update(row.id, {
+                              glassFx: e.target.value as Row["glassFx"],
+                            })
+                          }
+                          title="Fiyat para birimi — ₺ seçilirse euro kuru yerine yazdığınız TL geçer"
+                        >
+                          <option value="eur">€</option>
+                          <option value="tl">₺</option>
+                        </select>
+                        <input
+                          type="number"
+                          step="0.01"
+                          value={row.m2Price}
+                          onChange={(e) =>
+                            update(row.id, { m2Price: e.target.value })
+                          }
+                          placeholder={row.glassFx === "tl" ? "TL/m²" : "EUR/m²"}
+                        />
+                      </div>
+                    ) : (
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={row.m2Price}
+                        onChange={(e) => update(row.id, { m2Price: e.target.value })}
+                      />
+                    )}
                   </div>
                 </>
               )}
