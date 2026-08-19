@@ -72,6 +72,7 @@ export async function GET(req: Request) {
   let dateKeys: string[];
   if (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) dateKeys = [date];
   else if (range === "week") dateKeys = lastNDateKeys(7);
+  else if (range === "days15") dateKeys = lastNDateKeys(15);
   else if (range === "yesterday") dateKeys = [lastNDateKeys(2)[1]];
   else dateKeys = lastNDateKeys(1);
 

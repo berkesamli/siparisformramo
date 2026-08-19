@@ -5,6 +5,7 @@
 // diğer çalışanlar değiştiremez; herkes aynı kurdan sipariş girer.
 
 import { useCallback, useEffect, useState } from "react";
+import { sayi } from "@/lib/num";
 
 interface Rates {
   rate: number;
@@ -50,8 +51,8 @@ export default function GunlukKur() {
   }, [yukle]);
 
   async function kaydet() {
-    const rate = parseFloat(usd) || 0;
-    const euroRate = parseFloat(eur) || 0;
+    const rate = sayi(usd);
+    const euroRate = sayi(eur);
     if (rate <= 0 && euroRate <= 0) {
       setErr("En az bir kur değeri girin.");
       return;
@@ -127,8 +128,8 @@ export default function GunlukKur() {
         <div>
           <label>Dolar Kuru (TL/USD)</label>
           <input
-            type="number"
-            step="0.01"
+            type="text"
+            
             inputMode="decimal"
             value={usd}
             onChange={(e) => setUsd(e.target.value)}
@@ -138,8 +139,8 @@ export default function GunlukKur() {
         <div>
           <label>Euro Kuru (TL/EUR)</label>
           <input
-            type="number"
-            step="0.01"
+            type="text"
+            
             inputMode="decimal"
             value={eur}
             onChange={(e) => setEur(e.target.value)}
