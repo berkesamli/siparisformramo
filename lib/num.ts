@@ -8,6 +8,16 @@
 export const kurus = (n: number): number => Math.round((Number(n) || 0) * 100) / 100;
 
 /**
+ * Form kutusundaki sayıyı çözer — Türkçe ondalık virgülünü kabul eder:
+ * "30,33" → 30.33. parseFloat virgülde kesip 30'a düşürüyordu; personel
+ * fiyatı virgülle yazınca kuruşlar kayboluyordu.
+ */
+export const sayi = (s: string | number | undefined | null): number => {
+  const v = parseFloat(String(s ?? "").trim().replace(",", "."));
+  return Number.isFinite(v) ? v : 0;
+};
+
+/**
  * Hassasiyeti korur, yalnızca kayan nokta gürültüsünü temizler (6 hane).
  * Miktarlar ve birim fiyatlar için kullanılır.
  */

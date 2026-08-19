@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { FRAME_PROFILES, findProfile, boyLength, koliBoyText } from "@/data/catalog";
 import { TECHNICAL_PRODUCTS, getTechnicalProduct } from "@/data/technical";
 import { GLASS_TYPES, GLASS_SIZES, AYNA_SIZES, plateM2 } from "@/data/glass";
-import { kurus, kesin, fmtQty, fmtPrice, fmtTL } from "@/lib/num";
+import { kurus, kesin, fmtQty, fmtPrice, fmtTL, sayi } from "@/lib/num";
 import CustomerPicker from "@/components/CustomerPicker";
 import TechnicalPicker from "@/components/TechnicalPicker";
 import OrderTextImport, { type ParsedLine } from "@/components/OrderTextImport";
@@ -111,7 +111,7 @@ function satirBitir(
   unitPriceTL: number,
   qtyNum: number
 ): ComputedLine {
-  const pct = Math.min(100, Math.max(0, parseFloat(row.iskonto) || 0));
+  const pct = Math.min(100, Math.max(0, sayi(row.iskonto) || 0));
   const birim = pct > 0 ? kesin(unitPriceTL * (1 - pct / 100)) : unitPriceTL;
   return {
     name: pct > 0 ? `${name} (%${fmtQty(pct)} isk.)` : name,
@@ -124,11 +124,11 @@ function satirBitir(
 function computeRow(row: Row, rate: number, euroRate: number): ComputedLine | null {
   if (row.kind === "frame") {
     const profile = findProfile(row.code);
-    const qty = parseFloat(row.qty) || 0;
+    const qty = sayi(row.qty) || 0;
     if (!row.code.trim() || qty <= 0) return null;
-    const usd = parseFloat(row.usd) || profile?.priceUSD || 0;
+    const usd = sayi(row.usd) || profile?.priceUSD || 0;
     // ₺ seçiliyse kutudaki TL fiyat geçerli; USD'de (veya TL boşsa) USD × kur
-    const tlManuel = parseFloat(row.tl) || 0;
+    const tlManuel = sayi(row.tl) || 0;
     const unitPriceTL =
       row.fx === "tl" && tlManuel > 0 ? kesin(tlManuel) : kesin(usd * rate);
     let metres = qty;
@@ -157,8 +157,8 @@ function computeRow(row: Row, rate: number, euroRate: number): ComputedLine | nu
   if (row.kind === "glass") {
     const sizes = GLASS_SIZES[row.glassType] || [];
     const size = sizes[row.sizeIndex] || sizes[0];
-    const plaka = parseFloat(row.plakaAdet) || 0;
-    const price = parseFloat(row.m2Price) || 0;
+    const plaka = sayi(row.plakaAdet) || 0;
+    const price = sayi(row.m2Price) || 0;
     if (!size || plaka <= 0 || price <= 0) return null;
     const m2PerPlaka = plateM2(size);
     const totalM2 = kesin(plaka * m2PerPlaka);
@@ -181,8 +181,8 @@ function computeRow(row: Row, rate: number, euroRate: number): ComputedLine | nu
 
   if (row.kind === "ayna") {
     const size = AYNA_SIZES[row.sizeIndex] || AYNA_SIZES[0];
-    const plaka = parseFloat(row.plakaAdet) || 0;
-    const price = parseFloat(row.m2Price) || 0;
+    const plaka = sayi(row.plakaAdet) || 0;
+    const price = sayi(row.m2Price) || 0;
     if (plaka <= 0 || price <= 0) return null;
     const m2PerPlaka = plateM2(size);
     const totalM2 = kesin(plaka * m2PerPlaka);
@@ -197,9 +197,9 @@ function computeRow(row: Row, rate: number, euroRate: number): ComputedLine | nu
 
   if (row.kind === "technical") {
     const product = getTechnicalProduct(row.techCode);
-    const kutu = parseFloat(row.kutuAdet) || 0;
+    const kutu = sayi(row.kutuAdet) || 0;
     if (!product || kutu <= 0) return null;
-    const manual = parseFloat(row.kutuPrice) || 0;
+    const manual = sayi(row.kutuPrice) || 0;
     let kutuPriceTL = 0;
     let priceInfo = "";
     if (product.priceTL != null) {
@@ -224,8 +224,8 @@ function computeRow(row: Row, rate: number, euroRate: number): ComputedLine | nu
   }
 
   // other
-  const qty = parseFloat(row.otherQty) || 0;
-  const price = parseFloat(row.otherPrice) || 0;
+  const qty = sayi(row.otherQty) || 0;
+  const price = sayi(row.otherPrice) || 0;
   if (!row.name.trim() || qty <= 0) return null;
   return satirBitir(row, row.name.trim(), `${fmtQty(qty)} adt`, price, qty);
 }
@@ -422,15 +422,15 @@ export default function OrderForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const rateNum = parseFloat(rate) || 0;
-  const euroNum = parseFloat(euroRate) || 0;
+  const rateNum = sayi(rate) || 0;
+  const euroNum = sayi(euroRate) || 0;
 
   const lines = rows
     .map((r) => computeRow(r, rateNum, euroNum))
     .filter((l): l is ComputedLine => l !== null);
 
   const gross = r2(lines.reduce((s, l) => s + l.lineTotal, 0));
-  const pct = Math.max(0, parseFloat(discountPct) || 0) / 100;
+  const pct = Math.max(0, sayi(discountPct) || 0) / 100;
   const discount = r2(gross * pct);
   const afterDiscount = r2(Math.max(0, gross - discount));
   const vatAmount = vat ? r2(afterDiscount * 0.2) : 0;
@@ -471,7 +471,7 @@ export default function OrderForm({
         note: note.trim(),
         rate: rateNum,
         euroRate: euroNum,
-        discountPct: parseFloat(discountPct) || 0,
+        discountPct: sayi(discountPct) || 0,
         vatApplied: vat,
         sendSms: initialOrder ? false : sendSms,
         lines,
@@ -566,8 +566,7 @@ export default function OrderForm({
         <div>
           <label>Dolar Kuru (TL/USD)</label>
           <input
-            type="number"
-            step="0.01"
+            type="text" inputMode="decimal"
             value={rate}
             onChange={(e) => setRate(e.target.value)}
             placeholder="örn. 45"
@@ -578,8 +577,7 @@ export default function OrderForm({
         <div>
           <label>Euro Kuru (TL/EUR)</label>
           <input
-            type="number"
-            step="0.01"
+            type="text" inputMode="decimal"
             value={euroRate}
             onChange={(e) => setEuroRate(e.target.value)}
             placeholder="örn. 48"
@@ -732,8 +730,7 @@ export default function OrderForm({
                   <div>
                     <label>Miktar</label>
                     <input
-                      type="number"
-                      step="0.1"
+                      type="text" inputMode="decimal"
                       value={row.qty}
                       onChange={(e) => update(row.id, { qty: e.target.value })}
                     />
@@ -757,16 +754,15 @@ export default function OrderForm({
                       </select>
                       {row.fx === "tl" ? (
                         <input
-                          type="number"
-                          step="0.01"
+                          type="text" inputMode="decimal"
                           value={row.tl}
                           onChange={(e) => update(row.id, { tl: e.target.value })}
                           placeholder={
                             rateNum > 0 &&
-                            (parseFloat(row.usd) || profile?.priceUSD)
+                            (sayi(row.usd) || profile?.priceUSD)
                               ? `oto ₺${fmtPrice(
                                   kesin(
-                                    (parseFloat(row.usd) ||
+                                    (sayi(row.usd) ||
                                       profile?.priceUSD ||
                                       0) * rateNum
                                   )
@@ -777,8 +773,7 @@ export default function OrderForm({
                         />
                       ) : (
                         <input
-                          type="number"
-                          step="0.01"
+                          type="text" inputMode="decimal"
                           value={row.usd}
                           onChange={(e) => update(row.id, { usd: e.target.value })}
                           placeholder={profile ? String(profile.priceUSD) : "USD"}
@@ -824,7 +819,7 @@ export default function OrderForm({
                   <div>
                     <label>Plaka Adet</label>
                     <input
-                      type="number"
+                      type="text" inputMode="decimal"
                       value={row.plakaAdet}
                       onChange={(e) => update(row.id, { plakaAdet: e.target.value })}
                     />
@@ -857,8 +852,7 @@ export default function OrderForm({
                           <option value="tl">₺</option>
                         </select>
                         <input
-                          type="number"
-                          step="0.01"
+                          type="text" inputMode="decimal"
                           value={row.m2Price}
                           onChange={(e) =>
                             update(row.id, { m2Price: e.target.value })
@@ -868,8 +862,7 @@ export default function OrderForm({
                       </div>
                     ) : (
                       <input
-                        type="number"
-                        step="0.01"
+                        type="text" inputMode="decimal"
                         value={row.m2Price}
                         onChange={(e) => update(row.id, { m2Price: e.target.value })}
                       />
@@ -898,7 +891,7 @@ export default function OrderForm({
                   <div>
                     <label>Plaka Adet</label>
                     <input
-                      type="number"
+                      type="text" inputMode="decimal"
                       value={row.plakaAdet}
                       onChange={(e) => update(row.id, { plakaAdet: e.target.value })}
                     />
@@ -906,8 +899,7 @@ export default function OrderForm({
                   <div>
                     <label>m² Fiyatı (TL)</label>
                     <input
-                      type="number"
-                      step="0.01"
+                      type="text" inputMode="decimal"
                       value={row.m2Price}
                       onChange={(e) => update(row.id, { m2Price: e.target.value })}
                     />
@@ -947,7 +939,7 @@ export default function OrderForm({
                   <div>
                     <label>Kutu Adet</label>
                     <input
-                      type="number"
+                      type="text" inputMode="decimal"
                       value={row.kutuAdet}
                       onChange={(e) => update(row.id, { kutuAdet: e.target.value })}
                     />
@@ -957,8 +949,7 @@ export default function OrderForm({
                       Kutu Fiyatı ({tech?.priceTL != null ? "TL" : "EUR"})
                     </label>
                     <input
-                      type="number"
-                      step="0.01"
+                      type="text" inputMode="decimal"
                       value={row.kutuPrice}
                       onChange={(e) => update(row.id, { kutuPrice: e.target.value })}
                       placeholder={
@@ -983,7 +974,7 @@ export default function OrderForm({
                   <div>
                     <label>Adet</label>
                     <input
-                      type="number"
+                      type="text" inputMode="decimal"
                       value={row.otherQty}
                       onChange={(e) => update(row.id, { otherQty: e.target.value })}
                     />
@@ -991,8 +982,7 @@ export default function OrderForm({
                   <div>
                     <label>Birim Fiyat (TL)</label>
                     <input
-                      type="number"
-                      step="0.01"
+                      type="text" inputMode="decimal"
                       value={row.otherPrice}
                       onChange={(e) => update(row.id, { otherPrice: e.target.value })}
                     />
@@ -1005,8 +995,7 @@ export default function OrderForm({
               <div>
                 <label>İskonto %</label>
                 <input
-                  type="number"
-                  step="0.5"
+                  type="text" inputMode="decimal"
                   min="0"
                   max="100"
                   value={row.iskonto}
@@ -1073,8 +1062,7 @@ export default function OrderForm({
         <div>
           <label>İskonto (%)</label>
           <input
-            type="number"
-            step="0.5"
+            type="text" inputMode="decimal"
             value={discountPct}
             onChange={(e) => setDiscountPct(e.target.value)}
           />
