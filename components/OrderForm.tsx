@@ -915,21 +915,35 @@ export default function OrderForm({
                         aranabilir seçici kullanılıyor. */}
                     <TechnicalPicker
                       value={row.techCode}
-                      onPick={(t) =>
+                      onPick={(t) => {
                         update(row.id, {
                           techCode: t.code,
                           // Fiyat alanı boşsa listedeki fiyatla dolsun
                           kutuPrice:
                             row.kutuPrice ||
                             String(t.priceTL ?? t.priceEUR ?? ""),
-                        })
-                      }
+                        });
+                        // Kartonlu üründe (NS/Scappi) seçimden sonra açılan
+                        // "Karton Kodu" alanı tablette ekranın altında
+                        // kalabiliyor — görünür yere kaydır ve odaklan ki
+                        // kod hemen yazılabilsin.
+                        if (t.isKarton) {
+                          setTimeout(() => {
+                            const el = document.getElementById(
+                              `karton-kodu-${row.id}`
+                            ) as HTMLInputElement | null;
+                            el?.scrollIntoView({ behavior: "smooth", block: "center" });
+                            el?.focus({ preventScroll: true });
+                          }, 100);
+                        }
+                      }}
                     />
                   </div>
                   {tech?.isKarton && (
                     <div>
                       <label>Karton Kodu</label>
                       <input
+                        id={`karton-kodu-${row.id}`}
                         value={row.kartonKodu}
                         onChange={(e) => update(row.id, { kartonKodu: e.target.value })}
                         placeholder="örn. 107"
