@@ -273,6 +273,12 @@ export default function OrdersList({
         >
           Son 7 Gün
         </button>
+        <button
+          className={`btn small ${filter.range === "days15" ? "" : "secondary"}`}
+          onClick={() => { setFilter({ range: "days15" }); setSadeceKontrolsuz(false); setAramaMetni(""); }}
+        >
+          Son 15 Gün
+        </button>
         <input
           type="date"
           style={{ width: "auto" }}
