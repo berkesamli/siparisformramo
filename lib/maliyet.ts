@@ -16,10 +16,14 @@ import { blobConfigured } from "./orders";
 
 export type AlisBirimi = "USD" | "EUR" | "TL";
 
+/** Kalemin miktar birimi: çerçeve /mt, cam-ayna /m², teknik malzeme /kutu. */
+export type MiktarBirimi = "mt" | "m2" | "kutu";
+
 export interface PartiKalemi {
-  code: string; // görünen kod ("4501 S")
-  alis: number; // birim alış (/mt)
+  code: string; // görünen kod ("4501 S", "Düz Cam", "NS Karton Kadife")
+  alis: number; // birim alış (birim başına)
   currency: AlisBirimi;
+  birim?: MiktarBirimi; // eski kayıtlarda yok → mt
 }
 
 export interface Parti {
