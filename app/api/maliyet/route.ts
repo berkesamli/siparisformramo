@@ -14,6 +14,8 @@ import {
 } from "@/lib/maliyet";
 import { listAllOrders } from "@/lib/orders";
 import { findProfile } from "@/data/catalog";
+import { GLASS_TYPES } from "@/data/glass";
+import { TECHNICAL_PRODUCTS } from "@/data/technical";
 import { kurus } from "@/lib/num";
 
 export const runtime = "nodejs";
@@ -47,6 +49,18 @@ export async function GET(req: NextRequest) {
   );
   const indeks = kodIndeksi(data);
 
+  // Satır adı → maliyet anahtarı eşlemesi.
+  // Cam/ayna satırları tür adıyla ("Düz Cam"), teknik malzeme ürün adıyla
+  // ("NS Karton Kadife") yazılır — çerçevedeki "ilk kelime = kod" kuralı
+  // onlarda çalışmaz; ad üzerinden eşlenir. Miktar zaten satırın kendi
+  // biriminde gelir: çerçevede mt, camda m², teknikte kutu
+  // (miktar = tutar ÷ birim fiyat).
+  const camAd = new Map<string, string>();
+  for (const g of GLASS_TYPES) camAd.set(normKod(g.name), g.name);
+  camAd.set(normKod("Ayna"), "Ayna");
+  const teknikAd = new Map<string, string>();
+  for (const t of TECHNICAL_PRODUCTS) teknikAd.set(normKod(t.name), t.name);
+
   interface KodAnaliz {
     code: string;
     metraj: number;
@@ -62,15 +76,42 @@ export async function GET(req: NextRequest) {
     const usd = Number(o.rate) || 0;
     const eur = Number(o.euroRate) || usd;
     for (const l of o.lines) {
-      const ham = String(l.name || "").trim().split(/[\s(]/)[0];
-      if (!ham) continue;
-      const p = findProfile(ham);
-      const kod = p ? normKod(p.code) : normKod(ham.split("-")[0]);
+      const tamAd = String(l.name || "").trim();
+      if (!tamAd) continue;
+
+      // Önce tam adla, eşleşmezse sondaki parantezleri birer birer atarak
+      // dene — karton kodu "(107)" ve iskonto "(%10 isk.)" ekleri düşer ama
+      // adın parçası olan parantez ("... (6x4cm)") korunur.
+      let kod = "";
+      let goster = "";
+      let aday = tamAd;
+      for (;;) {
+        const a = normKod(aday);
+        if (camAd.has(a)) {
+          kod = a;
+          goster = camAd.get(a)!;
+          break;
+        }
+        if (teknikAd.has(a)) {
+          kod = a;
+          goster = teknikAd.get(a)!;
+          break;
+        }
+        const kisalt = aday.replace(/\s*\([^)]*\)\s*$/, "").trim();
+        if (kisalt === aday || !kisalt) break;
+        aday = kisalt;
+      }
+      if (!kod) {
+        const ham = tamAd.split(/[\s(]/)[0];
+        const p = findProfile(ham);
+        kod = p ? normKod(p.code) : normKod(ham.split("-")[0]);
+        goster = p ? p.code : ham.split("-")[0];
+      }
       if (!kod) continue;
       const metre = l.unitPriceTL > 0 ? l.lineTotal / l.unitPriceTL : 0;
 
       const cur = map.get(kod) || {
-        code: p ? p.code : ham.split("-")[0],
+        code: goster,
         metraj: 0, ciro: 0, maliyet: 0,
         maliyetTam: true, durum: "" as KodAnaliz["durum"], satirSayisi: 0,
       };
@@ -193,6 +234,9 @@ export async function POST(req: NextRequest) {
       const code = String(raw.code || "").trim();
       const alis = Number(raw.alis);
       const currency = (raw.currency || "USD") as AlisBirimi;
+      const birim = (["mt", "m2", "kutu"].includes(String(raw.birim))
+        ? raw.birim
+        : "mt") as PartiKalemi["birim"];
       if (!code || !Number.isFinite(alis) || alis <= 0 ||
           !["USD", "EUR", "TL"].includes(currency)) {
         hatalar.push(`geçersiz kalem: ${code || "?"}`);
@@ -202,6 +246,7 @@ export async function POST(req: NextRequest) {
         code,
         alis: Math.round(alis * 10000) / 10000,
         currency,
+        birim,
       };
     }
     for (const c of (body.sil || []) as string[]) {

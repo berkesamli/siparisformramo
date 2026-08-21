@@ -5,8 +5,19 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { FRAME_PROFILES } from "@/data/catalog";
+import { GLASS_TYPES } from "@/data/glass";
+import { TECHNICAL_PRODUCTS } from "@/data/technical";
 import type { MaliyetData, Parti } from "@/lib/maliyet";
 import { eslesir } from "@/lib/search-norm";
+
+// Kalem türleri: çerçeve metre, cam-ayna m², teknik malzeme kutu bazlı.
+const TURLER = [
+  { key: "cerceve", ad: "Çerçeve", birim: "mt" as const },
+  { key: "cam", ad: "Cam / Ayna", birim: "m2" as const },
+  { key: "teknik", ad: "Teknik Malzeme", birim: "kutu" as const },
+];
+const CAM_SECENEKLERI = [...GLASS_TYPES.map((g) => g.name), "Ayna"];
+const birimEtiket = (b?: string) => (b === "m2" ? "m²" : b === "kutu" ? "kutu" : "mt");
 
 const fmt = (n: number, d = 2) =>
   (Number(n) || 0).toLocaleString("tr-TR", {
@@ -57,10 +68,12 @@ export default function MaliyetManager() {
   const [ypTarih, setYpTarih] = useState(bugun());
 
   // kalem formu
+  const [fTur, setFTur] = useState("cerceve");
   const [fKod, setFKod] = useState("");
   const [fAlis, setFAlis] = useState("");
   const [fBirim, setFBirim] = useState("USD");
   const [pctInput, setPctInput] = useState("");
+  const turBilgi = TURLER.find((t) => t.key === fTur) || TURLER[0];
 
   const load = useCallback(() => {
     setLoading(true);
@@ -225,19 +238,44 @@ export default function MaliyetManager() {
                 </p>
               </div>
 
-              {/* Kalem girişi */}
+              {/* Kalem girişi — çerçeve /mt, cam-ayna /m², teknik /kutu */}
               <div className="card" style={{ display: "flex", gap: 10, alignItems: "flex-end", flexWrap: "wrap" }}>
                 <div>
-                  <label>Ürün Kodu</label>
-                  <input list="maliyet-kodlar" style={{ width: 150 }}
-                    value={fKod} onChange={(e) => setFKod(e.target.value)} placeholder="örn. 4501 S" />
-                  <datalist id="maliyet-kodlar">
-                    {FRAME_PROFILES.map((p) => <option key={p.code} value={p.code} />)}
-                  </datalist>
+                  <label>Tür</label>
+                  <select style={{ width: 150 }} value={fTur}
+                    onChange={(e) => { setFTur(e.target.value); setFKod(""); }}>
+                    {TURLER.map((t) => <option key={t.key} value={t.key}>{t.ad}</option>)}
+                  </select>
                 </div>
                 <div>
-                  <label>Birim Alış (/mt)</label>
-                  <input type="number" step="0.0001" min="0" style={{ width: 130 }}
+                  <label>{fTur === "teknik" ? "Ürün" : fTur === "cam" ? "Cam Türü" : "Ürün Kodu"}</label>
+                  {fTur === "cam" ? (
+                    <select style={{ width: 170 }} value={fKod} onChange={(e) => setFKod(e.target.value)}>
+                      <option value="">Seçin…</option>
+                      {CAM_SECENEKLERI.map((n) => <option key={n} value={n}>{n}</option>)}
+                    </select>
+                  ) : fTur === "teknik" ? (
+                    <>
+                      <input list="maliyet-teknik" style={{ width: 220 }}
+                        value={fKod} onChange={(e) => setFKod(e.target.value)}
+                        placeholder="örn. NS Karton Kadife" />
+                      <datalist id="maliyet-teknik">
+                        {TECHNICAL_PRODUCTS.map((t) => <option key={t.code} value={t.name} />)}
+                      </datalist>
+                    </>
+                  ) : (
+                    <>
+                      <input list="maliyet-kodlar" style={{ width: 150 }}
+                        value={fKod} onChange={(e) => setFKod(e.target.value)} placeholder="örn. 4501 S" />
+                      <datalist id="maliyet-kodlar">
+                        {FRAME_PROFILES.map((p) => <option key={p.code} value={p.code} />)}
+                      </datalist>
+                    </>
+                  )}
+                </div>
+                <div>
+                  <label>Birim Alış (/{birimEtiket(turBilgi.birim)})</label>
+                  <input type="text" inputMode="decimal" style={{ width: 130 }}
                     value={fAlis} onChange={(e) => setFAlis(e.target.value)} />
                 </div>
                 <div>
@@ -248,9 +286,18 @@ export default function MaliyetManager() {
                     <option value="TL">₺ TL</option>
                   </select>
                 </div>
-                <button className="btn" disabled={saving || !fKod.trim() || !(parseFloat(fAlis) > 0)}
+                <button className="btn"
+                  disabled={saving || !fKod.trim() || !(parseFloat(fAlis.replace(",", ".")) > 0)}
                   onClick={() => {
-                    gonder({ partiId: parti.id, items: [{ code: fKod.trim(), alis: parseFloat(fAlis), currency: fBirim }] });
+                    gonder({
+                      partiId: parti.id,
+                      items: [{
+                        code: fKod.trim(),
+                        alis: parseFloat(fAlis.replace(",", ".")),
+                        currency: fBirim,
+                        birim: turBilgi.birim,
+                      }],
+                    });
                     setFKod(""); setFAlis("");
                   }}>
                   + Ekle / Güncelle
@@ -262,8 +309,8 @@ export default function MaliyetManager() {
                 <table>
                   <thead>
                     <tr>
-                      <th>Kod</th>
-                      <th style={{ textAlign: "right" }}>Alış (/mt)</th>
+                      <th>Kod / Ürün</th>
+                      <th style={{ textAlign: "right" }}>Alış</th>
                       <th style={{ textAlign: "right" }}>Birim Maliyet</th>
                       <th></th>
                     </tr>
@@ -272,7 +319,12 @@ export default function MaliyetManager() {
                     {kalemler.map((k) => (
                       <tr key={k.code}>
                         <td style={{ fontWeight: 700 }}>{k.code}</td>
-                        <td style={{ textAlign: "right" }}>{simge(k.currency)}{fmt(k.alis, 4)}</td>
+                        <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
+                          {simge(k.currency)}{fmt(k.alis, 4)}
+                          <span style={{ color: "var(--muted)", fontWeight: 400 }}>
+                            {" "}/{birimEtiket(k.birim)}
+                          </span>
+                        </td>
                         <td style={{ textAlign: "right", fontWeight: 600 }}>
                           {parti.pct == null
                             ? <span style={{ color: "var(--muted)" }}>% bekliyor</span>
@@ -336,8 +388,10 @@ export default function MaliyetManager() {
               <table>
                 <thead>
                   <tr>
-                    <th>Kod</th>
-                    <th style={{ textAlign: "right" }}>Satılan (mt)</th>
+                    <th>Kod / Ürün</th>
+                    <th style={{ textAlign: "right" }} title="Çerçevede metre, camda m², teknik malzemede kutu">
+                      Satılan (mt/m²/kutu)
+                    </th>
                     <th style={{ textAlign: "right" }}>Ciro</th>
                     <th style={{ textAlign: "right" }}>Maliyet</th>
                     <th style={{ textAlign: "right" }}>Kâr</th>
