@@ -92,6 +92,24 @@ export function isFinance(username: string | undefined | null): boolean {
   return financeUsernames().includes(normalizeUsername(username));
 }
 
+// Günlük kur belirleme yetkisi: sahipler + KUR_USERNAMES ile eklenenler.
+// KUR_USERNAMES="ahmet" → sahipler + Ahmet kur girebilir; rapor/maliyet
+// gibi diğer sahip ekranlarına erişim VERMEZ.
+const DEFAULT_KUR = ["ahmet"];
+
+export function kurUsernames(): string[] {
+  const raw = process.env.KUR_USERNAMES;
+  const extra = raw
+    ? raw.split(",").map((s) => s.trim()).filter(Boolean).map(normalizeUsername)
+    : DEFAULT_KUR.map(normalizeUsername);
+  return [...new Set([...ownerUsernames(), ...extra])];
+}
+
+export function isKurYetkili(username: string | undefined | null): boolean {
+  if (!username) return false;
+  return kurUsernames().includes(normalizeUsername(username));
+}
+
 // Finans ekranları (menü + kasa/gider/çek/personel sayfaları) şimdilik kapalı:
 // önce sipariş akışına alışılacak. Aktarılan veriler Blob'da durur; açmak için
 // Vercel'e FINANS_AKTIF=1 ekleyip yeniden dağıtmak yeterlidir — kod değişmez.

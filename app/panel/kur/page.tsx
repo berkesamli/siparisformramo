@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getSessionUser } from "@/lib/auth";
-import { isOwner } from "@/data/users";
+import { isKurYetkili } from "@/data/users";
 import GunlukKur from "@/components/GunlukKur";
 
 export const dynamic = "force-dynamic";
@@ -11,7 +11,7 @@ export default async function GunlukKurPage() {
   if (!user) redirect("/giris?next=/panel/kur");
   if (user.role !== "staff") redirect("/portal");
   // Günlük kuru yalnızca firma sahipleri belirler
-  if (!isOwner(user.username)) redirect("/panel");
+  if (!isKurYetkili(user.username)) redirect("/panel");
 
   return (
     <main className="container" style={{ maxWidth: 820 }}>

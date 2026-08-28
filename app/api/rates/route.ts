@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { getDailyRates, saveDailyRates, istanbulDateKey } from "@/lib/orders";
-import { isOwner } from "@/data/users";
+import { isKurYetkili } from "@/data/users";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -18,7 +18,7 @@ export async function GET() {
     ok: true,
     rates,
     dateKey: istanbulDateKey(),
-    yetkili: isOwner(user.username),
+    yetkili: isKurYetkili(user.username),
   });
 }
 
@@ -30,7 +30,7 @@ export async function POST(req: Request) {
   if (!user || user.role !== "staff") {
     return NextResponse.json({ ok: false, error: "Yetkisiz." }, { status: 401 });
   }
-  if (!isOwner(user.username)) {
+  if (!isKurYetkili(user.username)) {
     return NextResponse.json(
       { ok: false, error: "Günlük kuru yalnızca yetkili kişiler girebilir." },
       { status: 403 }

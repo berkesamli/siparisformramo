@@ -12,6 +12,7 @@ interface NavUser {
   owner?: boolean; // firma sahibi — raporları görebilir
   finance?: boolean; // finans ekranları (kasa, gider, çek/senet, personel)
   maliyet?: boolean; // alış fiyatları & kârlılık — en dar çevre
+  kur?: boolean; // günlük kur belirleme (sahipler + KUR_USERNAMES)
 }
 
 export default function NavBar({ user }: { user: NavUser | null }) {
@@ -40,8 +41,10 @@ export default function NavBar({ user }: { user: NavUser | null }) {
   if (user?.role === "staff" && user.maliyet) {
     links.push({ href: "/panel/maliyet", label: "Maliyet" });
   }
-  if (user?.role === "staff" && user.owner) {
+  if (user?.role === "staff" && user.kur) {
     links.push({ href: "/panel/kur", label: "Günlük Kur" });
+  }
+  if (user?.role === "staff" && user.owner) {
     links.push({ href: "/panel/raporlar", label: "Raporlar" });
   }
   // Çekmece menüde Stok Yükle ve Tamamlananlar da listelensin

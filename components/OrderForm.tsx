@@ -36,6 +36,9 @@ interface Row {
   kartonKodu: string;
   kutuAdet: string;
   kutuPrice: string; // TL veya EUR (ürüne göre)
+  // Euro fiyatlı teknik ürünlerde (Scappi, NS karton...) ₺ seçilirse kutu
+  // fiyatı kur hesabı olmadan doğrudan TL yazılır.
+  techFx: "eur" | "tl";
   // other
   name: string;
   otherQty: string;
@@ -64,6 +67,7 @@ const emptyRow = (): Row => ({
   kartonKodu: "",
   kutuAdet: "",
   kutuPrice: "",
+  techFx: "eur",
   name: "",
   otherQty: "",
   otherPrice: "",
@@ -204,6 +208,10 @@ function computeRow(row: Row, rate: number, euroRate: number): ComputedLine | nu
     let priceInfo = "";
     if (product.priceTL != null) {
       kutuPriceTL = manual > 0 ? manual : product.priceTL;
+      priceInfo = `₺${fmtPrice(kutuPriceTL)}/kutu`;
+    } else if (row.techFx === "tl" && manual > 0) {
+      // Euro fiyatlı üründe ₺ seçildi: kutu fiyatı doğrudan TL
+      kutuPriceTL = manual;
       priceInfo = `₺${fmtPrice(kutuPriceTL)}/kutu`;
     } else {
       const eur = manual > 0 ? manual : product.priceEUR || 0;
@@ -909,7 +917,10 @@ export default function OrderForm({
 
               {row.kind === "technical" && (
                 <>
-                  <div style={{ minWidth: 230 }}>
+                  {/* Sabit genişlik verilmez — auto-fit ızgarada hücreden
+                      taşıp yandaki Karton Kodu kutusunun üstüne biniyordu.
+                      Geniş açılır liste .tp-menu'da ayrıca sağlanır. */}
+                  <div>
                     <label>Ürün</label>
                     {/* 117 ürünlük açılır listede aşağıya inmek zordu —
                         aranabilir seçici kullanılıyor. */}
@@ -960,18 +971,57 @@ export default function OrderForm({
                   </div>
                   <div>
                     <label>
-                      Kutu Fiyatı ({tech?.priceTL != null ? "TL" : "EUR"})
+                      Kutu Fiyatı (
+                      {tech?.priceTL != null
+                        ? "TL"
+                        : row.techFx === "tl"
+                          ? "TL, elle"
+                          : "EUR"}
+                      )
                     </label>
-                    <input
-                      type="text" inputMode="decimal"
-                      value={row.kutuPrice}
-                      onChange={(e) => update(row.id, { kutuPrice: e.target.value })}
-                      placeholder={
-                        tech
-                          ? String(tech.priceTL ?? tech.priceEUR ?? "")
-                          : "Fiyat"
-                      }
-                    />
+                    {tech && tech.priceTL == null ? (
+                      // Euro fiyatlı ürün (Scappi, NS karton...): çerçevedeki
+                      // $/₺ gibi €/₺ seçilebilir — ₺'de fiyat kur hesabı
+                      // olmadan doğrudan TL yazılır.
+                      <div className="fx-wrap">
+                        <select
+                          className="fx-sel"
+                          value={row.techFx}
+                          onChange={(e) =>
+                            update(row.id, {
+                              techFx: e.target.value as Row["techFx"],
+                              // Önceki para biriminin fiyatı kalmasın
+                              kutuPrice: "",
+                            })
+                          }
+                          title="Fiyat para birimi — ₺ seçilirse euro kuru yerine yazdığınız TL geçer"
+                        >
+                          <option value="eur">€</option>
+                          <option value="tl">₺</option>
+                        </select>
+                        <input
+                          type="text" inputMode="decimal"
+                          value={row.kutuPrice}
+                          onChange={(e) => update(row.id, { kutuPrice: e.target.value })}
+                          placeholder={
+                            row.techFx === "tl"
+                              ? "TL/kutu"
+                              : String(tech.priceEUR ?? "EUR")
+                          }
+                        />
+                      </div>
+                    ) : (
+                      <input
+                        type="text" inputMode="decimal"
+                        value={row.kutuPrice}
+                        onChange={(e) => update(row.id, { kutuPrice: e.target.value })}
+                        placeholder={
+                          tech
+                            ? String(tech.priceTL ?? tech.priceEUR ?? "")
+                            : "Fiyat"
+                        }
+                      />
+                    )}
                   </div>
                 </>
               )}
