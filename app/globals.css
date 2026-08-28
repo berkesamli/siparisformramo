@@ -1095,7 +1095,15 @@ h2 { font-size: 18px; font-weight: 700; margin: 20px 0 12px; }
 }
 
 /* ---- Teknik malzeme seçici (aranabilir liste) ---- */
-.tp-menu { max-height: 340px; overflow-y: auto; }
+.tp-wrap input { min-width: 0; }
+/* Kutu dar olsa da açılır liste geniş açılır — ekrandan taşarsa kısıtla */
+.tp-menu {
+  max-height: 340px;
+  overflow-y: auto;
+  right: auto;
+  min-width: 300px;
+  max-width: min(420px, 92vw);
+}
 .tp-cat {
   position: sticky;
   top: 0;
