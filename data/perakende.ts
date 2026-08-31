@@ -4,9 +4,11 @@
 // [kod, hex, metalik?]
 export type PaletteColor = [string, string, boolean?];
 
-// Paspartu renk paletleri — anahtar: paspartu türünün m² fiyatı (TL)
-export const PASPARTU_COLORS: Record<number, PaletteColor[]> = {
-  1250: [
+// Paspartu renk paletleri — anahtar: paspartu türü kodu (MAT_TYPES.code).
+// (Eskiden m² fiyatıyla eşleniyordu; Kadife ve Premium aynı fiyata gelince
+// fiyat anahtarı çakıştı — kod her zaman benzersiz.)
+export const PASPARTU_COLORS: Record<string, PaletteColor[]> = {
+  DK: [
     ["W107", "#1b227c"], ["W108", "#ffa711"], ["W109", "#ff7d01"], ["W110", "#ff7d01"],
     ["W111", "#8468b3"], ["W112", "#9e508c"], ["W125", "#f23a04"], ["W131", "#fd0b35"],
     ["W132", "#871f26"], ["W135", "#847c89"], ["W136", "#fbef8b"], ["W140", "#f3f4a8"],
@@ -22,16 +24,16 @@ export const PASPARTU_COLORS: Record<number, PaletteColor[]> = {
     ["W194", "#72b7be"], ["W195", "#71939c"], ["W196", "#012f49"], ["W197", "#024c33"],
     ["W198", "#2b1c17"], ["W199", "#c2400e"], ["W253", "#f3da98"], ["W406", "#3d3832"],
   ],
-  1350: [
+  PK: [
     ["G163", "#2a4018"], ["G167", "#7e5121"], ["G170", "#495773"], ["G175", "#dec49c"],
     ["G182", "#331f21"], ["G188", "#858060"], ["G189", "#4c2614"], ["G197", "#192f22"],
     ["W270", "#e9dbca"], ["W274", "#dcb4b0"], ["W277", "#bdc5b5"], ["W279", "#b1bcbd"],
     ["W284", "#f7dfc7"], ["W289", "#ded1ad"], ["W290", "#d4c5a4"],
   ],
-  1700: [
+  AG: [
     ["W232", "#d4af37", true], ["W233", "#c0c0c0", true],
   ],
-  1800: [
+  KDF: [
     ["700", "#c5c1bf"], ["708", "#385641"], ["711", "#792c27"], ["718", "#294a6f"],
     ["719", "#2e3f46"], ["720", "#30322f"], ["721", "#b2a287"], ["722", "#c1b396"],
     ["731", "#867754"], ["W600", "#bbb5ab"], ["W601", "#b6a68c"], ["W602", "#b7af99"],
@@ -39,7 +41,7 @@ export const PASPARTU_COLORS: Record<number, PaletteColor[]> = {
     ["W607", "#968863"], ["W608", "#a1a598"], ["W610", "#bda170"], ["W611", "#d4b066"],
     ["W612", "#83857e"], ["W613", "#885127"], ["W614", "#2d302d"],
   ],
-  3000: [
+  PR: [
     ["750", "#f6d8bc"], ["752", "#d4ad90"], ["753", "#8e4a01"], ["754", "#7a2a05"],
     ["755", "#34130a"], ["756", "#cb8f49"], ["757", "#9a9e7d"], ["758", "#00340d"],
     ["760", "#ad6c70"], ["761", "#b00305"], ["762", "#8f030c"], ["763", "#570e1f"],
@@ -59,11 +61,11 @@ export interface MatType {
 
 export const MAT_TYPES: MatType[] = [
   { code: "-", name: "Paspartu Yok", price: 0, icon: "🚫" },
-  { code: "DK", name: "Düz Karton", price: 1250, icon: "🟨" },
-  { code: "PK", name: "Pamuk Karton", price: 1350, icon: "🪵" },
-  { code: "AG", name: "Altın-Gümüş", price: 1700, icon: "✨" },
-  { code: "KDF", name: "Kadife", price: 1800, icon: "🧵" },
-  { code: "PR", name: "Premium", price: 3000, icon: "🟪" },
+  { code: "DK", name: "Düz Karton", price: 1500, icon: "🟨" },
+  { code: "PK", name: "Pamuk Karton", price: 2500, icon: "🪵" },
+  { code: "AG", name: "Altın-Gümüş", price: 3000, icon: "✨" },
+  { code: "KDF", name: "Kadife", price: 5500, icon: "🧵" },
+  { code: "PR", name: "Premium", price: 5500, icon: "🟪" },
 ];
 
 // İç paspartu / zemin seçenekleri ("Paspartu Yok" hariç)
@@ -78,9 +80,9 @@ export interface GlassType {
 
 export const GLASS_TYPES: GlassType[] = [
   { name: "Cam Yok", price: 0, desc: "Camsız teslim", icon: "🚫" },
-  { name: "Düz Cam", price: 1500, desc: "Standart şeffaf cam", icon: "🪟" },
-  { name: "Mat Cam", price: 1750, desc: "Yansıma yapmayan mat cam", icon: "🌫️" },
-  { name: "PVC Cam", price: 1500, desc: "Kırılmaz hafif PVC (pleksi)", icon: "🛡️" },
+  { name: "Düz Cam", price: 2000, desc: "Standart şeffaf cam", icon: "🪟" },
+  { name: "Mat Cam", price: 2000, desc: "Yansıma yapmayan mat cam", icon: "🌫️" },
+  { name: "PVC Cam", price: 2000, desc: "Kırılmaz hafif PVC (pleksi)", icon: "🛡️" },
   { name: "Müze Camı", price: 12000, desc: "UV korumalı premium cam", icon: "🏛️" },
 ];
 

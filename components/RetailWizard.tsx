@@ -492,32 +492,34 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
     );
   }
 
-  const palette = (price: number) => PASPARTU_COLORS[price] || [];
+  // Palet artık tür koduyla bulunur (Kadife/Premium aynı fiyata geldiği
+  // için fiyat anahtarı ayırt edici olmaktan çıktı).
+  const palette = (code: string) => PASPARTU_COLORS[code] || [];
 
   function ColorPalette({
-    price,
+    code,
     selected,
     onSelect,
   }: {
-    price: number;
+    code: string;
     selected: ColorSel;
     onSelect: (c: ColorSel) => void;
   }) {
     return (
       <div className="rw-palette">
-        {palette(price).map(([code, hex, metallic]) => (
+        {palette(code).map(([kod, hex, metallic]) => (
           <button
-            key={code}
+            key={kod}
             type="button"
-            title={code}
-            className={`rw-color-item ${selected.code === code ? "sel" : ""}`}
-            onClick={() => onSelect({ code, hex })}
+            title={kod}
+            className={`rw-color-item ${selected.code === kod ? "sel" : ""}`}
+            onClick={() => onSelect({ code: kod, hex })}
           >
             <span
-              className={`rw-color ${selected.code === code ? "sel" : ""} ${metallic ? "metallic" : ""}`}
+              className={`rw-color ${selected.code === kod ? "sel" : ""} ${metallic ? "metallic" : ""}`}
               style={{ background: hex }}
             />
-            <span className="rw-color-code">{code}</span>
+            <span className="rw-color-code">{kod}</span>
           </button>
         ))}
         {selected.code && (
@@ -778,7 +780,7 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
 
                 <div style={{ marginTop: 16 }}>
                   <label>{doubleMat ? "Dış Paspartu Rengi" : "Paspartu Rengi"} — {mat.name}</label>
-                  <ColorPalette price={mat.price} selected={outerColor} onSelect={setOuterColor} />
+                  <ColorPalette code={mat.code} selected={outerColor} onSelect={setOuterColor} />
                 </div>
 
                 {doubleMat && (
@@ -798,7 +800,7 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
                         ))}
                       </div>
                       <div style={{ marginTop: 10 }}>
-                        <ColorPalette price={innerMat.price} selected={innerColor} onSelect={setInnerColor} />
+                        <ColorPalette code={innerMat.code} selected={innerColor} onSelect={setInnerColor} />
                       </div>
                     </div>
                     <div style={{ marginTop: 14, maxWidth: 220 }}>
@@ -829,7 +831,7 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
                         ))}
                       </div>
                       <div style={{ marginTop: 10 }}>
-                        <ColorPalette price={zeminMat.price} selected={zeminColor} onSelect={setZeminColor} />
+                        <ColorPalette code={zeminMat.code} selected={zeminColor} onSelect={setZeminColor} />
                       </div>
                     </div>
                   )}

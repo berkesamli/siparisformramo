@@ -58,6 +58,17 @@ export function findUser(username: string, password: string): User | undefined {
   );
 }
 
+/**
+ * Kullanıcı hâlâ listede mi? Oturum çerezi 7 gün geçerli olduğundan,
+ * işten çıkarılan biri USERS_JSON'dan silindiği anda mevcut oturumu da
+ * geçersiz sayılmalı — her istekte bu kontrol yapılır.
+ */
+export function userExists(username: string | undefined | null): boolean {
+  if (!username) return false;
+  const q = normalizeUsername(username);
+  return getUsers().some((u) => normalizeUsername(u.username) === q);
+}
+
 // Raporlar (ciro, tahsilat, kâr kırılımları) yalnızca firma sahiplerine açıktır.
 // Liste OWNER_USERNAMES ortam değişkeniyle değiştirilebilir:
 // OWNER_USERNAMES="berke,özgür,eren"
@@ -93,15 +104,13 @@ export function isFinance(username: string | undefined | null): boolean {
 }
 
 // Günlük kur belirleme yetkisi: sahipler + KUR_USERNAMES ile eklenenler.
-// KUR_USERNAMES="ahmet" → sahipler + Ahmet kur girebilir; rapor/maliyet
+// KUR_USERNAMES="murat" → sahipler + Murat kur girebilir; rapor/maliyet
 // gibi diğer sahip ekranlarına erişim VERMEZ.
-const DEFAULT_KUR = ["ahmet"];
-
 export function kurUsernames(): string[] {
   const raw = process.env.KUR_USERNAMES;
   const extra = raw
     ? raw.split(",").map((s) => s.trim()).filter(Boolean).map(normalizeUsername)
-    : DEFAULT_KUR.map(normalizeUsername);
+    : [];
   return [...new Set([...ownerUsernames(), ...extra])];
 }
 
