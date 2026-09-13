@@ -109,7 +109,7 @@ export default function RetailCustomerManager({
   return (
     <div className="card">
       <div className="row no-print" style={{ marginBottom: 12 }}>
-        <div style={{ flex: 1, minWidth: 220, position: "relative" }}>
+        <div style={{ flex: 1, minWidth: "min(220px, 100%)", position: "relative" }}>
           <span
             aria-hidden
             style={{
@@ -132,18 +132,22 @@ export default function RetailCustomerManager({
             aria-label="Müşteri ara"
           />
         </div>
-        <span className="badge">{filtered.length} kayıt</span>
-        <button
-          className="btn small"
-          onClick={() => {
-            setForm({ ...BOS });
-            setEditing(true);
-            setMsg("");
-            setErr("");
-          }}
-        >
-          + Yeni Müşteri
-        </button>
+        {/* Rozet + birincil buton birlikte kalır; telefonda ikinci satıra
+            düştüklerinde sağa yaslanır, arama üstte tam genişlik alır. */}
+        <div className="row" style={{ marginLeft: "auto", gap: 8, flexWrap: "nowrap" }}>
+          <span className="badge">{filtered.length} kayıt</span>
+          <button
+            className="btn small"
+            onClick={() => {
+              setForm({ ...BOS });
+              setEditing(true);
+              setMsg("");
+              setErr("");
+            }}
+          >
+            + Yeni Müşteri
+          </button>
+        </div>
       </div>
 
       {!blobOk && (

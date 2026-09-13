@@ -894,7 +894,7 @@ export default function OrderForm({
                             usd: pr ? String(pr.priceUSD) : row.usd,
                           });
                         }}
-                        placeholder="örn. 4501S-1242"
+                        placeholder="4501S-1242"
                       />
                       <datalist id={`profiles-${row.id}`}>
                         {katalog.profiles.map((f) => (

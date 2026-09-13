@@ -122,6 +122,14 @@ select.status-select:focus {
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
+/* Sayının altındaki dipnot (ör. "tahsilat kayıtlarından", "son 12 ay")
+   etiket değil açıklamadır: büyük harf ve harf aralığı kalkar, soluk renk
+   ve 11.5px boyut korunur — kart etiket / sayı / ikinci etiket gibi okunmasın. */
+.cari-card strong + span {
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 500;
+}
 .cari-card strong {
   font-size: 21px;
   font-weight: 800;

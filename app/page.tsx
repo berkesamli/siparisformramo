@@ -53,7 +53,7 @@ export default async function HomePage() {
         <PageHeader
           kicker={tarihStr()}
           title={`Hoş geldiniz, ${ilkAd}`}
-          subtitle="Güncel stok, toptan fiyat listesi ve kataloglara buradan ulaşabilirsiniz. Sipariş için: 0850 305 75 45"
+          subtitle={"Güncel stok, toptan fiyat listesi ve kataloglara buradan ulaşabilirsiniz. Sipariş için: 0850\u00A0305\u00A075\u00A045"}
           icon="home"
         />
         <CustomerDashboard tiles={tiles} />

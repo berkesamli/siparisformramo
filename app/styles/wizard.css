@@ -399,22 +399,32 @@
 .fp-label { font-size: 12px; font-weight: 700; color: var(--brand); }
 .fp-rooms { display: flex; gap: 5px; }
 .fp-rooms button {
-  padding: 4px 9px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  min-width: 38px;
+  padding: 4px 10px;
   border-radius: 8px;
   border: 1px solid var(--border);
   background: var(--surface-2);
   font-family: inherit;
-  font-size: 12px;
+  font-size: 15px; /* oda ikonları (emoji) okunur boyutta */
+  line-height: 1;
   font-weight: 600;
   color: var(--text-2);
   cursor: pointer;
   transition: all 0.2s ease;
 }
+.fp-rooms button:first-child { font-size: 12px; } /* "Sade" — yalnızca metin */
 .fp-rooms button:hover { border-color: var(--gold); color: var(--text); }
 .fp-rooms button.active {
   border-color: var(--brand);
   background: var(--brand-soft);
   color: var(--brand);
+}
+@media (pointer: coarse) {
+  .fp-rooms button { min-height: 38px; min-width: 44px; }
 }
 
 /* Sahne: bir DUVARI simüle eder — her iki temada da açık kalır (bilinçli sabit renk) */
@@ -664,6 +674,15 @@
   .rw-preview-panel .card { position: static !important; }
   .fp-box { height: 320px; }
   .fp-box.room { height: 360px; }
+}
+/* İki sütunlu masaüstü (981–1799): sihirbaz sütunu 7 etiketli adımı taşıyamaz (~560–706px);
+   telefondaki gibi yalnızca aktif adımın adı görünür, hap tek satırda kalır.
+   ≥1800'de sütun ~830px olur ve etiketler geri gelir. */
+@media (min-width: 981px) and (max-width: 1799px) {
+  .rw-steps { flex-wrap: nowrap; }
+  .rw-step:not(.active) .rw-step-label { display: none; }
+  .rw-step:not(.active) { padding: 5px; }
+  .rw-step:not(.active) .rw-step-no { width: 26px; height: 26px; font-size: 12px; }
 }
 @media (max-width: 680px) {
   /* Adım çubuğu telefonda tek satır: yatay kayar, yalnızca aktif adımın adı görünür */

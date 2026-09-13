@@ -31,12 +31,15 @@ export default function FlipBook({ pdfUrl }: { pdfUrl: string }) {
   const [spread, setSpread] = useState(0); // 0 = kapak
   const [animKey, setAnimKey] = useState(0);
   const [direction, setDirection] = useState<"next" | "prev">("next");
+  // İlk sayfa çizilene kadar sayfa kutuları iskelet (skeleton) olarak gösterilir.
+  const [painted, setPainted] = useState(false);
   const leftRef = useRef<HTMLCanvasElement>(null);
   const rightRef = useRef<HTMLCanvasElement>(null);
   const renderTask = useRef(0);
 
   useEffect(() => {
     let cancelled = false;
+    setPainted(false);
     (async () => {
       try {
         const pdfjs = await import("pdfjs-dist");
@@ -111,8 +114,16 @@ export default function FlipBook({ pdfUrl }: { pdfUrl: string }) {
     if (!doc) return;
     const task = ++renderTask.current;
     const [l, r] = pagesOf(spread);
-    renderPage(l, leftRef.current, task);
-    renderPage(r, rightRef.current, task);
+    Promise.all([
+      renderPage(l, leftRef.current, task),
+      renderPage(r, rightRef.current, task),
+    ]).then(
+      () => {
+        // Yalnızca güncel görev iskeleti kaldırır; geride kalan görevler yok sayılır.
+        if (task === renderTask.current) setPainted(true);
+      },
+      (e) => console.error(e)
+    );
   }, [doc, spread, pagesOf, renderPage]);
 
   const go = useCallback(
@@ -156,15 +167,21 @@ export default function FlipBook({ pdfUrl }: { pdfUrl: string }) {
           padding: 10px 0;
         }
         /* Sayfa genişliği kapsayıcıya göre: iki sayfa sahneye sığacak şekilde
-           küçülür (sol panel yanında taşma olmaz). */
+           küçülür (sol panel yanında taşma olmaz). Ayrıca görünür yüksekliğe
+           göre sınırlanır ki sayfa + kontroller tek ekrana sığsın
+           (0.707 = A4 en/boy; 280px ≈ sayfa başlığı + kart dolgusu + kontrol
+           satırı + ipucu). Çok kısa ekranlarda 300px tabanın altına inmez. */
         .flip-page {
-          flex: 0 1 620px;
+          flex: 0 1 clamp(300px, calc((100vh - var(--topbar-h) - 280px) * 0.707), 620px);
           min-width: 0;
           max-width: 100%;
-          background: #fff; /* kâğıt — PDF çizilene kadar görünen zemin */
+          /* PDF çizilene kadar görünen zemin; pdf.js kâğıdı kendisi beyaza boyar. */
+          background: var(--surface-3);
           box-shadow: var(--shadow-md);
           border-radius: 2px;
         }
+        /* Yüklenirken iskelet A4 oranında yer tutar (canvas boyutlanınca zıplama olmaz). */
+        .flip-page.skeleton { aspect-ratio: 210 / 297; }
         .flip-page.empty { visibility: hidden; }
         .flip-page canvas { display: block; width: 100%; height: auto; }
         .flip-anim-next .flip-page.right { animation: flipInR 0.55s ease; transform-origin: left center; }
@@ -184,6 +201,10 @@ export default function FlipBook({ pdfUrl }: { pdfUrl: string }) {
           .flip-page { flex: 0 0 auto; width: 100%; }
           .flip-page.empty { display: none; }
         }
+        /* Telefon / dokunmatik cihazda klavye ipucunun anlamı yok. */
+        @media (max-width: 640px), (hover: none) {
+          .flip-hint { display: none; }
+        }
       `}</style>
 
       {!doc ? (
@@ -193,15 +214,16 @@ export default function FlipBook({ pdfUrl }: { pdfUrl: string }) {
           <div
             key={animKey}
             className={`flip-stage ${direction === "next" ? "flip-anim-next" : "flip-anim-prev"}`}
+            aria-busy={!painted}
           >
             <div
-              className={`flip-page left${l ? "" : " empty"}`}
+              className={`flip-page left${l ? "" : " empty"}${painted ? "" : " skeleton"}`}
               aria-hidden={!l}
             >
               <canvas ref={leftRef} />
             </div>
             <div
-              className={`flip-page right${r ? "" : " empty"}`}
+              className={`flip-page right${r ? "" : " empty"}${painted ? "" : " skeleton"}`}
               aria-hidden={!r}
             >
               <canvas ref={rightRef} />
@@ -237,7 +259,10 @@ export default function FlipBook({ pdfUrl }: { pdfUrl: string }) {
               <Icon name="download" size={16} /> PDF İndir
             </a>
           </div>
-          <p className="no-print" style={{ color: "var(--muted)", fontSize: 12, marginTop: 8 }}>
+          <p
+            className="no-print flip-hint"
+            style={{ color: "var(--muted)", fontSize: 12, marginTop: 8 }}
+          >
             İpucu: klavye ok tuşlarıyla da sayfa çevirebilirsiniz.
           </p>
         </>

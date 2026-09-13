@@ -143,6 +143,10 @@ export function activeHref(f: NavFlags, pathname: string): string | null {
 
 export interface Crumb { label: string; href: string; }
 
+// Bu yollar kendi başına sayfadır ama alt yolların "üstü" değildir:
+// /panel = Yeni Sipariş formu, /portal = stok sorgusu. Kırıntıda ara halka olmazlar.
+const NOT_A_PARENT = new Set(["/panel", "/portal"]);
+
 export function breadcrumbsFor(f: NavFlags, pathname: string): Crumb[] {
   const titles = new Map<string, string>();
   for (const it of flatNav(f)) titles.set(it.href, it.label);
@@ -156,7 +160,7 @@ export function breadcrumbsFor(f: NavFlags, pathname: string): Crumb[] {
   for (let i = 0; i < segs.length; i++) {
     acc += "/" + segs[i];
     const t = titles.get(acc);
-    if (t) {
+    if (t && (acc === pathname || !NOT_A_PARENT.has(acc))) {
       crumbs.push({ label: t, href: acc });
     } else if (acc.startsWith("/kataloglar/") && i === segs.length - 1) {
       crumbs.push({ label: "Katalog Görüntüleyici", href: acc });

@@ -208,17 +208,13 @@ export default function PersonelManager() {
                     </tr>
                   );
                 })}
-                {!personel.length && (
-                  <tr>
-                    <td colSpan={7}>
-                      <div className="empty" style={{ padding: "22px 12px" }}>
-                        Henüz personel kartı yok. &quot;+ Personel Ekle&quot; ile başlayın.
-                      </div>
-                    </td>
-                  </tr>
-                )}
               </tbody>
             </table>
+            {!personel.length && (
+              <div className="empty" style={{ padding: "22px 12px" }}>
+                Henüz personel kartı yok. &quot;+ Personel Ekle&quot; ile başlayın.
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -244,15 +240,11 @@ export default function PersonelManager() {
                   <td className="num" style={{ color: "var(--error)", whiteSpace: "nowrap" }}>₺{fmt(g.amount)}</td>
                 </tr>
               ))}
-              {!odemeler.length && (
-                <tr>
-                  <td colSpan={4}>
-                    <div className="empty" style={{ padding: "22px 12px" }}>Bu ayda ödeme yok.</div>
-                  </td>
-                </tr>
-              )}
             </tbody>
           </table>
+          {!odemeler.length && (
+            <div className="empty" style={{ padding: "22px 12px" }}>Bu ayda ödeme yok.</div>
+          )}
         </div>
       </div>
 

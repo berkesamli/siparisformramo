@@ -341,52 +341,57 @@ export default function OrdersList({
             else setFilter({ range: "today" });
           }}
         />
-        <span className="spacer" />
-        <select
-          style={{ width: "auto", maxWidth: "100%" }}
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-        >
-          <option value="all">Tüm Durumlar</option>
-          <option value="olusturuldu">Oluşturuldu</option>
-          <option value="hazirlaniyor">Hazırlanıyor</option>
-          <option value="tamamlandi">Tamamlandı</option>
-          <option value="iptal">İptal</option>
-        </select>
-        <button className="btn small secondary" type="button" onClick={load}>
-          <Icon name="refresh" size={14} /> Yenile
-        </button>
-        {!tamamlananlar && (
-          <Link
-            className="btn small secondary"
-            href="/panel/siparisler/tamamlanan"
-            title="Durumu tamamlandı, ödemesi alınmış ve kontrol edilmiş siparişler"
+        {/* Durum filtresi + eylemler tek grup olarak sağa yaslanır; dar
+            ekranda hep birlikte alt satıra iner (tek başına kalan kontrol olmaz). */}
+        <div className="row" style={{ marginLeft: "auto" }}>
+          <select
+            // minWidth: en uzun seçenek + base.css'in 34px ok boşluğu; ok yazının üstüne binmesin
+            style={{ width: "auto", minWidth: 172, maxWidth: "100%" }}
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
           >
-            <Icon name="check-circle" size={14} /> Tamamlananlar{arsivlenen > 0 ? ` (${arsivlenen})` : ""}
-          </Link>
-        )}
-        {tamamlananlar && (
-          <Link className="btn small secondary" href="/panel/siparisler">
-            <Icon name="chevron-left" size={14} /> Aktif Siparişler
-          </Link>
-        )}
-        {eldenSatis && !tamamlananlar && (
-          <button
-            className="btn small"
-            title="Ayaküstü perakende / teknik malzeme satışı — siparişsiz kasa girişi"
-            onClick={() =>
-              setTahsilatBaglam({ customerName: "PERAKENDE", serbest: true })
-            }
-          >
-            <Icon name="wallet" size={14} /> Elden Satış
+            <option value="all">Tüm Durumlar</option>
+            <option value="olusturuldu">Oluşturuldu</option>
+            <option value="hazirlaniyor">Hazırlanıyor</option>
+            <option value="tamamlandi">Tamamlandı</option>
+            <option value="iptal">İptal</option>
+          </select>
+          <button className="btn small secondary" type="button" onClick={load}>
+            <Icon name="refresh" size={14} /> Yenile
           </button>
-        )}
+          {!tamamlananlar && (
+            <Link
+              className="btn small secondary"
+              href="/panel/siparisler/tamamlanan"
+              title="Durumu tamamlandı, ödemesi alınmış ve kontrol edilmiş siparişler"
+            >
+              <Icon name="check-circle" size={14} /> Tamamlananlar{arsivlenen > 0 ? ` (${arsivlenen})` : ""}
+            </Link>
+          )}
+          {tamamlananlar && (
+            <Link className="btn small secondary" href="/panel/siparisler">
+              <Icon name="chevron-left" size={14} /> Aktif Siparişler
+            </Link>
+          )}
+          {eldenSatis && !tamamlananlar && (
+            <button
+              className="btn small"
+              title="Ayaküstü perakende / teknik malzeme satışı — siparişsiz kasa girişi"
+              onClick={() =>
+                setTahsilatBaglam({ customerName: "PERAKENDE", serbest: true })
+              }
+            >
+              <Icon name="wallet" size={14} /> Elden Satış
+            </button>
+          )}
+        </div>
       </div>
 
       {error && <div className="notice err">{error}</div>}
       {!orders && !error && <p className="text-2">Yükleniyor…</p>}
 
       {orders && (
+        <>
         <div className="ord-table-wrap">
           <table>
             <thead>
@@ -532,22 +537,21 @@ export default function OrdersList({
                   </td>
                 </tr>
               ))}
-              {!visible.length && (
-                <tr>
-                  <td colSpan={9}>
-                    <div className="empty">
-                      {sadeceKontrolsuz
-                        ? "🎉 Son 7 günün tüm siparişleri kontrol edildi."
-                        : tamamlananlar
-                          ? "Bu aralıkta tamamlanmış sipariş yok. Bir siparişin buraya düşmesi için durumu “Tamamlandı” olmalı ve kontrol edilmiş olmalı."
-                          : "Bu filtreye uyan sipariş yok."}
-                    </div>
-                  </td>
-                </tr>
-              )}
             </tbody>
           </table>
         </div>
+        {/* Boş durum tablonun DIŞINDA: 9 sütunlu tablo telefonda yatay kayar,
+            mesaj kart genişliğine göre ortalanır ve her ekranda okunur. */}
+        {!visible.length && (
+          <div className="empty">
+            {sadeceKontrolsuz
+              ? "🎉 Son 7 günün tüm siparişleri kontrol edildi."
+              : tamamlananlar
+                ? "Bu aralıkta tamamlanmış sipariş yok. Bir siparişin buraya düşmesi için durumu “Tamamlandı” olmalı ve kontrol edilmiş olmalı."
+                : "Bu filtreye uyan sipariş yok."}
+          </div>
+        )}
+        </>
       )}
 
       {tahsilatBaglam && (

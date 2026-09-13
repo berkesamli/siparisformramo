@@ -64,14 +64,18 @@ const FORM_GRID = {
   gridTemplateColumns: "repeat(auto-fit, minmax(min(150px, 100%), 1fr))",
   alignItems: "end",
 } as const;
-// Segmentli sekme düğmesi: ikon + metin hizası; dar ekranda metin sarılır,
-// segment yatay taşmaz.
+// Segmentli sekme düğmesi: ikon + metin hizası; etiket tek satırda kalır.
+// base.css ≤680'de .seg button'a white-space: normal verir; o zaman
+// "Partiler / Alış Fiyatları" ikinci satıra kırılıp tek satırlık komşusunun
+// yanında 62px'lik eşitsiz bir segment oluşturuyordu. İki etiket 8px dolguyla
+// ~283px; 360–390px telefonda sığar. Daha dar ekranda base.css'in ≤680
+// kuralı .seg'e overflow-x: auto verdiğinden sayfa yatay taşmaz.
 const SEG_BTN = {
   display: "inline-flex",
   alignItems: "center",
   justifyContent: "center",
   gap: 6,
-  whiteSpace: "normal",
+  whiteSpace: "nowrap",
   textAlign: "center",
 } as const;
 

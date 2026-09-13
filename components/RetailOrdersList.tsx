@@ -127,7 +127,7 @@ export default function RetailOrdersList() {
         </div>
         <input
           type="date"
-          style={{ width: 160, maxWidth: "100%" }}
+          style={{ flex: "1 1 160px", minWidth: 160, maxWidth: "100%" }}
           value={date}
           onChange={(e) => {
             setDate(e.target.value);
@@ -136,7 +136,7 @@ export default function RetailOrdersList() {
         />
         <input
           placeholder="Ara: sipariş no / ad / telefon"
-          style={{ flex: 1, minWidth: 200 }}
+          style={{ flex: "3 1 200px", minWidth: 200 }}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
         />

@@ -317,10 +317,13 @@ export default function SmsPanel() {
 
         <div style={{ marginTop: 12 }}>
           <label>Mesaj türü</label>
+          {/* Global select stili width:100% + 34px sağ boşluk (ok işareti) verir;
+              width:auto bu boşluğu içsel genişliğe katmadığı için son harf okla
+              çakışıyordu. Genişlik 440'ta sınırlanır, ≤680'de kart genişliğine yayılır. */}
           <select
             value={iysfilter}
             onChange={(e) => setIysfilter(e.target.value as "0" | "11" | "12")}
-            style={{ width: "auto", maxWidth: "100%" }}
+            style={{ maxWidth: 440, textOverflow: "ellipsis" }}
           >
             <option value="0">Bilgilendirme — kargo, sipariş, hatırlatma</option>
             <option value="11">Ticari / kampanya — alıcı bireysel</option>

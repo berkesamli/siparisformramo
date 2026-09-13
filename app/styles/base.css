@@ -100,6 +100,7 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0
 }
 .card:hover { box-shadow: var(--shadow-md); }
 .card + .card { margin-top: 16px; }
+.grid > .card + .card { margin-top: 0; } /* ızgarada boşluk yalnızca gap'ten gelir; üst kenarlar hizalı kalır */
 .card.flat { box-shadow: none; }
 .card.flat:hover { box-shadow: none; }
 .card.pad-0 { padding: 0; }
@@ -124,7 +125,7 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0
 .card-head .spacer { flex: 0 0 auto; }
 .card-head .spacer, .spacer { flex: 1; }
 .card-head-sub { color: var(--muted); font-size: 12.5px; }
-.card-head-actions { display: flex; align-items: center; gap: 6px; }
+.card-head-actions { display: flex; align-items: center; gap: 6px; margin-left: auto; }
 
 /* ---- Butonlar ---- */
 .btn {
@@ -150,7 +151,6 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0
 }
 .btn:hover { background: var(--brand-btn-hover); text-decoration: none; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.14); transform: translateY(-1px); }
 .btn:active { transform: translateY(0); }
-.btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
 .btn.secondary {
   background: var(--surface-2);
   border-color: var(--border);
@@ -168,6 +168,16 @@ code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0
 .btn.wa:hover { background: linear-gradient(135deg, #34d058, var(--wa)); }
 .btn.strong { background: var(--ink); color: var(--on-ink); box-shadow: none; }
 .btn.strong:hover { background: var(--ink); opacity: 0.9; }
+/* Devre dışı: her varyant ve temada okunur nötr durum (opaklık düşürmek açık temada beyaz yazıyı siliyordu) */
+.btn:disabled, .btn:disabled:hover {
+  opacity: 1;
+  background: var(--surface-3);
+  color: var(--muted);
+  border-color: var(--border);
+  box-shadow: none;
+  transform: none;
+  cursor: not-allowed;
+}
 .btn.icon { width: 38px; height: 38px; padding: 0; border-radius: 10px; }
 .btn.icon.small { width: 32px; height: 32px; border-radius: 8px; }
 .btn.block { width: 100%; }
@@ -207,6 +217,14 @@ select option { background: var(--surface-solid); color: var(--text); }
 input[type="checkbox"], input[type="radio"] { width: auto; accent-color: var(--brand); }
 input[type="range"] { padding: 0; background: transparent; border: none; accent-color: var(--brand); }
 input[type="file"] { padding: 8px; }
+input[type="file"]::file-selector-button {
+  font: inherit; font-weight: 600; font-size: 13px;
+  padding: 6px 12px; margin-right: 12px;
+  border: 1px solid var(--border); border-radius: var(--radius-xs);
+  background: var(--surface-3); color: var(--text); cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+input[type="file"]::file-selector-button:hover { background: var(--surface-4); border-color: var(--border-strong); }
 input[type="date"], input[type="time"] { color-scheme: inherit; }
 textarea { resize: vertical; min-height: 80px; }
 
@@ -363,6 +381,7 @@ hr, .divider { border: none; border-top: 1px solid var(--border); margin: 14px 0
   body { font-size: 15px; }
   .container { padding: 14px 12px 28px; }
   input, select, textarea { font-size: 16px; padding: 11px 13px; }
+  select { padding-right: 34px; } /* çizilen ok için sağ boşluk korunur */
   .btn { font-size: 14px; padding: 11px 16px; }
   .btn.small { font-size: 13px; padding: 8px 12px; }
   .notice { font-size: 14px; }
@@ -371,18 +390,20 @@ hr, .divider { border: none; border-top: 1px solid var(--border); margin: 14px 0
   .card { padding: 16px; border-radius: 14px; }
   .card-head { margin: -16px -16px 14px; padding: 12px 14px; }
   th, td { padding: 8px 8px; font-size: 12.5px; }
+  th { white-space: normal; letter-spacing: 0.04em; line-height: 1.2; } /* başlıklar sarılır, fiyat sütunu ekrana sığar */
   .page-head { margin-bottom: 16px; }
   .page-head-icon { display: none; }
   .page-head-actions { width: 100%; }
   .page-head-actions .btn { flex: 1 1 auto; }
   .seg { width: 100%; overflow-x: auto; }
-  .seg button, .seg a { flex: 1; padding: 7px 10px; }
+  .seg button, .seg a { flex: 1 1 0; padding: 7px 8px; white-space: normal; line-height: 1.25; text-align: center; justify-content: center; }
 }
 
 /* Tablet (681–1180): bir kademe büyük yazı ve dokunma alanı */
 @media (min-width: 681px) and (max-width: 1180px) {
   body { font-size: 15px; }
   input, select, textarea { font-size: 15px; padding: 11px 14px; }
+  select { padding-right: 34px; }
   .btn { font-size: 14.5px; padding: 11px 18px; }
   .btn.small { font-size: 13.5px; padding: 8px 14px; }
   th, td { font-size: 14px; }
@@ -394,6 +415,7 @@ hr, .divider { border: none; border-top: 1px solid var(--border); margin: 14px 0
   .container { max-width: 1320px; }
   body { font-size: 15.5px; }
   input, select, textarea { font-size: 15px; padding: 11px 15px; }
+  select { padding-right: 34px; }
   .btn { font-size: 15px; padding: 11px 22px; }
   .btn.small { font-size: 13.5px; padding: 7px 15px; }
   th, td { font-size: 14px; padding: 12px 14px; }

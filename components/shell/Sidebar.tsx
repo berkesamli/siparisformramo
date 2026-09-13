@@ -2,7 +2,7 @@
 
 /* eslint-disable @next/next/no-img-element */
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import Icon from "./Icon";
@@ -45,6 +45,25 @@ export default function Sidebar({
     setOpenGroups((o) => ({ ...o, ...next }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pathname]);
+
+  // Geçerli sayfanın menü öğesi .sb-foot / alt solma maskesinin arkasında yarım kalmasın:
+  // rota değişince yalnızca .sb-nav kaydırılır (sayfa değil), öğe zaten görünürse dokunulmaz.
+  // Aktif öğe kapalı bir alt menüdeyse ilk turda DOM'da yoktur; openGroups açılınca tekrar denenir,
+  // ancak her rota için yalnızca bir kez kaydırılır (elle grup açıp kapatmayla çakışmasın).
+  const navRef = useRef<HTMLElement>(null);
+  const scrolledFor = useRef<string | null>(null);
+  useEffect(() => {
+    if (!active || scrolledFor.current === active) return;
+    const nav = navRef.current;
+    const el = nav?.querySelector<HTMLElement>(".sb-link.active");
+    if (!nav || !el) return;
+    scrolledFor.current = active;
+    const pad = 32; // .sb-nav alt solma maskesi (28px) + pay
+    const n = nav.getBoundingClientRect();
+    const r = el.getBoundingClientRect();
+    if (r.bottom > n.bottom - pad) nav.scrollTop += r.bottom - (n.bottom - pad);
+    else if (r.top < n.top + pad) nav.scrollTop -= n.top + pad - r.top;
+  }, [active, openGroups]);
 
   const badgeValue = (it: NavItem): number => {
     if (!it.badge || !stats) return 0;
@@ -151,7 +170,7 @@ export default function Sidebar({
         )}
       </div>
 
-      <nav className="sb-nav">
+      <nav className="sb-nav" ref={navRef}>
         {groups.map((g) => (
           <div className="sb-group" key={g.title}>
             <div className="sb-group-title">{g.title}</div>

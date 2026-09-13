@@ -217,7 +217,7 @@ export default function PriceListBrowser({
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Ara — çerçeve kodu (2315S, GB022) veya malzeme adı (askı teli, agraf)…"
+            placeholder="Kod veya malzeme (2315S, agraf)…"
             aria-label="Fiyat listesinde ara"
             style={{ paddingLeft: 38 }}
           />

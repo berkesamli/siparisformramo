@@ -77,7 +77,15 @@ a.sb-stat:hover { background: var(--surface-3); text-decoration: none; color: va
 .sb-stat-delta.down { color: var(--error); }
 
 /* Menü */
-.sb-nav { flex: 1 1 auto; overflow-y: auto; overflow-x: hidden; padding: 8px 10px 12px; scrollbar-width: thin; }
+/* Liste taşarsa son öğe alt çubuk kenarlığıyla kesilmesin: altta solma (maskede yalnızca alfa kullanılır, tema güvenli)
+   ve son öğenin solmanın üstüne kaydırılabilmesi için ekstra alt boşluk. */
+.sb-nav {
+  flex: 1 1 auto; overflow-y: auto; overflow-x: hidden;
+  padding: 8px 10px 28px;
+  scrollbar-width: thin;
+  -webkit-mask-image: linear-gradient(to bottom, currentColor calc(100% - 28px), transparent);
+  mask-image: linear-gradient(to bottom, currentColor calc(100% - 28px), transparent);
+}
 .sb-group { margin-top: 6px; }
 .sb-group-title {
   font-size: 10.5px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase;

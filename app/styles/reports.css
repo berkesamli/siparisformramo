@@ -128,6 +128,9 @@
   margin-top: 24px;
 }
 .rep-tables .card { overflow-x: auto; }
+/* base.css `.card + .card { margin-top }` kardeş boşluğu ızgarada 2–4. kartı aşağı
+   kaydırmasın (dashboard.css .kpi-row ile aynı): tüm kartlar aynı üst hizada, satır arası 16px. */
+.rep-tables > .card + .card { margin-top: 0; }
 .rep-th {
   font-size: 14px;
   font-weight: 800;

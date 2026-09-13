@@ -15,7 +15,7 @@ export default async function PersonelPage() {
   if (user.role !== "staff" || !isFinance(user.username)) redirect("/panel");
 
   return (
-    <main className="container" style={{ maxWidth: 1100 }}>
+    <main className="container" style={{ maxWidth: 1240 }}>
       <PageHeader
         title="Personel"
         subtitle="Avans, maaş ve prim ödemeleri — ödemeler gider kaydına da düşer."
