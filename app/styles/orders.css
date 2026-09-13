@@ -1,3 +1,9 @@
+/* =========================================================
+   SİPARİŞ LİSTELERİ — ödeme rozeti, sipariş tablosu (sağa sabit
+   İşlemler sütunu), durum seçicisi ve cari özet kartları.
+   Tüm renkler tokens.css'ten gelir; sabit renk yazılmaz.
+   ========================================================= */
+
 /* ---- Cari / ödeme takibi ---- */
 .pay-select { font-weight: 600; }
 .pay-select.bekliyor { color: var(--error); }
@@ -10,33 +16,42 @@
    sabitlenir ve çubuk her zaman görünür kılınır. */
 .ord-table-wrap {
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
   scrollbar-color: var(--brand) transparent;
 }
 .ord-table-wrap::-webkit-scrollbar { height: 10px; }
 .ord-table-wrap::-webkit-scrollbar-track {
-  background: rgba(169, 102, 13, 0.07);
+  background: var(--brand-soft);
   border-radius: 999px;
 }
 .ord-table-wrap::-webkit-scrollbar-thumb {
-  background: rgba(169, 102, 13, 0.45);
+  background: var(--brand-ring);
   border-radius: 999px;
 }
 .ord-table-wrap::-webkit-scrollbar-thumb:hover { background: var(--brand); }
 
+/* Sabit sütun: kart zemini yarı saydam cam olduğundan altından kayan
+   hücreler görünmesin diye opak yüzey (--surface-solid) kullanılır;
+   başlık ve hover vurgusu bu opak zeminin üstüne katman olarak biner. */
 .ord-table-wrap th.ord-actions,
 .ord-table-wrap td.ord-actions {
   position: sticky;
   right: 0;
   z-index: 2;
   white-space: nowrap;
-  background: var(--card);
+  background: var(--surface-solid);
   /* Kaydırınca altından geçen içeriği ayırmak için sol kenar gölgesi */
-  box-shadow: -8px 0 12px -6px rgba(38, 32, 26, 0.18);
+  box-shadow: -8px 0 12px -6px rgba(0, 0, 0, 0.35);
+}
+.ord-table-wrap th.ord-actions {
+  background: linear-gradient(var(--surface-2), var(--surface-2)), var(--surface-solid);
 }
 .ord-table-wrap td.ord-actions > * + * { margin-left: 6px; }
-/* Satır üzerine gelindiğinde sabit sütun da aynı rengi alsın */
-.ord-table-wrap tbody tr:hover td.ord-actions { background: #faf7f1; }
+/* Satır üzerine gelindiğinde sabit sütun da satırla aynı vurguyu alsın */
+.ord-table-wrap tbody tr:hover td.ord-actions {
+  background: linear-gradient(var(--surface-2), var(--surface-2)), var(--surface-solid);
+}
 /* Müşteri adı gereksiz yere 4-5 satıra bölünmesin */
 .ord-table-wrap td:nth-child(3) { min-width: 170px; }
 
@@ -58,48 +73,47 @@
   }
 }
 
-/* Sipariş durumu — her aşama kendi rengiyle, listede tek bakışta ayrışsın */
+/* ---- Sipariş durumu — her aşama kendi rengiyle, listede tek bakışta ayrışsın.
+   <select> öğesidir: base.css ok simgesini background-image ile çizdiğinden
+   yalnızca background-color değiştirilir. Renkler durum başına özel
+   değişkenlerle verilir; böylece hover/focus kuralları da aynı rengi korur. */
 .status-select {
   font-weight: 700;
   border-width: 1.5px;
   border-style: solid;
+  color: var(--ss-color, var(--text));
+  background-color: var(--ss-bg, var(--input));
+  border-color: var(--ss-line, var(--border));
 }
-.status-select.olusturuldu {
-  background: #fff4e5;
-  border-color: #f0b866;
-  color: #a2600a;
+select.status-select:hover:not(:disabled):not(:focus) { border-color: var(--ss-line, var(--border-strong)); }
+select.status-select:focus {
+  background-color: var(--ss-bg, var(--input-focus));
+  box-shadow: 0 0 0 3px var(--ss-line, var(--brand-ring));
 }
-.status-select.hazirlaniyor {
-  background: #e8f1fe;
-  border-color: #8db4f0;
-  color: #17458f;
-}
-.status-select.tamamlandi {
-  background: #e6f6ec;
-  border-color: #86ceA3;
-  color: #14663a;
-}
-.status-select.iptal {
-  background: #fdeaea;
-  border-color: #e39a9a;
-  color: #a12626;
-}
+.status-select.olusturuldu { --ss-color: var(--warning); --ss-bg: var(--warning-soft); --ss-line: var(--warning-line); }
+.status-select.hazirlaniyor { --ss-color: var(--info);    --ss-bg: var(--info-soft);    --ss-line: var(--info-line); }
+.status-select.tamamlandi   { --ss-color: var(--success); --ss-bg: var(--success-soft); --ss-line: var(--success-line); }
+.status-select.iptal        { --ss-color: var(--error);   --ss-bg: var(--error-soft);   --ss-line: var(--error-line); }
 
+/* ---- Cari özet kartları ---- */
 .cari-cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
   gap: 14px;
   margin: 18px 0 26px;
 }
 .cari-card {
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: var(--radius);
   padding: 16px 18px;
   box-shadow: var(--shadow-sm);
+  -webkit-backdrop-filter: blur(var(--blur));
+  backdrop-filter: blur(var(--blur));
   display: flex;
   flex-direction: column;
   gap: 4px;
+  min-width: 0;
 }
 .cari-card span {
   font-size: 11.5px;
@@ -108,6 +122,29 @@
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
-.cari-card strong { font-size: 21px; font-weight: 800; }
-.cari-card.borc { border-color: rgba(185, 28, 28, 0.3); background: rgba(185, 28, 28, 0.03); }
+.cari-card strong {
+  font-size: 21px;
+  font-weight: 800;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.cari-card.borc {
+  border-color: var(--error-line);
+  background: linear-gradient(var(--error-soft), var(--error-soft)), var(--card);
+}
 
+/* ---- Yazdırma: sabit sütun ve kaydırma kalkar; durum/ödeme rozetleri
+   base.css'in yazdırma tokenlarıyla (siyah yazı, beyaz zemin) basılır. */
+@media print {
+  .ord-table-wrap { overflow: visible; }
+  .ord-table-wrap th.ord-actions,
+  .ord-table-wrap td.ord-actions { position: static; box-shadow: none; background: var(--surface-solid); }
+  .status-select, .pay-select {
+    color: var(--text);
+    background-color: var(--surface-solid);
+    border-color: var(--border-strong);
+    box-shadow: none;
+  }
+  .cari-card, .cari-card.borc { background: var(--surface-solid); box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+}

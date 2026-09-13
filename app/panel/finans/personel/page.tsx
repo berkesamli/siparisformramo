@@ -3,6 +3,8 @@ import Link from "next/link";
 import { getSessionUser } from "@/lib/auth";
 import { isFinance, finansAktif } from "@/data/users";
 import PersonelManager from "@/components/PersonelManager";
+import PageHeader from "@/components/PageHeader";
+import Icon from "@/components/shell/Icon";
 
 export const dynamic = "force-dynamic";
 
@@ -14,13 +16,16 @@ export default async function PersonelPage() {
 
   return (
     <main className="container" style={{ maxWidth: 1100 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
-        <div style={{ flex: 1, minWidth: 260 }}>
-          <h1>Personel</h1>
-          <p className="subtitle">Avans, maaş ve prim ödemeleri — ödemeler gider kaydına da düşer.</p>
-        </div>
-        <Link href="/panel/finans" className="btn small secondary">← Finans</Link>
-      </div>
+      <PageHeader
+        title="Personel"
+        subtitle="Avans, maaş ve prim ödemeleri — ödemeler gider kaydına da düşer."
+        icon="briefcase"
+        actions={
+          <Link href="/panel/finans" className="btn secondary">
+            <Icon name="chevron-left" size={16} /> Finans
+          </Link>
+        }
+      />
       <PersonelManager />
     </main>
   );

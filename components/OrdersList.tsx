@@ -11,12 +11,20 @@ import {
 } from "@/lib/orders";
 import TahsilatModal, { type TahsilatBaglam } from "./TahsilatModal";
 import { sayi } from "@/lib/num";
+import Icon from "@/components/shell/Icon";
 
 const STATUS_LABELS: Record<OrderStatus, string> = {
   olusturuldu: "Oluşturuldu",
   hazirlaniyor: "Hazırlanıyor",
   tamamlandi: "Tamamlandı",
   iptal: "İptal",
+};
+
+// Ödeme rozeti — .badge renk sınıfı (bekliyor kırmızı, kısmi sarı, ödendi yeşil)
+const PAY_BADGE: Record<string, string> = {
+  bekliyor: "err",
+  kismi: "warn",
+  odendi: "ok",
 };
 
 const fmt = (n: number) =>
@@ -269,7 +277,7 @@ export default function OrdersList({
           onChange={(e) => setAramaMetni(e.target.value)}
         />
         <button className="btn small" type="submit">
-          🔍 Ara
+          <Icon name="search" size={15} /> Ara
         </button>
         {filter.q && (
           <button
@@ -280,7 +288,7 @@ export default function OrdersList({
               setFilter({ range: "today" });
             }}
           >
-            ✕ Aramayı Temizle
+            <Icon name="x" size={14} /> Aramayı Temizle
           </button>
         )}
       </form>
@@ -290,34 +298,41 @@ export default function OrdersList({
           {orders ? ` — ${visible.length} sipariş bulundu.` : "…"}
         </div>
       )}
-      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", marginBottom: 16 }}>
-        <button
-          className={`btn small ${filter.range === "today" && !filter.date && !filter.q ? "" : "secondary"}`}
-          onClick={() => { setFilter({ range: "today" }); setSadeceKontrolsuz(false); setAramaMetni(""); }}
-        >
-          Bugün
-        </button>
-        <button
-          className={`btn small ${filter.range === "yesterday" ? "" : "secondary"}`}
-          onClick={() => { setFilter({ range: "yesterday" }); setSadeceKontrolsuz(false); setAramaMetni(""); }}
-        >
-          Dün
-        </button>
-        <button
-          className={`btn small ${filter.range === "week" && !sadeceKontrolsuz ? "" : "secondary"}`}
-          onClick={() => { setFilter({ range: "week" }); setSadeceKontrolsuz(false); setAramaMetni(""); }}
-        >
-          Son 7 Gün
-        </button>
-        <button
-          className={`btn small ${filter.range === "days15" ? "" : "secondary"}`}
-          onClick={() => { setFilter({ range: "days15" }); setSadeceKontrolsuz(false); setAramaMetni(""); }}
-        >
-          Son 15 Gün
-        </button>
+      <div className="row" style={{ marginBottom: 16 }}>
+        {/* Tarih aralığı — segmentli kontrol (.seg); aktif seçenek .active */}
+        <div className="seg" role="group" aria-label="Tarih aralığı">
+          <button
+            type="button"
+            className={filter.range === "today" && !filter.date && !filter.q ? "active" : ""}
+            onClick={() => { setFilter({ range: "today" }); setSadeceKontrolsuz(false); setAramaMetni(""); }}
+          >
+            Bugün
+          </button>
+          <button
+            type="button"
+            className={filter.range === "yesterday" ? "active" : ""}
+            onClick={() => { setFilter({ range: "yesterday" }); setSadeceKontrolsuz(false); setAramaMetni(""); }}
+          >
+            Dün
+          </button>
+          <button
+            type="button"
+            className={filter.range === "week" && !sadeceKontrolsuz ? "active" : ""}
+            onClick={() => { setFilter({ range: "week" }); setSadeceKontrolsuz(false); setAramaMetni(""); }}
+          >
+            Son 7 Gün
+          </button>
+          <button
+            type="button"
+            className={filter.range === "days15" ? "active" : ""}
+            onClick={() => { setFilter({ range: "days15" }); setSadeceKontrolsuz(false); setAramaMetni(""); }}
+          >
+            Son 15 Gün
+          </button>
+        </div>
         <input
           type="date"
-          style={{ width: "auto" }}
+          style={{ width: "auto", maxWidth: "100%" }}
           value={filter.date || ""}
           onChange={(e) => {
             setSadeceKontrolsuz(false);
@@ -326,9 +341,9 @@ export default function OrdersList({
             else setFilter({ range: "today" });
           }}
         />
-        <span style={{ flex: 1 }} />
+        <span className="spacer" />
         <select
-          style={{ width: "auto" }}
+          style={{ width: "auto", maxWidth: "100%" }}
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
         >
@@ -338,8 +353,8 @@ export default function OrdersList({
           <option value="tamamlandi">Tamamlandı</option>
           <option value="iptal">İptal</option>
         </select>
-        <button className="btn small secondary" onClick={load}>
-          ↻ Yenile
+        <button className="btn small secondary" type="button" onClick={load}>
+          <Icon name="refresh" size={14} /> Yenile
         </button>
         {!tamamlananlar && (
           <Link
@@ -347,12 +362,12 @@ export default function OrdersList({
             href="/panel/siparisler/tamamlanan"
             title="Durumu tamamlandı, ödemesi alınmış ve kontrol edilmiş siparişler"
           >
-            ✅ Tamamlananlar{arsivlenen > 0 ? ` (${arsivlenen})` : ""}
+            <Icon name="check-circle" size={14} /> Tamamlananlar{arsivlenen > 0 ? ` (${arsivlenen})` : ""}
           </Link>
         )}
         {tamamlananlar && (
           <Link className="btn small secondary" href="/panel/siparisler">
-            ← Aktif Siparişler
+            <Icon name="chevron-left" size={14} /> Aktif Siparişler
           </Link>
         )}
         {eldenSatis && !tamamlananlar && (
@@ -363,13 +378,13 @@ export default function OrdersList({
               setTahsilatBaglam({ customerName: "PERAKENDE", serbest: true })
             }
           >
-            💰 Elden Satış
+            <Icon name="wallet" size={14} /> Elden Satış
           </button>
         )}
       </div>
 
       {error && <div className="notice err">{error}</div>}
-      {!orders && !error && <p style={{ color: "var(--text-2)" }}>Yükleniyor…</p>}
+      {!orders && !error && <p className="text-2">Yükleniyor…</p>}
 
       {orders && (
         <div className="ord-table-wrap">
@@ -413,7 +428,7 @@ export default function OrdersList({
                   <td>
                     <select
                       className={`status-select ${o.status}`}
-                      style={{ width: "auto", padding: "4px 8px", fontSize: 13 }}
+                      style={{ width: "auto", maxWidth: "100%", padding: "5px 30px 5px 10px", fontSize: 13 }}
                       value={o.status}
                       onChange={(e) => changeStatus(o, e.target.value as OrderStatus)}
                     >
@@ -425,14 +440,14 @@ export default function OrdersList({
                     </select>
                   </td>
                   <td style={{ whiteSpace: "nowrap" }}>
-                    <span className={`pay-select ${o.payment || "bekliyor"}`}
-                      style={{ padding: "4px 8px", fontSize: 13, display: "inline-block" }}>
+                    <span className={`badge ${PAY_BADGE[o.payment || "bekliyor"] || ""} pay-select ${o.payment || "bekliyor"}`}>
                       {PAYMENT_LABELS[o.payment || "bekliyor"]}
                     </span>{" "}
                     {orderBalance(o) > 0 && (
                       <button
-                        className="btn small secondary"
+                        className="btn small secondary icon"
                         title="Tahsilat gir"
+                        aria-label="Tahsilat gir"
                         onClick={() =>
                           setTahsilatBaglam({
                             customerId: o.customerId || undefined,
@@ -444,13 +459,14 @@ export default function OrdersList({
                           })
                         }
                       >
-                        💰
+                        <Icon name="wallet" size={15} />
                       </button>
                     )}
                     {(o.payment === "odendi" || (Number(o.paidAmount) || 0) > 0) && (
                       <button
-                        className="btn small secondary"
+                        className="btn small secondary icon"
                         title="İade — müşteriye para iadesi (siparişe bağlı negatif tahsilat kaydı düşülür)"
+                        aria-label="İade"
                         onClick={() => iadeYap(o)}
                       >
                         ↩
@@ -466,11 +482,11 @@ export default function OrdersList({
                     {o.kontrol ? (
                       <button
                         className="btn small secondary"
-                        style={{ color: "#15803d", borderColor: "#bbe3c8" }}
+                        style={{ color: "var(--success)", borderColor: "var(--success-line)", background: "var(--success-soft)" }}
                         title={`${o.kontrol.by} kontrol etti — ${new Date(o.kontrol.at).toLocaleString("tr-TR", { dateStyle: "short", timeStyle: "short", timeZone: "Europe/Istanbul" })}. Geri almak için tıklayın.`}
                         onClick={() => toggleKontrol(o)}
                       >
-                        ✔ {o.kontrol.by.split(" ")[0]}
+                        <Icon name="check-circle" size={14} /> {o.kontrol.by.split(" ")[0]}
                       </button>
                     ) : (
                       <button
@@ -490,40 +506,42 @@ export default function OrdersList({
                       href={`/api/orders/pdf?d=${o.dateKey}&id=${encodeURIComponent(o.orderId)}`}
                       title="Sipariş fişini PDF olarak indir"
                     >
-                      ⬇ PDF
+                      <Icon name="download" size={14} /> PDF
                     </a>
                     <Link
                       className="btn small secondary"
                       href={`/panel/siparisler/detay?d=${o.dateKey}&id=${encodeURIComponent(o.orderId)}`}
                       title="Fişi görüntüle / yazdır"
                     >
-                      🖨️ Fiş
+                      <Icon name="printer" size={14} /> Fiş
                     </Link>
                     <Link
                       className="btn small secondary"
                       href={`/panel/siparisler/duzenle?d=${o.dateKey}&id=${encodeURIComponent(o.orderId)}`}
                       title="Siparişi düzenle"
                     >
-                      ✏️ Düzenle
+                      <Icon name="edit" size={14} /> Düzenle
                     </Link>
                     <Link
                       className="btn small secondary"
                       href={`/panel?kopya=${encodeURIComponent(o.orderId)}&d=${o.dateKey}`}
                       title="Aynı satırlarla yeni sipariş aç — fiyatlar bugünün katalog fiyatı ve kurundan hesaplanır"
                     >
-                      📋 Kopyala
+                      <Icon name="copy" size={14} /> Kopyala
                     </Link>
                   </td>
                 </tr>
               ))}
               {!visible.length && (
                 <tr>
-                  <td colSpan={9} style={{ color: "var(--muted)" }}>
-                    {sadeceKontrolsuz
-                      ? "🎉 Son 7 günün tüm siparişleri kontrol edildi."
-                      : tamamlananlar
-                        ? "Bu aralıkta tamamlanmış sipariş yok. Bir siparişin buraya düşmesi için durumu “Tamamlandı” olmalı ve kontrol edilmiş olmalı."
-                        : "Bu filtreye uyan sipariş yok."}
+                  <td colSpan={9}>
+                    <div className="empty">
+                      {sadeceKontrolsuz
+                        ? "🎉 Son 7 günün tüm siparişleri kontrol edildi."
+                        : tamamlananlar
+                          ? "Bu aralıkta tamamlanmış sipariş yok. Bir siparişin buraya düşmesi için durumu “Tamamlandı” olmalı ve kontrol edilmiş olmalı."
+                          : "Bu filtreye uyan sipariş yok."}
+                    </div>
                   </td>
                 </tr>
               )}

@@ -3,6 +3,7 @@
 // Rapor ekranı: ciro özeti, aylık dağılım, müşteri/ürün/seri/çalışan kırılımları.
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Icon from "@/components/shell/Icon";
 
 const fmt = (n: number) =>
   (Number(n) || 0).toLocaleString("tr-TR", {
@@ -50,6 +51,15 @@ const ayLabel = (m: string) => {
   return `${AY_ADI[Number(mo) - 1] || mo} ${y}`;
 };
 
+// Telefonda KPI kutuları iki sütuna sığsın: orders.css'teki .cari-cards
+// eşiği (180px) yerine 160px; rakam boyutu dar ekranda akışkan küçülür
+// (390px'te ~17px, 480px'ten itibaren 21px) ki uzun tutarlar bölünmesin.
+const KPI_GRID = { gridTemplateColumns: "repeat(auto-fit, minmax(min(160px, 100%), 1fr))" } as const;
+const KPI_NUM = { fontSize: "clamp(15px, 4.4vw, 21px)" } as const;
+// Sıfır dolgulu kart içinde .table-wrap'in taşma payı (−8px) gereksiz.
+const WRAP = { margin: 0, padding: 0 } as const;
+const NOWRAP = { whiteSpace: "nowrap" } as const;
+
 export default function Reports() {
   const [ay, setAy] = useState(""); // "" = tüm zamanlar
   const [sube, setSube] = useState("");
@@ -84,33 +94,33 @@ export default function Reports() {
   return (
     <div>
       {/* Dönem seçimi */}
-      <div className="card" style={{ padding: 14, display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
-        <button className={`btn small ${ay === "" ? "" : "secondary"}`} onClick={() => setAy("")}>
-          Tüm Zamanlar
-        </button>
-        <button
-          className={`btn small ${ay === thisMonth ? "" : "secondary"}`}
-          onClick={() => setAy(thisMonth)}
-        >
-          Bu Ay
-        </button>
+      <div className="card pad-sm row no-print">
+        <div className="seg">
+          <button className={ay === "" ? "active" : undefined} onClick={() => setAy("")}>
+            Tüm Zamanlar
+          </button>
+          <button className={ay === thisMonth ? "active" : undefined} onClick={() => setAy(thisMonth)}>
+            Bu Ay
+          </button>
+        </div>
         <input
           type="month"
-          style={{ width: 180 }}
+          style={{ width: "auto", maxWidth: "100%" }}
           value={ay}
           onChange={(e) => setAy(e.target.value)}
         />
-        <select style={{ width: "auto" }} value={sube} onChange={(e) => setSube(e.target.value)}>
+        <select style={{ width: "auto", maxWidth: "100%" }} value={sube} onChange={(e) => setSube(e.target.value)}>
           <option value="">Tüm Şubeler</option>
           <option value="ankara">Ankara</option>
           <option value="istanbul">İstanbul</option>
           <option value="belirsiz">Şubesiz (eski)</option>
         </select>
-        <span style={{ flex: 1 }} />
-        <button className="btn small secondary" onClick={load}>↻ Yenile</button>
+        <button className="btn small secondary" style={{ marginLeft: "auto" }} onClick={load}>
+          <Icon name="refresh" size={14} /> Yenile
+        </button>
       </div>
 
-      {loading && <p style={{ color: "var(--muted)" }}>Hesaplanıyor...</p>}
+      {loading && <p className="muted">Hesaplanıyor...</p>}
 
       {data && !loading && (
         <>
@@ -121,58 +131,58 @@ export default function Reports() {
           )}
 
           {/* Özet kutuları */}
-          <div className="cari-cards">
+          <div className="cari-cards" style={KPI_GRID}>
             <div className="cari-card">
               <span>Toplam Ciro</span>
-              <strong style={{ color: "var(--brand)" }}>₺{fmt(data.summary.toplamCiro)}</strong>
+              <strong style={{ ...KPI_NUM, color: "var(--brand)" }}>₺{fmt(data.summary.toplamCiro)}</strong>
             </div>
             <div className="cari-card">
               <span>Sipariş Sayısı</span>
-              <strong>{data.summary.orderCount}</strong>
+              <strong style={KPI_NUM}>{data.summary.orderCount}</strong>
             </div>
             <div className="cari-card">
               <span>Tahsil Edilen</span>
-              <strong style={{ color: "var(--success)" }}>₺{fmt(data.summary.tahsilat)}</strong>
+              <strong style={{ ...KPI_NUM, color: "var(--success)" }}>₺{fmt(data.summary.tahsilat)}</strong>
             </div>
             <div className={`cari-card ${data.summary.bakiye > 0 ? "borc" : ""}`}>
               <span>Açık Bakiye</span>
-              <strong style={{ color: data.summary.bakiye > 0 ? "var(--error)" : "var(--success)" }}>
+              <strong style={{ ...KPI_NUM, color: data.summary.bakiye > 0 ? "var(--error)" : "var(--success)" }}>
                 ₺{fmt(data.summary.bakiye)}
               </strong>
             </div>
             <div className="cari-card">
               <span>Ortalama Sipariş</span>
-              <strong>₺{fmt(data.summary.ortalamaSepet)}</strong>
+              <strong style={KPI_NUM}>₺{fmt(data.summary.ortalamaSepet)}</strong>
             </div>
           </div>
 
           {/* Kasa bazlı satır — gerçek tahsilat/gider kayıtlarından */}
-          <div className="cari-cards">
+          <div className="cari-cards" style={KPI_GRID}>
             <div className="cari-card">
               <span>Kasa Tahsilatı</span>
-              <strong style={{ color: "var(--success)" }}>₺{fmt(data.summary.gercekTahsilat || 0)}</strong>
+              <strong style={{ ...KPI_NUM, color: "var(--success)" }}>₺{fmt(data.summary.gercekTahsilat || 0)}</strong>
               <span style={{ fontSize: 11.5 }}>tahsilat kayıtlarından</span>
             </div>
             <div className="cari-card">
               <span>Giderler</span>
-              <strong style={{ color: "var(--error)" }}>₺{fmt(data.summary.giderToplam || 0)}</strong>
+              <strong style={{ ...KPI_NUM, color: "var(--error)" }}>₺{fmt(data.summary.giderToplam || 0)}</strong>
               {!ay && <span style={{ fontSize: 11.5 }}>son 12 ay</span>}
             </div>
             <div className={`cari-card ${(data.summary.kasaKar || 0) < 0 ? "borc" : ""}`}>
               <span>Kasa Kârı</span>
-              <strong style={{ color: (data.summary.kasaKar || 0) >= 0 ? "var(--success)" : "var(--error)" }}>
+              <strong style={{ ...KPI_NUM, color: (data.summary.kasaKar || 0) >= 0 ? "var(--success)" : "var(--error)" }}>
                 ₺{fmt(data.summary.kasaKar || 0)}
               </strong>
               <span style={{ fontSize: 11.5 }}>tahsilat − gider</span>
             </div>
             <div className="cari-card">
               <span>Faturalı Ciro</span>
-              <strong>₺{fmt(data.summary.faturaliCiro || 0)}</strong>
+              <strong style={KPI_NUM}>₺{fmt(data.summary.faturaliCiro || 0)}</strong>
               <span style={{ fontSize: 11.5 }}>KDV&apos;li siparişler</span>
             </div>
             <div className="cari-card">
               <span>Faturasız Ciro</span>
-              <strong>₺{fmt(data.summary.faturasizCiro || 0)}</strong>
+              <strong style={KPI_NUM}>₺{fmt(data.summary.faturasizCiro || 0)}</strong>
             </div>
           </div>
 
@@ -211,13 +221,20 @@ export default function Reports() {
           </div>
 
           {/* Aylık ciro grafiği */}
-          <h2>Aylık Ciro</h2>
           {data.months.length === 0 ? (
-            <div className="card" style={{ color: "var(--muted)", textAlign: "center" }}>
-              Henüz sipariş kaydı yok.
+            <div className="card">
+              <div className="empty">
+                <div className="empty-icon"><Icon name="bar-chart" size={24} /></div>
+                <strong>Aylık Ciro</strong>
+                Henüz sipariş kaydı yok.
+              </div>
             </div>
           ) : (
             <div className="card">
+              <div className="card-head">
+                <span className="card-head-icon"><Icon name="bar-chart" size={18} /></span>
+                <div><h2>Aylık Ciro</h2></div>
+              </div>
               <div className="rep-chart">
                 {[...data.months].reverse().map((m) => (
                   <div className="rep-col" key={m.month} title={`${ayLabel(m.month)}: ₺${fmt(m.toplam)}`}>
@@ -245,115 +262,125 @@ export default function Reports() {
 
           {/* Tablolar */}
           <div className="rep-tables">
-            <div className="card" style={{ padding: 0 }}>
+            <div className="card pad-0">
               <h3 className="rep-th">En Çok Alan Müşteriler</h3>
-              <table>
-                <thead>
-                  <tr><th>Müşteri</th><th style={{ textAlign: "right" }}>Sipariş</th><th style={{ textAlign: "right" }}>Ciro</th><th style={{ textAlign: "right" }}>Bakiye</th></tr>
-                </thead>
-                <tbody>
-                  {data.customers.length === 0 ? (
-                    <tr><td colSpan={4} style={{ color: "var(--muted)" }}>Kayıt yok</td></tr>
-                  ) : (
-                    data.customers.map((c) => (
-                      <tr key={c.name}>
-                        <td style={{ fontWeight: 600 }}>{c.name}</td>
-                        <td style={{ textAlign: "right" }}>{c.count}</td>
-                        <td style={{ textAlign: "right" }}>₺{fmt(c.total)}</td>
-                        <td style={{ textAlign: "right", color: c.balance > 0 ? "var(--error)" : "var(--muted)" }}>
-                          {c.balance > 0 ? `₺${fmt(c.balance)}` : "—"}
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            <div className="card" style={{ padding: 0 }}>
-              <h3 className="rep-th">En Çok Satan Ürünler</h3>
-              <table>
-                <thead>
-                  <tr><th>Ürün</th><th style={{ textAlign: "right" }}>Satır</th><th style={{ textAlign: "right" }}>Tutar</th></tr>
-                </thead>
-                <tbody>
-                  {data.products.length === 0 ? (
-                    <tr><td colSpan={3} style={{ color: "var(--muted)" }}>Kayıt yok</td></tr>
-                  ) : (
-                    data.products.map((p) => (
-                      <tr key={p.name}>
-                        <td>{p.name}</td>
-                        <td style={{ textAlign: "right" }}>{p.count}</td>
-                        <td style={{ textAlign: "right" }}>₺{fmt(p.total)}</td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            {data.series.length > 0 && (
-              <div className="card" style={{ padding: 0 }}>
-                <h3 className="rep-th">Seri Bazlı Satış</h3>
+              <div className="table-wrap" style={WRAP}>
                 <table>
                   <thead>
-                    <tr><th>Seri</th><th style={{ textAlign: "right" }}>Tutar</th></tr>
+                    <tr><th>Müşteri</th><th className="num">Sipariş</th><th className="num">Ciro</th><th className="num">Bakiye</th></tr>
                   </thead>
                   <tbody>
-                    {data.series.map((s) => (
-                      <tr key={s.name}>
-                        <td style={{ fontWeight: 600 }}>{s.name} Serisi</td>
-                        <td style={{ textAlign: "right" }}>₺{fmt(s.total)}</td>
-                      </tr>
-                    ))}
+                    {data.customers.length === 0 ? (
+                      <tr><td colSpan={4} className="muted">Kayıt yok</td></tr>
+                    ) : (
+                      data.customers.map((c) => (
+                        <tr key={c.name}>
+                          <td style={{ fontWeight: 600 }}>{c.name}</td>
+                          <td className="num">{c.count}</td>
+                          <td className="num" style={NOWRAP}>₺{fmt(c.total)}</td>
+                          <td className="num" style={{ ...NOWRAP, color: c.balance > 0 ? "var(--error)" : "var(--muted)" }}>
+                            {c.balance > 0 ? `₺${fmt(c.balance)}` : "—"}
+                          </td>
+                        </tr>
+                      ))
+                    )}
                   </tbody>
                 </table>
               </div>
+            </div>
+
+            <div className="card pad-0">
+              <h3 className="rep-th">En Çok Satan Ürünler</h3>
+              <div className="table-wrap" style={WRAP}>
+                <table>
+                  <thead>
+                    <tr><th>Ürün</th><th className="num">Satır</th><th className="num">Tutar</th></tr>
+                  </thead>
+                  <tbody>
+                    {data.products.length === 0 ? (
+                      <tr><td colSpan={3} className="muted">Kayıt yok</td></tr>
+                    ) : (
+                      data.products.map((p) => (
+                        <tr key={p.name}>
+                          <td>{p.name}</td>
+                          <td className="num">{p.count}</td>
+                          <td className="num" style={NOWRAP}>₺{fmt(p.total)}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {data.series.length > 0 && (
+              <div className="card pad-0">
+                <h3 className="rep-th">Seri Bazlı Satış</h3>
+                <div className="table-wrap" style={WRAP}>
+                  <table>
+                    <thead>
+                      <tr><th>Seri</th><th className="num">Tutar</th></tr>
+                    </thead>
+                    <tbody>
+                      {data.series.map((s) => (
+                        <tr key={s.name}>
+                          <td style={{ fontWeight: 600 }}>{s.name} Serisi</td>
+                          <td className="num" style={NOWRAP}>₺{fmt(s.total)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             )}
 
-            <div className="card" style={{ padding: 0 }}>
+            <div className="card pad-0">
               <h3 className="rep-th">Çalışan Performansı</h3>
-              <table>
-                <thead>
-                  <tr><th>Çalışan</th><th style={{ textAlign: "right" }}>Sipariş</th><th style={{ textAlign: "right" }}>Ciro</th></tr>
-                </thead>
-                <tbody>
-                  {data.employees.length === 0 ? (
-                    <tr><td colSpan={3} style={{ color: "var(--muted)" }}>Kayıt yok</td></tr>
-                  ) : (
-                    data.employees.map((e) => (
-                      <tr key={e.name}>
-                        <td style={{ fontWeight: 600 }}>{e.name}</td>
-                        <td style={{ textAlign: "right" }}>{e.count}</td>
-                        <td style={{ textAlign: "right" }}>₺{fmt(e.total)}</td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+              <div className="table-wrap" style={WRAP}>
+                <table>
+                  <thead>
+                    <tr><th>Çalışan</th><th className="num">Sipariş</th><th className="num">Ciro</th></tr>
+                  </thead>
+                  <tbody>
+                    {data.employees.length === 0 ? (
+                      <tr><td colSpan={3} className="muted">Kayıt yok</td></tr>
+                    ) : (
+                      data.employees.map((e) => (
+                        <tr key={e.name}>
+                          <td style={{ fontWeight: 600 }}>{e.name}</td>
+                          <td className="num">{e.count}</td>
+                          <td className="num" style={NOWRAP}>₺{fmt(e.total)}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
 
             {/* Prim raporu — Alaattin'in prim çizelgesinin karşılığı */}
-            <div className="card" style={{ padding: 0 }}>
+            <div className="card pad-0">
               <h3 className="rep-th">Tahsil Eden Bazlı (Prim)</h3>
-              <table>
-                <thead>
-                  <tr><th>Tahsil Eden</th><th style={{ textAlign: "right" }}>İşlem</th><th style={{ textAlign: "right" }}>Tahsilat</th></tr>
-                </thead>
-                <tbody>
-                  {(data.tahsilEdenler || []).length === 0 ? (
-                    <tr><td colSpan={3} style={{ color: "var(--muted)" }}>Kayıt yok</td></tr>
-                  ) : (
-                    (data.tahsilEdenler || []).map((e) => (
-                      <tr key={e.name}>
-                        <td style={{ fontWeight: 600 }}>{e.name}</td>
-                        <td style={{ textAlign: "right" }}>{e.count}</td>
-                        <td style={{ textAlign: "right" }}>₺{fmt(e.total)}</td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+              <div className="table-wrap" style={WRAP}>
+                <table>
+                  <thead>
+                    <tr><th>Tahsil Eden</th><th className="num">İşlem</th><th className="num">Tahsilat</th></tr>
+                  </thead>
+                  <tbody>
+                    {(data.tahsilEdenler || []).length === 0 ? (
+                      <tr><td colSpan={3} className="muted">Kayıt yok</td></tr>
+                    ) : (
+                      (data.tahsilEdenler || []).map((e) => (
+                        <tr key={e.name}>
+                          <td style={{ fontWeight: 600 }}>{e.name}</td>
+                          <td className="num">{e.count}</td>
+                          <td className="num" style={NOWRAP}>₺{fmt(e.total)}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </>

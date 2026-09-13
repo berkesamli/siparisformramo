@@ -3,6 +3,8 @@ import Link from "next/link";
 import { getSessionUser } from "@/lib/auth";
 import { getOrder } from "@/lib/orders";
 import OrderForm, { type InitialOrder } from "@/components/OrderForm";
+import PageHeader from "@/components/PageHeader";
+import Icon from "@/components/shell/Icon";
 
 export const dynamic = "force-dynamic";
 
@@ -19,13 +21,17 @@ export default async function OrderEditPage({
   const orderId = searchParams.id || "";
   const order = dateKey && orderId ? await getOrder(dateKey, orderId) : null;
 
+  const geriLink = (
+    <Link href="/panel/siparisler" className="btn secondary">
+      <Icon name="chevron-left" size={16} /> Siparişler
+    </Link>
+  );
+
   if (!order) {
     return (
       <main className="container">
+        <PageHeader icon="edit" title="Sipariş Düzenle" actions={geriLink} />
         <div className="notice err">Sipariş bulunamadı.</div>
-        <Link href="/panel/siparisler" className="btn small secondary">
-          ← Siparişler
-        </Link>
       </main>
     );
   }
@@ -44,17 +50,14 @@ export default async function OrderEditPage({
 
   return (
     <main className="container">
-      <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-        <div style={{ flex: 1 }}>
-          <h1>Sipariş Düzenle — {order.orderId}</h1>
-          <p className="subtitle">
-            Müşteri: {order.customer || "—"} · Oluşturan: {order.employee}
-          </p>
-        </div>
-        <Link href="/panel/siparisler" className="btn small secondary">
-          ← Siparişler
-        </Link>
-      </div>
+      <PageHeader
+        icon="edit"
+        title={<>Sipariş Düzenle — {order.orderId}</>}
+        subtitle={
+          <>Müşteri: {order.customer || "—"} · Oluşturan: {order.employee}</>
+        }
+        actions={geriLink}
+      />
 
       {!order.rows?.length && (
         <div className="notice info">

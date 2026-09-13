@@ -348,6 +348,8 @@ hr, .divider { border: none; border-top: 1px solid var(--border); margin: 14px 0
    ========================================================= */
 @media (pointer: coarse) {
   .btn { min-height: 44px; }
+  .seg button, .seg a { min-height: 40px; }
+  .chip { min-height: 38px; }
   .btn.small { min-height: 40px; padding: 8px 14px; }
   .btn.xs { min-height: 34px; }
   .btn.icon { min-height: 0; width: 42px; height: 42px; }
@@ -425,7 +427,9 @@ hr, .divider { border: none; border-top: 1px solid var(--border); margin: 14px 0
   }
   body { background: #fff !important; color: #000 !important; font-size: 12.5px; }
   body::before { display: none !important; }
-  .sb, .topbar, .tabbar, .no-print, .search-fab, .ai-fab, .toast-wrap { display: none !important; }
+  .sb, .topbar, .tabbar, .no-print, .search-fab, .ai-fab, .toast-wrap, .page-head-icon, .page-kicker { display: none !important; }
+  .page-head { margin-bottom: 12px; }
+  .page-head h1 { font-size: 20px; }
   .app-main { margin-left: 0 !important; }
   .app-content { padding: 0 !important; }
   .container { padding: 0; max-width: none; }

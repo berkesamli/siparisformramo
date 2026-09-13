@@ -4,12 +4,18 @@ import Link from "next/link";
 import { getSessionUser } from "@/lib/auth";
 import { getRetailOrder } from "@/lib/retail-orders";
 import PrintButton from "@/components/PrintButton";
+import PageHeader from "@/components/PageHeader";
+import Icon from "@/components/shell/Icon";
 
 const fmt = (n: number) =>
   (Number(n) || 0).toLocaleString("tr-TR", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
+
+// Durum rozeti rengi (fişte de basılır — açık zemin, koyu yazı olarak çıkar)
+const durumRozet = (s: string) =>
+  s === "Teslim Edildi" ? "ok" : s === "İptal" ? "err" : s === "Hazırlanıyor" ? "warn" : "info";
 
 export const dynamic = "force-dynamic";
 
@@ -26,13 +32,17 @@ export default async function RetailOrderDetailPage({
   const orderId = searchParams.id || "";
   const order = dateKey && orderId ? await getRetailOrder(dateKey, orderId) : null;
 
+  const geriLink = (
+    <Link href="/panel/perakende/siparisler" className="btn secondary">
+      <Icon name="chevron-left" size={16} /> Perakende Siparişler
+    </Link>
+  );
+
   if (!order) {
     return (
       <main className="container">
+        <PageHeader icon="file-text" title="Perakende Sipariş Fişi" actions={geriLink} />
         <div className="notice err">Sipariş bulunamadı.</div>
-        <Link href="/panel/perakende/siparisler" className="btn small secondary">
-          ← Perakende Siparişler
-        </Link>
       </main>
     );
   }
@@ -41,23 +51,29 @@ export default async function RetailOrderDetailPage({
 
   return (
     <main className="container" style={{ maxWidth: 820 }}>
-      <div className="no-print" style={{ display: "flex", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
-        <Link href="/panel/perakende/siparisler" className="btn small secondary">
-          ← Perakende Siparişler
-        </Link>
-        <span style={{ flex: 1 }} />
-        <a href={pdfHref} className="btn small secondary">
-          ⬇ Üretim PDF
-        </a>
-        <PrintButton />
-      </div>
+      <PageHeader
+        icon="file-text"
+        title={<>Perakende Sipariş Fişi — {order.orderId}</>}
+        subtitle={
+          <>Müşteri: {order.customerName} · Personel: {order.employee}</>
+        }
+        actions={
+          <>
+            {geriLink}
+            <a href={pdfHref} className="btn secondary">
+              <Icon name="download" size={16} /> Üretim PDF
+            </a>
+            <PrintButton />
+          </>
+        }
+      />
 
-      <div className="card" style={{ padding: 30 }}>
+      <div className="card" id="print-area">
         {/* Başlık */}
-        <div style={{ display: "flex", alignItems: "center", gap: 16, borderBottom: "3px solid var(--brand)", paddingBottom: 14, marginBottom: 18 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap", borderBottom: "3px solid var(--brand)", paddingBottom: 14, marginBottom: 18 }}>
           <img src="/logo.png" alt="Olga Çerçeve" style={{ height: 40, width: "auto" }} />
           <span style={{ flex: 1 }} />
-          <div style={{ textAlign: "right" }}>
+          <div className="stack" style={{ gap: 3, alignItems: "flex-end", textAlign: "right" }}>
             <div style={{ fontWeight: 800, fontSize: 17, color: "var(--brand)" }}>
               PERAKENDE SİPARİŞ FİŞİ
             </div>
@@ -65,13 +81,16 @@ export default async function RetailOrderDetailPage({
               {order.orderId} ·{" "}
               {new Date(order.createdAt).toLocaleString("tr-TR", { dateStyle: "medium", timeStyle: "short" })}
             </div>
-            <div style={{ fontSize: 12.5, color: "var(--muted)" }}>Durum: {order.status}</div>
+            <div className="row" style={{ gap: 6, fontSize: 12.5, color: "var(--muted)" }}>
+              Durum:{" "}
+              <span className={`badge ${durumRozet(order.status)}`}>{order.status}</span>
+            </div>
           </div>
         </div>
 
         {/* Müşteri */}
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 18 }}>
-          <div style={{ background: "var(--input)", borderRadius: 10, padding: "12px 14px" }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 12, marginBottom: 18 }}>
+          <div style={{ background: "var(--surface-2)", border: "1px solid var(--hairline)", borderRadius: "var(--radius-xs)", padding: "12px 14px" }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Müşteri</div>
             <div style={{ fontWeight: 700 }}>{order.customerName}</div>
             <div style={{ fontSize: 13 }}>{order.customerPhone}</div>
@@ -79,7 +98,7 @@ export default async function RetailOrderDetailPage({
               <div style={{ fontSize: 12.5, color: "var(--text-2)" }}>{order.customerAddress}</div>
             )}
           </div>
-          <div style={{ background: "var(--input)", borderRadius: 10, padding: "12px 14px" }}>
+          <div style={{ background: "var(--surface-2)", border: "1px solid var(--hairline)", borderRadius: "var(--radius-xs)", padding: "12px 14px" }}>
             <div style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Sipariş Bilgileri</div>
             <div style={{ fontSize: 13 }}>Personel: <strong>{order.employee}</strong></div>
             <div style={{ fontSize: 13 }}>Teslim: <strong>{order.deliveryDate || "-"}</strong></div>
@@ -88,15 +107,15 @@ export default async function RetailOrderDetailPage({
 
         {/* Kalemler */}
         {order.items.map((it, i) => (
-          <div key={i} style={{ border: "1px solid var(--border)", borderRadius: 12, padding: "12px 16px", marginBottom: 10 }}>
-            <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "baseline" }}>
+          <div key={i} style={{ border: "1px solid var(--border)", borderRadius: "var(--radius-sm)", padding: "12px 16px", marginBottom: 10 }}>
+            <div className="row" style={{ alignItems: "baseline" }}>
               <strong style={{ color: "var(--brand)" }}>{order.items.length > 1 ? `#${i + 1}` : "Ürün"}</strong>
               <span style={{ fontWeight: 700 }}>
                 {it.artWidth} {it.artWidthUnit} × {it.artHeight} {it.artHeightUnit}
               </span>
               <span>Çerçeve: <strong>{it.frameCode}</strong></span>
               <span style={{ flex: 1 }} />
-              <strong>₺{fmt(it.itemTotal)}</strong>
+              <strong className="num">₺{fmt(it.itemTotal)}</strong>
             </div>
             <div style={{ fontSize: 13, color: "var(--text-2)", marginTop: 4 }}>
               {it.kasa && (
@@ -133,7 +152,7 @@ export default async function RetailOrderDetailPage({
         ))}
 
         {/* Toplamlar */}
-        <div style={{ marginTop: 16, marginLeft: "auto", maxWidth: 320 }}>
+        <div className="num" style={{ marginTop: 16, marginLeft: "auto", maxWidth: 320 }}>
           <div style={{ display: "flex", justifyContent: "space-between", padding: "4px 0", fontSize: 14 }}>
             <span>Ara Toplam</span>
             <span>₺{fmt(order.gross)}</span>
@@ -150,9 +169,9 @@ export default async function RetailOrderDetailPage({
               justifyContent: "space-between",
               padding: "10px 14px",
               marginTop: 6,
-              borderRadius: 10,
-              background: "linear-gradient(135deg, var(--brand), var(--brand-dark))",
-              color: "#fff",
+              borderRadius: "var(--radius-xs)",
+              background: "var(--brand-btn)",
+              color: "var(--on-brand)",
               fontWeight: 800,
               fontSize: 16,
             }}
@@ -183,7 +202,7 @@ export default async function RetailOrderDetailPage({
           </div>
         )}
 
-        <div style={{ marginTop: 22, paddingTop: 12, borderTop: "1px solid var(--border)", display: "flex", justifyContent: "space-between", fontSize: 12, color: "var(--muted)" }}>
+        <div style={{ marginTop: 22, paddingTop: 12, borderTop: "1px solid var(--border)", display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: "4px 16px", fontSize: 12, color: "var(--muted)" }}>
           <span>OLGA Çerçeve</span>
           <span>0850 305 75 45</span>
           <span>www.olgacerceve.com</span>

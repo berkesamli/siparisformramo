@@ -3,6 +3,8 @@ import Link from "next/link";
 import { getSessionUser } from "@/lib/auth";
 import { isKurYetkili } from "@/data/users";
 import GunlukKur from "@/components/GunlukKur";
+import PageHeader from "@/components/PageHeader";
+import Icon from "@/components/shell/Icon";
 
 export const dynamic = "force-dynamic";
 
@@ -15,18 +17,16 @@ export default async function GunlukKurPage() {
 
   return (
     <main className="container" style={{ maxWidth: 820 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-        <div style={{ flex: 1 }}>
-          <h1>Günlük Kur</h1>
-          <p className="subtitle">
-            Günün dolar ve euro kurunu belirleyin — bütün sipariş formlarına
-            otomatik gelir, çalışanlar değiştiremez.
-          </p>
-        </div>
-        <Link href="/panel" className="btn small secondary">
-          ← Sipariş Paneli
-        </Link>
-      </div>
+      <PageHeader
+        title="Günlük Kur"
+        subtitle="Günün dolar ve euro kurunu belirleyin — bütün sipariş formlarına otomatik gelir, çalışanlar değiştiremez."
+        icon="dollar"
+        actions={
+          <Link href="/panel" className="btn secondary">
+            <Icon name="chevron-left" size={16} /> Sipariş Paneli
+          </Link>
+        }
+      />
       <GunlukKur />
     </main>
   );

@@ -18,6 +18,7 @@ export const metadata: Metadata = {
   description:
     "Olga Çerçeve toptan fiyat listesi, ürün kataloğu, stok durumu ve sipariş sistemi",
   applicationName: "Olga Çerçeve",
+  icons: { icon: "/logo.png", apple: "/logo.png" },
 };
 
 export const viewport: Viewport = {

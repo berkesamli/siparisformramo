@@ -1,14 +1,20 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getSessionUser } from "@/lib/auth";
-import { getOrder, STATUS_LABELS } from "@/lib/orders";
+import { getOrder, STATUS_LABELS, type OrderStatus } from "@/lib/orders";
 import PrintButton from "@/components/PrintButton";
+import PageHeader from "@/components/PageHeader";
+import Icon from "@/components/shell/Icon";
 
 const fmt = (n: number) =>
   (Number(n) || 0).toLocaleString("tr-TR", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
+
+// Durum rozeti rengi (fişte de basılır — açık zemin, koyu yazı olarak çıkar)
+const durumRozet = (s: OrderStatus) =>
+  s === "tamamlandi" ? "ok" : s === "iptal" ? "err" : s === "hazirlaniyor" ? "warn" : "info";
 
 export const dynamic = "force-dynamic";
 
@@ -25,45 +31,55 @@ export default async function OrderDetailPage({
   const orderId = searchParams.id || "";
   const order = dateKey && orderId ? await getOrder(dateKey, orderId) : null;
 
+  const geriLink = (
+    <Link href="/panel/siparisler" className="btn secondary">
+      <Icon name="chevron-left" size={16} /> Siparişler
+    </Link>
+  );
+
   if (!order) {
     return (
       <main className="container">
+        <PageHeader icon="file-text" title="Sipariş Fişi" actions={geriLink} />
         <div className="notice err">Sipariş bulunamadı.</div>
-        <Link href="/panel/siparisler" className="btn small secondary">
-          ← Siparişler
-        </Link>
       </main>
     );
   }
 
   return (
     <main className="container" style={{ maxWidth: 820 }}>
-      <div className="no-print" style={{ display: "flex", gap: 10, marginBottom: 14 }}>
-        <Link href="/panel/siparisler" className="btn small secondary">
-          ← Siparişler
-        </Link>
-        <span style={{ flex: 1 }} />
-        <Link
-          href={`/panel/siparisler/duzenle?d=${order.dateKey}&id=${encodeURIComponent(order.orderId)}`}
-          className="btn small secondary"
-        >
-          ✏️ Düzenle
-        </Link>
-        <Link
-          href={`/panel?kopya=${encodeURIComponent(order.orderId)}&d=${order.dateKey}`}
-          className="btn small secondary"
-          title="Aynı satırlarla yeni sipariş aç — fiyatlar bugünün katalog fiyatı ve kurundan hesaplanır"
-        >
-          📋 Kopyala
-        </Link>
-        <a
-          className="btn small"
-          href={`/api/orders/pdf?d=${order.dateKey}&id=${encodeURIComponent(order.orderId)}`}
-        >
-          ⬇ PDF İndir
-        </a>
-        <PrintButton />
-      </div>
+      <PageHeader
+        icon="file-text"
+        title={<>Sipariş Fişi — {order.orderId}</>}
+        subtitle={
+          <>Müşteri: {order.customer || "—"} · Oluşturan: {order.employee}</>
+        }
+        actions={
+          <>
+            {geriLink}
+            <Link
+              href={`/panel/siparisler/duzenle?d=${order.dateKey}&id=${encodeURIComponent(order.orderId)}`}
+              className="btn secondary"
+            >
+              <Icon name="edit" size={16} /> Düzenle
+            </Link>
+            <Link
+              href={`/panel?kopya=${encodeURIComponent(order.orderId)}&d=${order.dateKey}`}
+              className="btn secondary"
+              title="Aynı satırlarla yeni sipariş aç — fiyatlar bugünün katalog fiyatı ve kurundan hesaplanır"
+            >
+              <Icon name="copy" size={16} /> Kopyala
+            </Link>
+            <a
+              className="btn"
+              href={`/api/orders/pdf?d=${order.dateKey}&id=${encodeURIComponent(order.orderId)}`}
+            >
+              <Icon name="download" size={16} /> PDF İndir
+            </a>
+            <PrintButton />
+          </>
+        }
+      />
 
       <div className="card" id="print-area">
         <div style={{ display: "flex", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
@@ -76,7 +92,7 @@ export default async function OrderDetailPage({
             />
             <p style={{ color: "var(--text-2)", marginTop: 6 }}>Sipariş Fişi</p>
           </div>
-          <div style={{ textAlign: "right", fontSize: 13.5 }}>
+          <div className="stack" style={{ gap: 4, alignItems: "flex-end", textAlign: "right", fontSize: 13.5 }}>
             <div><strong>Sipariş No:</strong> {order.orderId}</div>
             <div>
               <strong>Tarih:</strong>{" "}
@@ -86,13 +102,18 @@ export default async function OrderDetailPage({
                 timeZone: "Europe/Istanbul",
               })}
             </div>
-            <div><strong>Durum:</strong> {STATUS_LABELS[order.status]}</div>
+            <div className="row" style={{ gap: 6 }}>
+              <strong>Durum:</strong>{" "}
+              <span className={`badge ${durumRozet(order.status)}`}>
+                {STATUS_LABELS[order.status]}
+              </span>
+            </div>
           </div>
         </div>
 
         <hr style={{ border: "none", borderTop: "1px solid var(--border)", margin: "14px 0" }} />
 
-        <div style={{ display: "flex", gap: 30, flexWrap: "wrap", fontSize: 14 }}>
+        <div className="row" style={{ gap: "8px 30px", fontSize: 14 }}>
           <div><strong>Müşteri:</strong> {order.customer || "—"}</div>
           <div><strong>Çalışan:</strong> {order.employee}</div>
           {order.rate > 0 && (
@@ -103,48 +124,50 @@ export default async function OrderDetailPage({
           )}
         </div>
 
-        <table style={{ marginTop: 16 }}>
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Ürün</th>
-              <th>Birim</th>
-              <th>Birim Fiyat</th>
-              <th>Tutar</th>
-            </tr>
-          </thead>
-          <tbody>
-            {order.lines.map((l, i) => (
-              <tr key={i}>
-                <td>{i + 1}</td>
-                <td>{l.name}</td>
-                <td>{l.unitText}</td>
-                <td>₺ {fmt(l.unitPriceTL)}</td>
-                <td>₺ {fmt(l.lineTotal)}</td>
+        <div className="table-wrap" style={{ marginTop: 16 }}>
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Ürün</th>
+                <th>Birim</th>
+                <th>Birim Fiyat</th>
+                <th>Tutar</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {order.lines.map((l, i) => (
+                <tr key={i}>
+                  <td>{i + 1}</td>
+                  <td>{l.name}</td>
+                  <td>{l.unitText}</td>
+                  <td className="num">₺ {fmt(l.unitPriceTL)}</td>
+                  <td className="num">₺ {fmt(l.lineTotal)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
 
         <table style={{ marginTop: 14, maxWidth: 340, marginLeft: "auto" }}>
           <tbody>
             <tr>
               <td>Ara Toplam</td>
-              <td style={{ textAlign: "right" }}>₺ {fmt(order.gross)}</td>
+              <td className="num" style={{ textAlign: "right" }}>₺ {fmt(order.gross)}</td>
             </tr>
             <tr>
               <td>İskonto (%{order.discountPct})</td>
-              <td style={{ textAlign: "right" }}>₺ {fmt(order.discount)}</td>
+              <td className="num" style={{ textAlign: "right" }}>₺ {fmt(order.discount)}</td>
             </tr>
             <tr>
               <td>KDV</td>
-              <td style={{ textAlign: "right" }}>
+              <td className="num" style={{ textAlign: "right" }}>
                 {order.vatApplied ? `%20 — ₺ ${fmt(order.vatAmount)}` : "Uygulanmadı"}
               </td>
             </tr>
             <tr>
               <td><strong>GENEL TOPLAM</strong></td>
-              <td style={{ textAlign: "right" }}>
+              <td className="num" style={{ textAlign: "right" }}>
                 <strong>₺ {fmt(order.net)}</strong>
               </td>
             </tr>
@@ -156,8 +179,9 @@ export default async function OrderDetailPage({
             style={{
               marginTop: 16,
               padding: "12px 16px",
-              background: "var(--input)",
-              borderRadius: 10,
+              background: "var(--surface-2)",
+              border: "1px solid var(--hairline)",
+              borderRadius: "var(--radius-xs)",
               fontSize: 13.5,
             }}
           >

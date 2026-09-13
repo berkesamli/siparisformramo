@@ -20,7 +20,7 @@ export default function PageHeader({
   children?: ReactNode;
 }) {
   return (
-    <div className="page-head no-print">
+    <div className="page-head">
       {icon && (
         <span className="page-head-icon" aria-hidden>
           <Icon name={icon} size={22} />
@@ -32,7 +32,7 @@ export default function PageHeader({
         {subtitle && <p className="subtitle">{subtitle}</p>}
         {children}
       </div>
-      {actions && <div className="page-head-actions">{actions}</div>}
+      {actions && <div className="page-head-actions no-print">{actions}</div>}
     </div>
   );
 }

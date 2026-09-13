@@ -6,10 +6,10 @@
   left: 0;
   right: 0;
   z-index: 40;
-  background: #fff;
-  border: 1px solid var(--border);
+  background: var(--surface-solid);
+  border: 1px solid var(--border-strong);
   border-radius: 12px;
-  box-shadow: 0 12px 32px rgba(38, 32, 26, 0.16);
+  box-shadow: var(--shadow-lg);
   overflow: hidden;
   max-height: 300px;
   overflow-y: auto;
@@ -22,12 +22,14 @@
   padding: 9px 12px;
   border: none;
   border-bottom: 1px solid var(--border);
-  background: #fff;
+  background: transparent;
+  color: var(--text);
   text-align: left;
   cursor: pointer;
   transition: background 0.15s ease;
 }
-.cp-item:hover { background: #faf7f1; }
+.cp-item:last-child { border-bottom: none; }
+.cp-item:hover { background: var(--surface-3); }
 .cp-name { font-weight: 600; font-size: 13px; flex: 1; }
 .cp-meta { font-size: 11px; color: var(--muted); }
 .cp-city {
@@ -35,20 +37,20 @@
   font-weight: 700;
   padding: 2px 6px;
   border-radius: 6px;
-  background: rgba(169, 102, 13, 0.1);
-  color: var(--brand-dark);
+  background: var(--brand-soft);
+  color: var(--brand);
 }
-.cp-city.istanbul { background: rgba(29, 78, 216, 0.1); color: #1d4ed8; }
+.cp-city.istanbul { background: var(--info-soft); color: var(--info); }
 .cp-empty { padding: 10px 12px; font-size: 12.5px; color: var(--muted); }
 .cp-foot {
   display: block;
   padding: 8px 12px;
   font-size: 12px;
   font-weight: 600;
-  background: var(--input);
+  background: var(--surface-2);
   color: var(--brand);
 }
-.cp-foot:hover { text-decoration: none; background: #f2ece1; }
+.cp-foot:hover { text-decoration: none; background: var(--surface-3); }
 
 /* ---- Birim fiyat para birimi seçici ($ / ₺) ---- */
 .fx-wrap { display: flex; gap: 6px; align-items: stretch; }
@@ -77,8 +79,10 @@
   top: 0;
   z-index: 1;
   padding: 6px 12px;
-  background: var(--input);
-  color: var(--brand-dark);
+  /* Yapışkan başlık: kaydırılan satırlar altından görünmesin diye
+     opak menü zemini + hafif yüzey tonu (yarı saydam --input yerine). */
+  background: linear-gradient(var(--surface-2), var(--surface-2)), var(--surface-solid);
+  color: var(--brand);
   font-size: 10.5px;
   font-weight: 800;
   letter-spacing: 0.08em;
@@ -86,7 +90,7 @@
   border-bottom: 1px solid var(--border);
 }
 .tp-item { text-align: left; }
-.tp-item.aktif { background: #faf7f1; }
+.tp-item.aktif { background: var(--surface-3); }
 .tp-item.secili { box-shadow: inset 3px 0 0 var(--brand); }
 .tp-ad { flex: 1; font-size: 13px; font-weight: 600; }
 .tp-fiyat { font-size: 12px; color: var(--muted); font-weight: 700; white-space: nowrap; }
@@ -97,6 +101,5 @@
   border-radius: 6px;
   border: 1px solid var(--border);
   flex-shrink: 0;
-  background: #fff;
+  background: #fff; /* ürün fotoğrafları beyaz fonlu — küçük resmin altı da beyaz kalsın */
 }
-

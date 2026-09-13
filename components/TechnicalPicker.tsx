@@ -33,6 +33,10 @@ export default function TechnicalPicker({
   const [aktif, setAktif] = useState(0);
   const boxRef = useRef<HTMLDivElement | null>(null);
   const listRef = useRef<HTMLDivElement | null>(null);
+  // Açılır liste hücreden geniş (300–420 px) ve sola hizalı; sağ kenardan
+  // taşacaksa sola kaydırılır ki telefonda/kenar hücrede ekrandan çıkmasın
+  // (kart overflow:visible olduğundan taşma sayfayı yatay kaydırırdı).
+  const [kaydir, setKaydir] = useState(0);
 
   // Dışarı tıklayınca kapan, seçili ürüne geri dön
   useEffect(() => {
@@ -58,6 +62,21 @@ export default function TechnicalPicker({
     const el = listRef.current?.querySelector<HTMLElement>(`[data-i="${aktif}"]`);
     el?.scrollIntoView({ block: "nearest" });
   }, [aktif, open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const box = boxRef.current;
+    const menu = listRef.current;
+    if (!box || !menu) return;
+    const r = box.getBoundingClientRect();
+    const genislik = menu.offsetWidth;
+    const ekran = document.documentElement.clientWidth;
+    const kenar = 12;
+    let s = 0;
+    if (r.left + genislik > ekran - kenar) s = ekran - kenar - (r.left + genislik);
+    if (r.left + s < kenar) s = kenar - r.left;
+    setKaydir(Math.round(s));
+  }, [open, sonuclar.length]);
 
   function sec(t: TechnicalProduct) {
     onPick(t);
@@ -106,7 +125,11 @@ export default function TechnicalPicker({
         autoComplete="off"
       />
       {open && (
-        <div className="cp-menu tp-menu" ref={listRef}>
+        <div
+          className="cp-menu tp-menu"
+          ref={listRef}
+          style={{ left: kaydir, maxHeight: "min(340px, 60dvh)" }}
+        >
           {sonuclar.length === 0 ? (
             <div className="cp-empty">
               “{query}” için ürün bulunamadı.
@@ -131,7 +154,9 @@ export default function TechnicalPicker({
                       // eslint-disable-next-line @next/next/no-img-element
                       <img className="tp-img" src={t.image} alt="" loading="lazy" />
                     )}
-                    <span className="tp-ad">{t.name}</span>
+                    <span className="tp-ad" style={{ minWidth: 0 }}>
+                      {t.name}
+                    </span>
                     <span className="tp-fiyat">{fiyatEtiketi(t)}</span>
                   </button>
                 </div>

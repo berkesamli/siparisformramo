@@ -3,6 +3,8 @@ import Link from "next/link";
 import { getSessionUser } from "@/lib/auth";
 import { isFinance, finansAktif } from "@/data/users";
 import GiderManager from "@/components/GiderManager";
+import PageHeader from "@/components/PageHeader";
+import Icon from "@/components/shell/Icon";
 
 export const dynamic = "force-dynamic";
 
@@ -14,13 +16,16 @@ export default async function GiderlerPage() {
 
   return (
     <main className="container" style={{ maxWidth: 1200 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
-        <div style={{ flex: 1, minWidth: 260 }}>
-          <h1>Giderler</h1>
-          <p className="subtitle">Kasa çıkışları — kategori, şube ve yönteme göre.</p>
-        </div>
-        <Link href="/panel/finans" className="btn small secondary">← Finans</Link>
-      </div>
+      <PageHeader
+        title="Giderler"
+        subtitle="Kasa çıkışları — kategori, şube ve yönteme göre."
+        icon="arrow-down"
+        actions={
+          <Link href="/panel/finans" className="btn secondary">
+            <Icon name="chevron-left" size={16} /> Finans
+          </Link>
+        }
+      />
       <GiderManager />
     </main>
   );

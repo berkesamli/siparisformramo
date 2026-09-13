@@ -5,6 +5,8 @@
 // yöntem, şube ve tahsil eden bilgisiyle kalıcı tahsilat kaydı oluşturur.
 
 import { useState } from "react";
+import { createPortal } from "react-dom";
+import Icon from "@/components/shell/Icon";
 
 export interface TahsilatBaglam {
   customerId?: string;
@@ -103,11 +105,19 @@ export default function TahsilatModal({
     }
   }
 
-  return (
+  // Kart (.card) backdrop-filter ile sabit konumlu torunların kapsayıcı bloğu
+  // olur — position:fixed karartma, modali açan kartın içinde kalır ve
+  // overflow:hidden ile kırpılırdı. Modal bu yüzden portal ile <body>'ye
+  // basılır; .modal-backdrop z-index 120 kabuğun (80–90) üstünde çalışır.
+  if (typeof document === "undefined") return null;
+  return createPortal(
     <div className="modal-backdrop" onClick={onClose}>
       <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-        <h2 style={{ marginTop: 0 }}>
-          {baglam.serbest ? "💰 Elden Satış / Tahsilat" : "💰 Tahsilat Gir"}
+        <h2 style={{ marginTop: 0, display: "flex", alignItems: "center", gap: 10 }}>
+          <span className="card-head-icon">
+            <Icon name="wallet" size={16} />
+          </span>
+          {baglam.serbest ? "Elden Satış / Tahsilat" : "Tahsilat Gir"}
         </h2>
         {!baglam.serbest && (
           <p className="subtitle" style={{ marginTop: -6 }}>
@@ -212,7 +222,7 @@ export default function TahsilatModal({
         )}
         {err && <div className="notice err" style={{ marginTop: 10 }}>{err}</div>}
 
-        <div style={{ marginTop: 14, display: "flex", gap: 10 }}>
+        <div style={{ marginTop: 14, display: "flex", gap: 10, flexWrap: "wrap" }}>
           <button className="btn" onClick={kaydet} disabled={saving || tutar <= 0}>
             {saving ? "Kaydediliyor…" : `Kaydet (₺ ${fmt(tutar)})`}
           </button>
@@ -221,6 +231,7 @@ export default function TahsilatModal({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

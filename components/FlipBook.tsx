@@ -4,11 +4,26 @@
 // Ok tuşları ve butonlarla sayfa çevrilir; çevirme animasyonu CSS ile verilir.
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Icon from "@/components/shell/Icon";
 
 type PdfDoc = {
   numPages: number;
   getPage: (n: number) => Promise<any>;
 };
+
+// Klavye kısayolları bir form alanında yazarken (üst çubuk araması vb.)
+// sayfa çevirmesin.
+function formAlanindaMi(t: EventTarget | null): boolean {
+  const el = t as HTMLElement | null;
+  if (!el || !el.tagName) return false;
+  const tag = el.tagName;
+  return (
+    tag === "INPUT" ||
+    tag === "TEXTAREA" ||
+    tag === "SELECT" ||
+    el.isContentEditable === true
+  );
+}
 
 export default function FlipBook({ pdfUrl }: { pdfUrl: string }) {
   const [doc, setDoc] = useState<PdfDoc | null>(null);
@@ -64,10 +79,22 @@ export default function FlipBook({ pdfUrl }: { pdfUrl: string }) {
       const ctx = canvas.getContext("2d");
       if (!ctx) return;
       if (!pageNum || !doc) {
+        // Boş taraf (ör. kapağın solu): görünmez ama yayılımın genişliğini
+        // korur. Rengi temadan alınır — canvas CSS değişkeni okuyamaz, bu
+        // yüzden hesaplanmış stilden çözülür.
         canvas.width = 600;
         canvas.height = 850;
-        ctx.fillStyle = "#1a1a2e";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        const zemin =
+          typeof window !== "undefined"
+            ? getComputedStyle(document.documentElement)
+                .getPropertyValue("--surface-solid")
+                .trim()
+            : "";
+        if (zemin) {
+          ctx.fillStyle = zemin;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
         return;
       }
       const page = await doc.getPage(pageNum);
@@ -104,6 +131,7 @@ export default function FlipBook({ pdfUrl }: { pdfUrl: string }) {
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (formAlanindaMi(e.target)) return;
       if (e.key === "ArrowRight") go(1);
       if (e.key === "ArrowLeft") go(-1);
     };
@@ -122,15 +150,22 @@ export default function FlipBook({ pdfUrl }: { pdfUrl: string }) {
           perspective: 2200px;
           display: flex;
           justify-content: center;
+          align-items: flex-start;
           gap: 2px;
           overflow-x: auto;
           padding: 10px 0;
         }
+        /* Sayfa genişliği kapsayıcıya göre: iki sayfa sahneye sığacak şekilde
+           küçülür (sol panel yanında taşma olmaz). */
         .flip-page {
-          background: #fff;
-          box-shadow: 0 10px 35px rgba(0,0,0,0.5);
-          max-width: min(46vw, 620px);
+          flex: 0 1 620px;
+          min-width: 0;
+          max-width: 100%;
+          background: #fff; /* kâğıt — PDF çizilene kadar görünen zemin */
+          box-shadow: var(--shadow-md);
+          border-radius: 2px;
         }
+        .flip-page.empty { visibility: hidden; }
         .flip-page canvas { display: block; width: 100%; height: auto; }
         .flip-anim-next .flip-page.right { animation: flipInR 0.55s ease; transform-origin: left center; }
         .flip-anim-prev .flip-page.left { animation: flipInL 0.55s ease; transform-origin: right center; }
@@ -141,6 +176,13 @@ export default function FlipBook({ pdfUrl }: { pdfUrl: string }) {
         @keyframes flipInL {
           from { transform: rotateY(70deg); opacity: 0.4; }
           to { transform: rotateY(0deg); opacity: 1; }
+        }
+        /* Telefon: yan yana iki sayfa okunmaz; sayfalar alt alta, tam genişlik.
+           Boş taraf yer kaplamasın diye tamamen gizlenir. */
+        @media (max-width: 640px) {
+          .flip-stage { flex-direction: column; align-items: center; gap: 12px; }
+          .flip-page { flex: 0 0 auto; width: 100%; }
+          .flip-page.empty { display: none; }
         }
       `}</style>
 
@@ -153,48 +195,49 @@ export default function FlipBook({ pdfUrl }: { pdfUrl: string }) {
             className={`flip-stage ${direction === "next" ? "flip-anim-next" : "flip-anim-prev"}`}
           >
             <div
-              className="flip-page left"
-              style={{ visibility: l ? "visible" : "hidden" }}
+              className={`flip-page left${l ? "" : " empty"}`}
+              aria-hidden={!l}
             >
               <canvas ref={leftRef} />
             </div>
             <div
-              className="flip-page right"
-              style={{ visibility: r ? "visible" : "hidden" }}
+              className={`flip-page right${r ? "" : " empty"}`}
+              aria-hidden={!r}
             >
               <canvas ref={rightRef} />
             </div>
           </div>
 
           <div
-            style={{
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              gap: 16,
-              marginTop: 14,
-            }}
+            className="row no-print"
+            style={{ justifyContent: "center", gap: 12, marginTop: 14 }}
           >
-            <button className="btn small secondary" onClick={() => go(-1)} disabled={spread === 0}>
-              ← Önceki
+            <button
+              type="button"
+              className="btn small secondary"
+              onClick={() => go(-1)}
+              disabled={spread === 0}
+            >
+              <Icon name="chevron-left" size={16} /> Önceki
             </button>
-            <span style={{ color: "var(--text-2)", fontSize: 13 }}>
+            <span className="num" style={{ color: "var(--text-2)", fontSize: 13 }}>
               {l && r
                 ? `Sayfa ${l}–${r} / ${doc.numPages}`
                 : `Sayfa ${l || r || 1} / ${doc.numPages}`}
             </span>
             <button
+              type="button"
               className="btn small secondary"
               onClick={() => go(1)}
               disabled={spread >= maxSpread}
             >
-              Sonraki →
+              Sonraki <Icon name="chevron-right" size={16} />
             </button>
             <a className="btn small" href={pdfUrl} download>
-              ⬇ PDF İndir
+              <Icon name="download" size={16} /> PDF İndir
             </a>
           </div>
-          <p style={{ color: "var(--muted)", fontSize: 12, marginTop: 8 }}>
+          <p className="no-print" style={{ color: "var(--muted)", fontSize: 12, marginTop: 8 }}>
             İpucu: klavye ok tuşlarıyla da sayfa çevirebilirsiniz.
           </p>
         </>

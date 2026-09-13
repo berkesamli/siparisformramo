@@ -9,8 +9,8 @@
   display: inline-block;
   padding: 1px 9px;
   border-radius: 999px;
-  background: rgba(169, 102, 13, 0.1);
-  color: var(--brand-dark);
+  background: var(--brand-soft);
+  color: var(--brand);
   font-size: 12px;
   font-weight: 700;
 }
@@ -19,7 +19,7 @@
   padding: 5px 11px;
   border-radius: 999px;
   border: 1px solid var(--border);
-  background: #fff;
+  background: var(--surface-2);
   font-size: 12.5px;
   font-weight: 600;
   color: var(--text-2);
@@ -27,11 +27,11 @@
   transition: all 0.18s ease;
 }
 .lbl-city b { color: var(--muted); font-weight: 700; margin-left: 2px; }
-.lbl-city:hover { border-color: var(--brand); color: var(--brand); }
+.lbl-city:hover { border-color: var(--brand); background: var(--surface-3); color: var(--brand); }
 .lbl-city.sel {
   border-color: var(--brand);
-  background: linear-gradient(135deg, #fff7ef, #fff3e6);
-  color: var(--brand-dark);
+  background: var(--brand-soft);
+  color: var(--brand);
 }
 .lbl-city.sel b { color: var(--brand); }
 
@@ -54,8 +54,8 @@
 .lbl-item-info { flex: 1; min-width: 0; }
 .lbl-item-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .lbl-item:last-child { border-bottom: none; }
-.lbl-item:hover { background: #faf7f1; }
-.lbl-item.sel { background: rgba(169, 102, 13, 0.07); box-shadow: inset 3px 0 0 var(--brand); }
+.lbl-item:hover { background: var(--surface-3); }
+.lbl-item.sel { background: var(--brand-soft); box-shadow: inset 3px 0 0 var(--brand); }
 .lbl-item-title {
   font-weight: 700;
   font-size: 13.5px;
@@ -71,10 +71,12 @@
   border-radius: 6px;
   letter-spacing: 0.04em;
 }
-.lbl-branch.ankara { background: rgba(169, 102, 13, 0.12); color: var(--brand-dark); }
-.lbl-branch.istanbul { background: rgba(29, 78, 216, 0.1); color: #1d4ed8; }
+.lbl-branch.ankara { background: var(--brand-soft); color: var(--brand); }
+.lbl-branch.istanbul { background: var(--info-soft); color: var(--info); }
 
-/* Etiket önizlemesi — 150×100 mm oranında */
+/* Etiket önizlemesi — 150×100 mm oranında.
+   Fiziksel kâğıt etiketi simüle eder ve /api/etiket/pdf ile yazdırılır:
+   temadan bağımsız beyaz zemin + siyah yazı (bilerek sabit renk). */
 .lbl-preview {
   aspect-ratio: 150 / 100;
   border: 1.5px solid #000;
@@ -85,6 +87,7 @@
   flex-direction: column;
   font-size: 11px;
   line-height: 1.3;
+  color-scheme: light;
 }
 .lbl-hdr {
   display: flex;
@@ -95,14 +98,14 @@
   margin-bottom: 3.5%;
 }
 .lbl-hdr img { width: 46px; height: auto; filter: grayscale(1) contrast(1.6); }
-.lbl-firm { font-weight: 800; font-size: 14px; line-height: 1.15; }
-.lbl-tel { font-weight: 700; font-size: 11px; }
+.lbl-firm { font-weight: 800; font-size: 14px; line-height: 1.15; color: #000; }
+.lbl-tel { font-weight: 700; font-size: 11px; color: #000; }
 .lbl-addr { font-size: 10px; color: #333; }
-.lbl-to { border: 1px solid #000; padding: 3.5%; flex: 1; }
-.lbl-to-title { font-weight: 800; font-size: 12px; margin-bottom: 5px; }
-.lbl-to-name { font-weight: 800; font-size: 13px; }
+.lbl-to { border: 1px solid #000; padding: 3.5%; flex: 1; color: #000; }
+.lbl-to-title { font-weight: 800; font-size: 12px; margin-bottom: 5px; color: #000; }
+.lbl-to-name { font-weight: 800; font-size: 13px; color: #000; }
 .lbl-to-contact { font-size: 10.5px; color: #333; margin-top: 2px; }
-.lbl-to-addr { margin-top: 6px; font-size: 11.5px; }
+.lbl-to-addr { margin-top: 6px; font-size: 11.5px; color: #000; }
 .lbl-to-note { margin-top: 6px; font-size: 9.5px; color: #444; }
 
 @media (max-width: 1080px) {
@@ -132,4 +135,3 @@
   .lbl-to-addr { font-size: 10.5px; }
   .lbl-to-contact { font-size: 9.5px; }
 }
-

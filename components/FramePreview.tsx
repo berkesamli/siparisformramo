@@ -7,6 +7,7 @@
 // gerçek çerçeve border-image + clipRatio/outset tekniği, cam katmanları.
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import Icon from "@/components/shell/Icon";
 import {
   type FrameImage,
   FRAME_SLICE,
@@ -540,7 +541,7 @@ export default function FramePreview(p: FramePreviewProps) {
 
   return (
     <div className="fp">
-      <div className="fp-head">
+      <div className="fp-head" style={{ flexWrap: "wrap" }}>
         <b>Önizleme</b>
         <span className="fp-label">{label}</span>
         <span style={{ flex: 1 }} />
@@ -580,14 +581,8 @@ export default function FramePreview(p: FramePreviewProps) {
       >
         {!hasDims && (
           <div className="fp-empty">
-            <div className="fp-empty-icon">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="var(--brand)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
-                <line x1="3" y1="9" x2="21" y2="9" />
-                <line x1="3" y1="15" x2="21" y2="15" />
-                <line x1="9" y1="3" x2="9" y2="21" />
-                <line x1="15" y1="3" x2="15" y2="21" />
-              </svg>
+            <div className="fp-empty-icon" style={{ color: "var(--brand-dark)" }}>
+              <Icon name="frame" size={24} strokeWidth={1.5} />
             </div>
             <div className="fp-empty-text">
               Eser ölçüsünü girin,
@@ -651,16 +646,16 @@ export default function FramePreview(p: FramePreviewProps) {
       </div>
 
       {p.artImageUrl && hasDims && (
-        <div className="fp-art-controls">
-          <label>
-            🔍
+        <div className="fp-art-controls" style={{ flexWrap: "wrap" }}>
+          <label style={{ flex: "1 1 120px" }} title="Yakınlaştır">
+            <Icon name="search" size={14} />
             <input
               type="range" min="1" max="2.5" step="0.05"
               value={artZoom}
               onChange={(e) => setArtZoom(parseFloat(e.target.value))}
             />
           </label>
-          <label>
+          <label style={{ flex: "1 1 120px" }} title="Yatay konum">
             ↔
             <input
               type="range" min="0" max="100" step="1"
@@ -668,7 +663,7 @@ export default function FramePreview(p: FramePreviewProps) {
               onChange={(e) => setArtPosX(parseInt(e.target.value))}
             />
           </label>
-          <label>
+          <label style={{ flex: "1 1 120px" }} title="Dikey konum">
             ↕
             <input
               type="range" min="0" max="100" step="1"

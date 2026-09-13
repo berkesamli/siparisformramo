@@ -4,6 +4,7 @@
 // Yalnızca maliyet yetkisi olanlar görür (varsayılan: Berke + Özgür).
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Icon from "@/components/shell/Icon";
 import { GLASS_TYPES } from "@/data/glass";
 // Katalog listeleri (öneri kutuları için) /api/katalog'dan gelir —
 // toptan fiyatlar istemci paketine girmesin.
@@ -49,6 +50,30 @@ interface Ozet {
 
 const bugun = () =>
   new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Istanbul" });
+
+// Telefonda KPI kutuları iki sütuna sığsın: orders.css'teki .cari-cards
+// eşiği (180px) yerine 160px; rakam boyutu dar ekranda akışkan küçülür.
+const KPI_GRID = { gridTemplateColumns: "repeat(auto-fit, minmax(min(160px, 100%), 1fr))" } as const;
+const KPI_NUM = { fontSize: "clamp(15px, 4.4vw, 21px)" } as const;
+// Sıfır dolgulu kart içinde .table-wrap'in taşma payı (−8px) gereksiz.
+const WRAP = { margin: 0, padding: 0 } as const;
+const NOWRAP = { whiteSpace: "nowrap" } as const;
+// Kalem giriş formu: sabit piksel genişlikler yerine akışkan ızgara —
+// telefonda 2, masaüstünde 5 sütun; düğme alanlarla alt hizada.
+const FORM_GRID = {
+  gridTemplateColumns: "repeat(auto-fit, minmax(min(150px, 100%), 1fr))",
+  alignItems: "end",
+} as const;
+// Segmentli sekme düğmesi: ikon + metin hizası; dar ekranda metin sarılır,
+// segment yatay taşmaz.
+const SEG_BTN = {
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 6,
+  whiteSpace: "normal",
+  textAlign: "center",
+} as const;
 
 export default function MaliyetManager() {
   const katalog = useKatalog();
@@ -145,18 +170,33 @@ export default function MaliyetManager() {
 
   return (
     <div>
-      <div className="card no-print" style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-        <button className={`btn small ${tab === "fiyat" ? "" : "secondary"}`} onClick={() => setTab("fiyat")}>
-          📦 Partiler / Alış Fiyatları
-        </button>
-        <button className={`btn small ${tab === "analiz" ? "" : "secondary"}`} onClick={() => setTab("analiz")}>
-          📈 Satış Analizi
-        </button>
+      <div className="card pad-sm row no-print">
+        <div className="seg">
+          <button
+            className={tab === "fiyat" ? "active" : undefined}
+            style={SEG_BTN}
+            onClick={() => setTab("fiyat")}
+          >
+            <Icon name="package" size={15} /> Partiler / Alış Fiyatları
+          </button>
+          <button
+            className={tab === "analiz" ? "active" : undefined}
+            style={SEG_BTN}
+            onClick={() => setTab("analiz")}
+          >
+            <Icon name="trending-up" size={15} /> Satış Analizi
+          </button>
+        </div>
         {tab === "analiz" && (
-          <input type="month" style={{ width: "auto" }} value={ay} onChange={(e) => setAy(e.target.value)} />
+          <input
+            type="month"
+            style={{ width: "auto", maxWidth: "100%" }}
+            value={ay}
+            onChange={(e) => setAy(e.target.value)}
+          />
         )}
         <input
-          style={{ flex: 1, minWidth: 150 }}
+          style={{ flex: "1 1 150px", minWidth: 0 }}
           placeholder="Kod ara…"
           value={ara}
           onChange={(e) => setAra(e.target.value)}
@@ -169,8 +209,8 @@ export default function MaliyetManager() {
       {tab === "fiyat" && (
         <>
           {/* Parti seçimi */}
-          <div className="card" style={{ display: "flex", gap: 10, alignItems: "flex-end", flexWrap: "wrap" }}>
-            <div style={{ minWidth: 260, flex: 1 }}>
+          <div className="card row no-print" style={{ alignItems: "flex-end" }}>
+            <div style={{ flex: "1 1 260px", minWidth: 0 }}>
               <label>Parti (Konteyner)</label>
               <select value={parti?.id || ""} onChange={(e) => setSeciliParti(e.target.value)}>
                 {partiler.map((x) => (
@@ -183,7 +223,7 @@ export default function MaliyetManager() {
               </select>
             </div>
             <button className="btn small" onClick={() => setYpAcik((o) => !o)}>
-              {ypAcik ? "Vazgeç" : "+ Yeni Parti"}
+              {ypAcik ? "Vazgeç" : <><Icon name="plus" size={14} /> Yeni Parti</>}
             </button>
             {parti && Object.keys(parti.items).length === 0 && (
               <button className="btn small danger" disabled={saving}
@@ -194,13 +234,13 @@ export default function MaliyetManager() {
           </div>
 
           {ypAcik && (
-            <div className="card" style={{ display: "flex", gap: 10, alignItems: "flex-end", flexWrap: "wrap" }}>
-              <div style={{ flex: 1, minWidth: 220 }}>
+            <div className="card row no-print" style={{ alignItems: "flex-end" }}>
+              <div style={{ flex: "1 1 220px", minWidth: 0 }}>
                 <label>Parti Adı</label>
                 <input value={ypAd} onChange={(e) => setYpAd(e.target.value)}
                   placeholder='örn. "Ağustos 2026 — 40 lık konteyner"' />
               </div>
-              <div>
+              <div style={{ flex: "1 1 180px", minWidth: 0 }}>
                 <label>Geliş Tarihi</label>
                 <input type="date" value={ypTarih} onChange={(e) => setYpTarih(e.target.value)} />
               </div>
@@ -221,10 +261,10 @@ export default function MaliyetManager() {
           {parti && (
             <>
               {/* Partinin yüzdesi */}
-              <div className="card" style={{ display: "flex", gap: 12, alignItems: "flex-end", flexWrap: "wrap" }}>
-                <div>
+              <div className="card row no-print" style={{ alignItems: "flex-end", gap: 12 }}>
+                <div style={{ flex: "0 1 230px", minWidth: 0 }}>
                   <label>Bu Partinin Genel Gider %&apos;si</label>
-                  <input type="number" step="0.1" min="0" style={{ width: 140 }}
+                  <input type="number" step="0.1" min="0"
                     value={pctInput} onChange={(e) => setPctInput(e.target.value)}
                     placeholder="sonra girilebilir" />
                 </div>
@@ -232,7 +272,7 @@ export default function MaliyetManager() {
                   onClick={() => gonder({ partiId: parti.id, pct: pctInput === "" ? null : Number(pctInput) })}>
                   Yüzdeyi Kaydet
                 </button>
-                <p style={{ margin: 0, flex: 1, minWidth: 240, fontSize: 12.5,
+                <p className="small" style={{ margin: 0, flex: "1 1 240px", minWidth: 0,
                   color: parti.pct == null ? "var(--error)" : "var(--muted)" }}>
                   {parti.pct == null
                     ? "Yüzde henüz girilmedi — bu partinin malları için kâr hesaplanmaz. Nakliye/gümrük belli olunca girin."
@@ -241,114 +281,118 @@ export default function MaliyetManager() {
               </div>
 
               {/* Kalem girişi — çerçeve /mt, cam-ayna /m², teknik /kutu */}
-              <div className="card" style={{ display: "flex", gap: 10, alignItems: "flex-end", flexWrap: "wrap" }}>
-                <div>
-                  <label>Tür</label>
-                  <select style={{ width: 150 }} value={fTur}
-                    onChange={(e) => { setFTur(e.target.value); setFKod(""); }}>
-                    {TURLER.map((t) => <option key={t.key} value={t.key}>{t.ad}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label>{fTur === "teknik" ? "Ürün" : fTur === "cam" ? "Cam Türü" : "Ürün Kodu"}</label>
-                  {fTur === "cam" ? (
-                    <select style={{ width: 170 }} value={fKod} onChange={(e) => setFKod(e.target.value)}>
-                      <option value="">Seçin…</option>
-                      {CAM_SECENEKLERI.map((n) => <option key={n} value={n}>{n}</option>)}
+              <div className="card no-print">
+                <div className="field-row" style={FORM_GRID}>
+                  <div>
+                    <label>Tür</label>
+                    <select value={fTur}
+                      onChange={(e) => { setFTur(e.target.value); setFKod(""); }}>
+                      {TURLER.map((t) => <option key={t.key} value={t.key}>{t.ad}</option>)}
                     </select>
-                  ) : fTur === "teknik" ? (
-                    <>
-                      <input list="maliyet-teknik" style={{ width: 220 }}
-                        value={fKod} onChange={(e) => setFKod(e.target.value)}
-                        placeholder="örn. NS Karton Kadife" />
-                      <datalist id="maliyet-teknik">
-                        {katalog.technical.map((t) => <option key={t.code} value={t.name} />)}
-                      </datalist>
-                    </>
-                  ) : (
-                    <>
-                      <input list="maliyet-kodlar" style={{ width: 150 }}
-                        value={fKod} onChange={(e) => setFKod(e.target.value)} placeholder="örn. 4501 S" />
-                      <datalist id="maliyet-kodlar">
-                        {katalog.profiles.map((p) => <option key={p.code} value={p.code} />)}
-                      </datalist>
-                    </>
-                  )}
+                  </div>
+                  <div>
+                    <label>{fTur === "teknik" ? "Ürün" : fTur === "cam" ? "Cam Türü" : "Ürün Kodu"}</label>
+                    {fTur === "cam" ? (
+                      <select value={fKod} onChange={(e) => setFKod(e.target.value)}>
+                        <option value="">Seçin…</option>
+                        {CAM_SECENEKLERI.map((n) => <option key={n} value={n}>{n}</option>)}
+                      </select>
+                    ) : fTur === "teknik" ? (
+                      <>
+                        <input list="maliyet-teknik"
+                          value={fKod} onChange={(e) => setFKod(e.target.value)}
+                          placeholder="örn. NS Karton Kadife" />
+                        <datalist id="maliyet-teknik">
+                          {katalog.technical.map((t) => <option key={t.code} value={t.name} />)}
+                        </datalist>
+                      </>
+                    ) : (
+                      <>
+                        <input list="maliyet-kodlar"
+                          value={fKod} onChange={(e) => setFKod(e.target.value)} placeholder="örn. 4501 S" />
+                        <datalist id="maliyet-kodlar">
+                          {katalog.profiles.map((p) => <option key={p.code} value={p.code} />)}
+                        </datalist>
+                      </>
+                    )}
+                  </div>
+                  <div>
+                    <label>Birim Alış (/{birimEtiket(turBilgi.birim)})</label>
+                    <input type="text" inputMode="decimal"
+                      value={fAlis} onChange={(e) => setFAlis(e.target.value)} />
+                  </div>
+                  <div>
+                    <label>Para Birimi</label>
+                    <select value={fBirim} onChange={(e) => setFBirim(e.target.value)}>
+                      <option value="USD">$ USD</option>
+                      <option value="EUR">€ EUR</option>
+                      <option value="TL">₺ TL</option>
+                    </select>
+                  </div>
+                  <button className="btn"
+                    disabled={saving || !fKod.trim() || !(parseFloat(fAlis.replace(",", ".")) > 0)}
+                    onClick={() => {
+                      gonder({
+                        partiId: parti.id,
+                        items: [{
+                          code: fKod.trim(),
+                          alis: parseFloat(fAlis.replace(",", ".")),
+                          currency: fBirim,
+                          birim: turBilgi.birim,
+                        }],
+                      });
+                      setFKod(""); setFAlis("");
+                    }}>
+                    <Icon name="plus" size={15} /> Ekle / Güncelle
+                  </button>
                 </div>
-                <div>
-                  <label>Birim Alış (/{birimEtiket(turBilgi.birim)})</label>
-                  <input type="text" inputMode="decimal" style={{ width: 130 }}
-                    value={fAlis} onChange={(e) => setFAlis(e.target.value)} />
-                </div>
-                <div>
-                  <label>Para Birimi</label>
-                  <select style={{ width: 95 }} value={fBirim} onChange={(e) => setFBirim(e.target.value)}>
-                    <option value="USD">$ USD</option>
-                    <option value="EUR">€ EUR</option>
-                    <option value="TL">₺ TL</option>
-                  </select>
-                </div>
-                <button className="btn"
-                  disabled={saving || !fKod.trim() || !(parseFloat(fAlis.replace(",", ".")) > 0)}
-                  onClick={() => {
-                    gonder({
-                      partiId: parti.id,
-                      items: [{
-                        code: fKod.trim(),
-                        alis: parseFloat(fAlis.replace(",", ".")),
-                        currency: fBirim,
-                        birim: turBilgi.birim,
-                      }],
-                    });
-                    setFKod(""); setFAlis("");
-                  }}>
-                  + Ekle / Güncelle
-                </button>
               </div>
 
               {/* Kalem listesi */}
-              <div className="card" style={{ padding: 0, overflowX: "auto" }}>
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Kod / Ürün</th>
-                      <th style={{ textAlign: "right" }}>Alış</th>
-                      <th style={{ textAlign: "right" }}>Birim Maliyet</th>
-                      <th></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {kalemler.map((k) => (
-                      <tr key={k.code}>
-                        <td style={{ fontWeight: 700 }}>{k.code}</td>
-                        <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
-                          {simge(k.currency)}{fmt(k.alis, 4)}
-                          <span style={{ color: "var(--muted)", fontWeight: 400 }}>
-                            {" "}/{birimEtiket(k.birim)}
-                          </span>
-                        </td>
-                        <td style={{ textAlign: "right", fontWeight: 600 }}>
-                          {parti.pct == null
-                            ? <span style={{ color: "var(--muted)" }}>% bekliyor</span>
-                            : `${simge(k.currency)}${fmt(k.alis * (1 + parti.pct / 100), 4)}`}
-                        </td>
-                        <td>
-                          <button className="btn small danger"
-                            onClick={() => { if (confirm(`${k.code} bu partiden silinsin mi?`)) gonder({ partiId: parti.id, sil: [k.code] }); }}>
-                            🗑
-                          </button>
-                        </td>
+              <div className="card pad-0">
+                <div className="table-wrap" style={WRAP}>
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Kod / Ürün</th>
+                        <th className="num">Alış</th>
+                        <th className="num">Birim Maliyet</th>
+                        <th></th>
                       </tr>
-                    ))}
-                    {!kalemler.length && (
-                      <tr><td colSpan={4} style={{ color: "var(--muted)" }}>
-                        Bu partiye henüz kalem girilmedi.
-                      </td></tr>
-                    )}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {kalemler.map((k) => (
+                        <tr key={k.code}>
+                          <td style={{ fontWeight: 700 }}>{k.code}</td>
+                          <td className="num" style={NOWRAP}>
+                            {simge(k.currency)}{fmt(k.alis, 4)}
+                            <span className="muted" style={{ fontWeight: 400 }}>
+                              {" "}/{birimEtiket(k.birim)}
+                            </span>
+                          </td>
+                          <td className="num" style={{ ...NOWRAP, fontWeight: 600 }}>
+                            {parti.pct == null
+                              ? <span className="muted">% bekliyor</span>
+                              : `${simge(k.currency)}${fmt(k.alis * (1 + parti.pct / 100), 4)}`}
+                          </td>
+                          <td style={{ textAlign: "right" }}>
+                            <button className="btn icon small danger" title="Sil" aria-label={`${k.code} sil`}
+                              onClick={() => { if (confirm(`${k.code} bu partiden silinsin mi?`)) gonder({ partiId: parti.id, sil: [k.code] }); }}>
+                              🗑
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                      {!kalemler.length && (
+                        <tr><td colSpan={4} className="muted">
+                          Bu partiye henüz kalem girilmedi.
+                        </td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-              <p style={{ fontSize: 12.5, color: "var(--muted)" }}>
+              <p className="muted small" style={{ marginTop: 10 }}>
                 {loading ? "" : `${Object.keys(parti.items).length} kalem · ${parti.ad} · geliş ${parti.tarih.split("-").reverse().join(".")}`}
               </p>
             </>
@@ -359,80 +403,82 @@ export default function MaliyetManager() {
       {tab === "analiz" && (
         <>
           {ozet && (
-            <div className="cari-cards">
+            <div className="cari-cards" style={KPI_GRID}>
               <div className="cari-card">
                 <span>Ciro {ay ? `(${ay})` : "(tümü)"}</span>
-                <strong>₺{fmt(ozet.toplamCiro)}</strong>
+                <strong style={KPI_NUM}>₺{fmt(ozet.toplamCiro)}</strong>
               </div>
               <div className="cari-card">
                 <span>Maliyet</span>
-                <strong style={{ color: "var(--error)" }}>₺{fmt(ozet.toplamMaliyet)}</strong>
+                <strong style={{ ...KPI_NUM, color: "var(--error)" }}>₺{fmt(ozet.toplamMaliyet)}</strong>
                 <span style={{ fontSize: 11.5 }}>maliyeti tam hesaplanan kodlar</span>
               </div>
               <div className="cari-card">
                 <span>Kâr</span>
-                <strong style={{ color: "var(--success)" }}>₺{fmt(ozet.toplamKar)}</strong>
+                <strong style={{ ...KPI_NUM, color: "var(--success)" }}>₺{fmt(ozet.toplamKar)}</strong>
                 {ozet.maliyetliCiro > 0 && (
                   <span style={{ fontSize: 11.5 }}>marj %{fmt((ozet.toplamKar / ozet.maliyetliCiro) * 100, 1)}</span>
                 )}
               </div>
               <div className="cari-card">
                 <span>Kapsam</span>
-                <strong>%{ozet.kapsam}</strong>
+                <strong style={KPI_NUM}>%{ozet.kapsam}</strong>
                 <span style={{ fontSize: 11.5 }}>maliyeti bilinen kod oranı</span>
               </div>
             </div>
           )}
           {loading ? (
-            <p style={{ color: "var(--muted)" }}>Hesaplanıyor…</p>
+            <p className="muted">Hesaplanıyor…</p>
           ) : (
-            <div className="card" style={{ padding: 0, overflowX: "auto" }}>
-              <table>
-                <thead>
-                  <tr>
-                    <th>Kod / Ürün</th>
-                    <th style={{ textAlign: "right" }} title="Çerçevede metre, camda m², teknik malzemede kutu">
-                      Satılan (mt/m²/kutu)
-                    </th>
-                    <th style={{ textAlign: "right" }}>Ciro</th>
-                    <th style={{ textAlign: "right" }}>Maliyet</th>
-                    <th style={{ textAlign: "right" }}>Kâr</th>
-                    <th style={{ textAlign: "right" }}>Marj</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {analizGorunur.map((a) => (
-                    <tr key={a.code}>
-                      <td style={{ fontWeight: 700 }}>{a.code}</td>
-                      <td style={{ textAlign: "right" }}>{fmt(a.metraj)}</td>
-                      <td style={{ textAlign: "right" }}>₺{fmt(a.ciro)}</td>
-                      <td style={{ textAlign: "right" }}>
-                        {a.maliyet != null
-                          ? `₺${fmt(a.maliyet)}`
-                          : <span style={{ color: "var(--muted)" }}>
-                              {a.durum === "yuzde-bekliyor" ? "% bekliyor" : "alış girilmedi"}
-                            </span>}
-                      </td>
-                      <td style={{ textAlign: "right", fontWeight: 600,
-                        color: a.kar == null ? undefined : a.kar >= 0 ? "var(--success)" : "var(--error)" }}>
-                        {a.kar != null ? `₺${fmt(a.kar)}` : "—"}
-                      </td>
-                      <td style={{ textAlign: "right", fontWeight: 600,
-                        color: a.marj == null ? undefined : a.marj >= 0 ? "var(--success)" : "var(--error)" }}>
-                        {a.marj != null ? `%${fmt(a.marj, 1)}` : "—"}
-                      </td>
+            <div className="card pad-0">
+              <div className="table-wrap" style={WRAP}>
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Kod / Ürün</th>
+                      <th className="num" title="Çerçevede metre, camda m², teknik malzemede kutu">
+                        Satılan (mt/m²/kutu)
+                      </th>
+                      <th className="num">Ciro</th>
+                      <th className="num">Maliyet</th>
+                      <th className="num">Kâr</th>
+                      <th className="num">Marj</th>
                     </tr>
-                  ))}
-                  {!analizGorunur.length && (
-                    <tr><td colSpan={6} style={{ color: "var(--muted)" }}>
-                      Bu dönemde satış satırı yok.
-                    </td></tr>
-                  )}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {analizGorunur.map((a) => (
+                      <tr key={a.code}>
+                        <td style={{ fontWeight: 700 }}>{a.code}</td>
+                        <td className="num">{fmt(a.metraj)}</td>
+                        <td className="num" style={NOWRAP}>₺{fmt(a.ciro)}</td>
+                        <td className="num" style={NOWRAP}>
+                          {a.maliyet != null
+                            ? `₺${fmt(a.maliyet)}`
+                            : <span className="muted">
+                                {a.durum === "yuzde-bekliyor" ? "% bekliyor" : "alış girilmedi"}
+                              </span>}
+                        </td>
+                        <td className="num" style={{ ...NOWRAP, fontWeight: 600,
+                          color: a.kar == null ? undefined : a.kar >= 0 ? "var(--success)" : "var(--error)" }}>
+                          {a.kar != null ? `₺${fmt(a.kar)}` : "—"}
+                        </td>
+                        <td className="num" style={{ ...NOWRAP, fontWeight: 600,
+                          color: a.marj == null ? undefined : a.marj >= 0 ? "var(--success)" : "var(--error)" }}>
+                          {a.marj != null ? `%${fmt(a.marj, 1)}` : "—"}
+                        </td>
+                      </tr>
+                    ))}
+                    {!analizGorunur.length && (
+                      <tr><td colSpan={6} className="muted">
+                        Bu dönemde satış satırı yok.
+                      </td></tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
-          <p style={{ fontSize: 12.5, color: "var(--muted)" }}>
+          <p className="muted small" style={{ marginTop: 10 }}>
             Her satışın maliyeti, sipariş tarihinden önceki en son partinin
             fiyatından ve o partinin yüzdesinden hesaplanır; kur olarak siparişin
             kendi günlük kuru kullanılır. Renk ekli kodlar taban koda toplanır.

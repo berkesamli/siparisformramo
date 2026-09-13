@@ -7,6 +7,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { customerTitle, normalizeCity, type Customer } from "@/lib/customers";
 import { eslesir } from "@/lib/search-norm";
+import Icon from "@/components/shell/Icon";
 
 export default function CustomerPicker({
   value,
@@ -74,30 +75,45 @@ export default function CustomerPicker({
             <div className="cp-empty">Eşleşen kayıtlı müşteri yok — yazdığınız ad kullanılır.</div>
           ) : (
             matches.map((c) => (
+              // Dar hücrede ad üstte, telefon/ilçe alta iner; geniş kutuda
+              // tek satır kalır (sarma esnek taban ölçülerine göre).
               <button
                 key={c.id}
                 type="button"
                 className="cp-item"
+                style={{ flexWrap: "wrap", rowGap: 2 }}
                 onClick={() => {
                   onChange(customerTitle(c));
                   onPick?.(c);
                   setOpen(false);
                 }}
               >
-                <span className="cp-name">{customerTitle(c)}</span>
-                <span className="cp-meta">
+                <span className="cp-name" style={{ flex: "1 1 150px", minWidth: 0 }}>
+                  {customerTitle(c)}
+                </span>
+                <span className="cp-meta" style={{ minWidth: 0 }}>
                   {[c.phone, [c.district, c.city].filter(Boolean).join(" / ")]
                     .filter(Boolean)
                     .join(" · ")}
                 </span>
                 {c.city && (
-                  <span className={`cp-city ${normalizeCity(c.city)}`}>{c.city}</span>
+                  <span
+                    className={`cp-city ${normalizeCity(c.city)}`}
+                    style={{ marginLeft: "auto" }}
+                  >
+                    {c.city}
+                  </span>
                 )}
               </button>
             ))
           )}
-          <a className="cp-foot" href="/etiket">
-            + Müşteri defterini aç
+          <a
+            className="cp-foot"
+            href="/etiket"
+            style={{ display: "flex", alignItems: "center", gap: 6 }}
+          >
+            <Icon name="users" size={14} />
+            Müşteri defterini aç
           </a>
         </div>
       )}

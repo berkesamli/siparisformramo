@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
 import { isFinance } from "@/data/users";
 import Reports from "@/components/Reports";
+import PageHeader from "@/components/PageHeader";
 
 export const dynamic = "force-dynamic";
 
@@ -14,10 +15,11 @@ export default async function RaporlarPage() {
 
   return (
     <main className="container" style={{ maxWidth: 1200 }}>
-      <h1>Raporlar</h1>
-      <p className="subtitle">
-        Ciro, tahsilat, müşteri ve ürün kırılımları — toptan ve perakende birlikte.
-      </p>
+      <PageHeader
+        title="Raporlar"
+        subtitle="Ciro, tahsilat, müşteri ve ürün kırılımları — toptan ve perakende birlikte."
+        icon="bar-chart"
+      />
       <Reports />
     </main>
   );

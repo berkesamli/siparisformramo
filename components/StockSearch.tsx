@@ -12,11 +12,21 @@ import { useKatalog } from "@/lib/use-katalog";
 
 const nf = (n: number) => n.toLocaleString("tr-TR");
 
-export default function StockSearch() {
+export default function StockSearch({
+  initialQuery,
+}: {
+  /** Arama kutusunu tohumlar (sunucu sayfası ?q= parametresinden geçirir). */
+  initialQuery?: string;
+}) {
   const katalog = useKatalog();
   const [data, setData] = useState<StockData | null>(null);
   const [error, setError] = useState("");
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState(initialQuery || "");
+
+  // ?q= değişirse (üst çubuk aramasından yeniden gelinirse) kutuyu güncelle.
+  useEffect(() => {
+    if (initialQuery !== undefined) setQuery(initialQuery);
+  }, [initialQuery]);
 
   useEffect(() => {
     fetch("/api/stock")
@@ -43,13 +53,17 @@ export default function StockSearch() {
 
   return (
     <div>
-      <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", marginBottom: 14 }}>
+      <div
+        className="row no-print"
+        style={{ gap: 12, marginBottom: 14 }}
+      >
         <input
           style={{ maxWidth: 340 }}
           placeholder="Profil kodu yazın… örn. GC065-1473"
+          aria-label="Profil kodu"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          autoFocus
+          autoFocus={!initialQuery}
         />
         {data && (
           <span style={{ color: "var(--muted)", fontSize: 12.5 }}>
@@ -62,7 +76,7 @@ export default function StockSearch() {
       {!data && !error && <p style={{ color: "var(--text-2)" }}>Stok verisi yükleniyor…</p>}
 
       {data && query.trim().length >= 2 && (
-        <div style={{ overflowX: "auto" }}>
+        <div className="table-wrap">
           <table>
             <thead>
               <tr>
@@ -82,7 +96,7 @@ export default function StockSearch() {
                   const koli = koliM > 0 ? Math.floor(mt / koliM) : 0;
                   return (
                     <>
-                      <strong>{nf(toBoy(mt))} boy</strong>
+                      <strong className="num">{nf(toBoy(mt))} boy</strong>
                       {koli > 0 && (
                         <span style={{ color: "var(--muted)", fontSize: 12, marginLeft: 6 }}>
                           (≈ {nf(koli)} koli)
@@ -104,7 +118,7 @@ export default function StockSearch() {
                     <td>{cell(item.ankaraMt)}</td>
                     <td>{cell(item.istanbulMt)}</td>
                     <td>
-                      <strong style={{ color: "var(--brand-light)" }}>
+                      <strong className="num" style={{ color: "var(--brand-light)" }}>
                         {nf(toBoy(total))} boy
                       </strong>
                       {koliM > 0 && Math.floor(total / koliM) > 0 && (

@@ -1,4 +1,8 @@
-/* ---- Raporlar ---- */
+/* =========================================================
+   RAPORLAR — toptan/perakende kırılımı, aylık ciro çubuk grafiği ve
+   rapor tabloları. Tüm renkler tokens.css'ten gelir; grafik serileri
+   --s-toptan / --s-perakende (her iki temada doğrulanmış palet).
+   ========================================================= */
 .rep-split {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -8,9 +12,11 @@
 .rep-split-item {
   background: var(--card);
   border: 1px solid var(--border);
-  border-radius: 14px;
+  border-radius: var(--radius);
   padding: 16px 18px;
   box-shadow: var(--shadow-sm);
+  -webkit-backdrop-filter: blur(var(--blur));
+  backdrop-filter: blur(var(--blur));
 }
 .rep-split-head {
   display: flex;
@@ -20,18 +26,42 @@
   color: var(--text-2);
   margin-bottom: 4px;
 }
-.rep-split-item > strong { font-size: 20px; font-weight: 800; }
+.rep-split-item > strong {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Oran çubuğu.
+   NOT: base.css'teki .seg (segmentli kontrol: padding, kenarlık, 12px
+   köşe, dar ekranda width:100%) ile sınıf adı çakışır; grafik parçaları
+   burada sıfırlanır ki 0 değerli aylar bile 10px'lik kutu gibi görünmesin. */
 .rep-bar {
   height: 6px;
   border-radius: 3px;
-  background: var(--input);
+  background: var(--surface-3);
   overflow: hidden;
   margin-top: 8px;
 }
-.rep-bar .seg { display: block; height: 100%; transition: width 0.4s ease; }
-.seg.toptan { background: linear-gradient(90deg, var(--brand), #a67c3d); }
-.seg.perakende { background: linear-gradient(90deg, #c9a66b, #d4b87a); }
+.rep-bar .seg,
+.rep-col-bars .seg {
+  display: block;
+  padding: 0;
+  border: 0;
+  gap: 0;
+  min-width: 0;
+  box-shadow: none;
+}
+.rep-bar .seg {
+  height: 100%;
+  border-radius: 0;
+  transition: width 0.4s ease;
+}
+.seg.toptan { background: var(--s-toptan); }
+.seg.perakende { background: var(--s-perakende); }
 
+/* Aylık ciro — yan yana iki seri */
 .rep-chart {
   display: flex;
   align-items: flex-end;
@@ -39,6 +69,7 @@
   height: 220px;
   padding-top: 10px;
   overflow-x: auto;
+  scrollbar-width: thin;
 }
 .rep-col {
   flex: 1;
@@ -63,7 +94,13 @@
   border-radius: 4px 4px 0 0;
   transition: height 0.45s cubic-bezier(0.22, 0.9, 0.3, 1);
 }
-.rep-col-val { font-size: 11px; font-weight: 700; color: var(--text-2); margin-top: 6px; }
+.rep-col-val {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-2);
+  margin-top: 6px;
+  font-variant-numeric: tabular-nums;
+}
 .rep-col-lbl { font-size: 10.5px; color: var(--muted); }
 .rep-legend {
   display: flex;
@@ -79,21 +116,24 @@
   border-radius: 50%;
   margin-right: 4px;
 }
-.rep-legend .dot.toptan { background: var(--brand); }
-.rep-legend .dot.perakende { background: #c9a66b; }
+.rep-legend .dot.toptan { background: var(--s-toptan); }
+.rep-legend .dot.perakende { background: var(--s-perakende); }
 
+/* Rapor tabloları — dar ekranda sütun 320px'in altına iner, kart içi
+   tablo gerekirse kendi içinde kayar (sayfa yatay kaymaz). */
 .rep-tables {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(320px, 100%), 1fr));
   gap: 16px;
   margin-top: 24px;
 }
+.rep-tables .card { overflow-x: auto; }
 .rep-th {
   font-size: 14px;
   font-weight: 800;
   margin: 0;
   padding: 14px 16px 10px;
-  color: var(--brand-dark);
+  color: var(--brand);
 }
 .rep-tables table th:first-child, .rep-tables table td:first-child { padding-left: 16px; }
 .rep-tables table th:last-child, .rep-tables table td:last-child { padding-right: 16px; }
@@ -101,4 +141,3 @@
 @media (max-width: 720px) {
   .rep-split { grid-template-columns: 1fr; }
 }
-

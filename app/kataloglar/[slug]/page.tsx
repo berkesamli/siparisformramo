@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
 import FlipBook from "@/components/FlipBook";
 import { catalogTitle } from "@/lib/catalog-meta";
+import PageHeader from "@/components/PageHeader";
+import Icon from "@/components/shell/Icon";
 
 export const dynamic = "force-dynamic";
 
@@ -20,17 +22,16 @@ export default async function CatalogViewerPage({
 
   return (
     <main className="container" style={{ maxWidth: 1400 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 12, flexWrap: "wrap" }}>
-        <Link href="/kataloglar" className="btn small secondary">
-          ← Kataloglar
-        </Link>
-        <h1 style={{ fontSize: 20, margin: 0 }}>{meta.title}</h1>
-        {meta.note && (
-          <span style={{ color: "var(--brand)", fontSize: 13, fontWeight: 600 }}>
-            {meta.note}
-          </span>
-        )}
-      </div>
+      <PageHeader
+        title={meta.title}
+        subtitle={meta.note}
+        icon="book"
+        actions={
+          <Link href="/kataloglar" className="btn secondary">
+            <Icon name="chevron-left" size={16} /> Kataloglar
+          </Link>
+        }
+      />
       <FlipBook pdfUrl={pdfUrl} />
     </main>
   );

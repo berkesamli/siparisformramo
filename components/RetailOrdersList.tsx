@@ -7,6 +7,7 @@ import { RETAIL_STATUSES, type RetailStatus } from "@/data/perakende";
 import { PAYMENT_LABELS, type PaymentStatus } from "@/lib/orders";
 import type { SavedRetailOrder } from "@/lib/retail-orders";
 import { eslesir } from "@/lib/search-norm";
+import Icon from "@/components/shell/Icon";
 
 const fmt = (n: number) =>
   (Number(n) || 0).toLocaleString("tr-TR", {
@@ -14,12 +15,13 @@ const fmt = (n: number) =>
     maximumFractionDigits: 2,
   });
 
+// Durum seçicisinin yazı rengi — tema tokenları (koyu/açık temada okunur)
 const STATUS_COLORS: Record<RetailStatus, string> = {
-  Beklemede: "#b45309",
-  "Hazırlanıyor": "#1d4ed8",
-  "Hazır": "#067a55",
-  "Teslim Edildi": "#374151",
-  "İptal": "#b91c1c",
+  Beklemede: "var(--warning)",
+  "Hazırlanıyor": "var(--info)",
+  "Hazır": "var(--success)",
+  "Teslim Edildi": "var(--muted)",
+  "İptal": "var(--error)",
 };
 
 export default function RetailOrdersList() {
@@ -113,16 +115,19 @@ export default function RetailOrdersList() {
 
   return (
     <div>
-      <div className="card" style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center", padding: 14 }}>
-        <button className={`btn small ${range === "today" ? "" : "secondary"}`} onClick={() => setRange("today")}>
-          Bugün
-        </button>
-        <button className={`btn small ${range === "week" ? "" : "secondary"}`} onClick={() => setRange("week")}>
-          Son 7 Gün
-        </button>
+      <div className="card pad-sm row">
+        {/* Tarih aralığı — segmentli kontrol (.seg); aktif seçenek .active */}
+        <div className="seg" role="group" aria-label="Tarih aralığı">
+          <button type="button" className={range === "today" ? "active" : ""} onClick={() => setRange("today")}>
+            Bugün
+          </button>
+          <button type="button" className={range === "week" ? "active" : ""} onClick={() => setRange("week")}>
+            Son 7 Gün
+          </button>
+        </div>
         <input
           type="date"
-          style={{ width: 160 }}
+          style={{ width: 160, maxWidth: "100%" }}
           value={date}
           onChange={(e) => {
             setDate(e.target.value);
@@ -144,26 +149,31 @@ export default function RetailOrdersList() {
       )}
 
       {loading ? (
-        <p style={{ color: "var(--muted)" }}>Yükleniyor...</p>
+        <p className="muted">Yükleniyor...</p>
       ) : filtered.length === 0 ? (
-        <div className="card" style={{ textAlign: "center", color: "var(--muted)" }}>
-          Bu aralıkta perakende sipariş yok.
+        <div className="card">
+          <div className="empty">
+            <div className="empty-icon">
+              <Icon name="inbox" size={22} />
+            </div>
+            Bu aralıkta perakende sipariş yok.
+          </div>
         </div>
       ) : (
         filtered.map((o) => (
-          <div className="card" key={o.orderId} style={{ padding: 16, marginBottom: 12 }}>
-            <div style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "center" }}>
+          <div className="card pad-sm" key={o.orderId}>
+            <div className="row">
               <strong style={{ color: "var(--brand)" }}>{o.orderId}</strong>
-              <span>{o.customerName} · {o.customerPhone}</span>
+              <span style={{ minWidth: 0, overflowWrap: "anywhere" }}>{o.customerName} · {o.customerPhone}</span>
               <span style={{ color: "var(--muted)", fontSize: 13 }}>
                 {new Date(o.createdAt).toLocaleString("tr-TR", { dateStyle: "short", timeStyle: "short" })}
                 {o.deliveryDate && ` → Teslim: ${o.deliveryDate}`}
               </span>
-              <span style={{ flex: 1 }} />
-              <strong>₺{fmt(o.total)}</strong>
+              <span className="spacer" />
+              <strong className="num">₺{fmt(o.total)}</strong>
               <select
                 className={`pay-select ${o.payment || "bekliyor"}`}
-                style={{ width: 140, fontWeight: 600 }}
+                style={{ width: 140, maxWidth: "100%", fontWeight: 600 }}
                 value={o.payment || "bekliyor"}
                 onChange={(e) => updatePayment(o, e.target.value as PaymentStatus)}
               >
@@ -174,6 +184,7 @@ export default function RetailOrdersList() {
               <select
                 style={{
                   width: 150,
+                  maxWidth: "100%",
                   fontWeight: 600,
                   color: STATUS_COLORS[o.status] || "var(--text)",
                 }}
@@ -189,19 +200,21 @@ export default function RetailOrdersList() {
                 href={`/api/perakende/orders/pdf?d=${o.dateKey}&id=${encodeURIComponent(o.orderId)}`}
                 title="Üretim PDF indir"
               >
-                ⬇ PDF
+                <Icon name="download" size={14} /> PDF
               </a>
               <a
                 className="btn small secondary"
                 href={`/panel/perakende/siparisler/detay?d=${o.dateKey}&id=${encodeURIComponent(o.orderId)}`}
                 title="Fişi görüntüle / yazdır"
               >
-                🖨️ Fiş
+                <Icon name="printer" size={14} /> Fiş
               </a>
               <button
+                type="button"
                 className="btn small secondary"
                 onClick={() => setOpen(open === o.orderId ? null : o.orderId)}
               >
+                <Icon name={open === o.orderId ? "chevron-down" : "chevron-right"} size={14} />
                 {open === o.orderId ? "Kapat" : "Detay"}
               </button>
             </div>

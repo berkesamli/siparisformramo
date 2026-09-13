@@ -5,6 +5,7 @@
 // müşteri ekle/düzenle/sil, gönderici şubesine göre değişen etiket önizlemesi.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Icon from "@/components/shell/Icon";
 import {
   BRANCHES,
   branchInfo,
@@ -50,13 +51,22 @@ export default function LabelManager() {
   const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
   const [copies, setCopies] = useState("1");
+  const layoutRef = useRef<HTMLDivElement | null>(null);
   const previewRef = useRef<HTMLElement | null>(null);
 
   // Dar ekranda önizleme listenin altında kalır — müşteri seçilince
   // etiket görünsün diye oraya kaydır (masaüstünde zaten yan yana).
+  // Tek sütuna düşüp düşmediği CSS'teki kırılım sayısına bağlı kalmadan,
+  // ızgaranın çözümlenmiş sütun sayısından okunur.
   function selectCustomer(id: string) {
     setSelectedId(id);
-    if (typeof window !== "undefined" && window.matchMedia("(max-width: 1080px)").matches) {
+    if (typeof window === "undefined") return;
+    const layout = layoutRef.current;
+    const cols = layout
+      ? window.getComputedStyle(layout).gridTemplateColumns.trim().split(/\s+/).length
+      : 0;
+    const stacked = cols ? cols === 1 : window.matchMedia("(max-width: 1080px)").matches;
+    if (stacked) {
       previewRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   }
@@ -177,19 +187,23 @@ export default function LabelManager() {
     setForm((f) => ({ ...f, [k]: e.target.value }));
 
   return (
-    <div className="lbl-layout">
+    <div className="lbl-layout" ref={layoutRef}>
       {/* ---- Sol: müşteri listesi ---- */}
-      <div>
-        <div className="card" style={{ padding: 16 }}>
-          <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-            <h2 style={{ margin: 0, fontSize: 16 }}>Kayıtlı Müşteriler</h2>
-            <span className="lbl-count">{filtered.length}</span>
-            <span style={{ flex: 1 }} />
-            <button className="btn small" onClick={startNew}>+ Yeni Müşteri</button>
+      <div style={{ minWidth: 0 }}>
+        <div className="card pad-sm">
+          <div className="card-head">
+            <span className="card-head-icon"><Icon name="users" size={16} /></span>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <h2>Kayıtlı Müşteriler</h2>
+              <span className="lbl-count">{filtered.length}</span>
+            </div>
+            <span className="spacer" />
+            <div className="card-head-actions">
+              <button className="btn small" onClick={startNew}>+ Yeni Müşteri</button>
+            </div>
           </div>
 
           <input
-            style={{ marginTop: 12 }}
             placeholder="Ara: firma / kişi / telefon / adres"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -222,13 +236,13 @@ export default function LabelManager() {
 
           <div className="lbl-list">
             {loading ? (
-              <p style={{ color: "var(--muted)", padding: 10 }}>Yükleniyor...</p>
+              <div className="empty" style={{ padding: "22px 12px" }}>Yükleniyor...</div>
             ) : filtered.length === 0 ? (
-              <p style={{ color: "var(--muted)", padding: 10 }}>
+              <div className="empty" style={{ padding: "22px 12px" }}>
                 {customers.length === 0
                   ? "Henüz müşteri eklenmedi. “+ Yeni Müşteri” ile başlayın."
                   : "Bu filtreye uyan müşteri yok."}
-              </p>
+              </div>
             ) : (
               filtered.map((c) => (
                 <div
@@ -249,24 +263,29 @@ export default function LabelManager() {
                       {c.branch === "istanbul" ? "İST" : "ANK"}
                     </span>
                     <a
-                      className="btn small secondary"
+                      className="btn small secondary icon"
                       href={`/musteri?id=${encodeURIComponent(c.id)}`}
                       title="Cari kart: sipariş geçmişi ve bakiye"
+                      aria-label="Cari kart: sipariş geçmişi ve bakiye"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      💳
+                      <Icon name="credit-card" size={15} />
                     </a>
                     <button
-                      className="btn small secondary"
+                      className="btn small secondary icon"
+                      title="Düzenle"
+                      aria-label="Düzenle"
                       onClick={(e) => { e.stopPropagation(); startEdit(c); }}
                     >
-                      ✏️
+                      <Icon name="edit" size={15} />
                     </button>
                     <button
-                      className="btn small danger"
+                      className="btn small danger icon"
+                      title="Sil"
+                      aria-label="Sil"
                       onClick={(e) => { e.stopPropagation(); remove(c); }}
                     >
-                      🗑
+                      <Icon name="x" size={15} />
                     </button>
                   </span>
                 </div>
@@ -277,10 +296,15 @@ export default function LabelManager() {
 
         {/* ---- Müşteri formu ---- */}
         {editing && (
-          <div className="card" style={{ marginTop: 14 }}>
-            <h2 style={{ marginTop: 0 }}>
-              {form.id ? "🖊️ Müşteriyi Düzenle" : "➕ Yeni Müşteri"}
-            </h2>
+          <div className="card" style={{ marginTop: 16 }}>
+            <div className="card-head">
+              <span className="card-head-icon">
+                <Icon name={form.id ? "edit" : "plus"} size={16} />
+              </span>
+              <div>
+                <h2>{form.id ? "Müşteriyi Düzenle" : "Yeni Müşteri"}</h2>
+              </div>
+            </div>
             <div className="rw-grid2">
               <div style={{ gridColumn: "1 / -1" }}>
                 <label>Firma / Ünvan</label>
@@ -349,7 +373,7 @@ export default function LabelManager() {
                 <input value={form.note} onChange={set("note")} />
               </div>
             </div>
-            <div style={{ display: "flex", gap: 10, marginTop: 16, flexWrap: "wrap" }}>
+            <div className="row" style={{ marginTop: 16 }}>
               <button className="btn" disabled={saving} onClick={save}>
                 {saving ? "Kaydediliyor..." : form.id ? "Güncelle" : "Kaydet"}
               </button>
@@ -364,11 +388,20 @@ export default function LabelManager() {
       </div>
 
       {/* ---- Sağ: etiket önizleme ---- */}
-      <aside ref={previewRef}>
-        <div className="card" style={{ position: "sticky", top: 90, padding: 18 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
-            <b style={{ fontSize: 15 }}>Kargo Etiketi</b>
-            <span style={{ fontSize: 11.5, color: "var(--muted)" }}>150 × 100 mm</span>
+      <aside
+        ref={previewRef}
+        style={{ minWidth: 0, scrollMarginTop: "calc(var(--topbar-h) + 12px)" }}
+      >
+        <div
+          className="card pad-sm"
+          style={{ position: "sticky", top: "calc(var(--topbar-h) + 16px)" }}
+        >
+          <div className="card-head">
+            <span className="card-head-icon"><Icon name="tag" size={16} /></span>
+            <div>
+              <h2>Kargo Etiketi</h2>
+              <span className="card-head-sub">150 × 100 mm</span>
+            </div>
           </div>
 
           {selected ? (
@@ -378,7 +411,7 @@ export default function LabelManager() {
               {/* Gönderici şubesi hızlı değiştirme */}
               <div style={{ marginTop: 12 }}>
                 <label>Gönderici Şube</label>
-                <div className="rw-toggle" style={{ width: "100%" }}>
+                <div className="seg" style={{ width: "100%", display: "flex" }}>
                   {(["ankara", "istanbul"] as Branch[]).map((b) => (
                     <button
                       key={b}
@@ -401,13 +434,13 @@ export default function LabelManager() {
                     </button>
                   ))}
                 </div>
-                <p style={{ fontSize: 11.5, color: "var(--muted)", marginTop: 6 }}>
+                <p className="muted" style={{ fontSize: 11.5, marginTop: 6 }}>
                   Etiketin üstündeki gönderici adresi seçilen şubeye göre değişir.
                 </p>
               </div>
 
-              <div style={{ display: "flex", gap: 8, marginTop: 14, alignItems: "flex-end" }}>
-                <div style={{ width: 90 }}>
+              <div style={{ display: "flex", gap: 8, marginTop: 14, alignItems: "flex-end", minWidth: 0 }}>
+                <div style={{ flex: "0 0 90px", maxWidth: "100%" }}>
                   <label>Adet</label>
                   <input
                     type="number"
@@ -419,17 +452,18 @@ export default function LabelManager() {
                 </div>
                 <a
                   className="btn"
-                  style={{ flex: 1, justifyContent: "center" }}
+                  style={{ flex: 1, minWidth: 0 }}
                   href={`/api/etiket/pdf?id=${encodeURIComponent(selected.id)}&adet=${Math.max(1, parseInt(copies) || 1)}`}
                 >
-                  ⬇ Etiket PDF
+                  <Icon name="download" size={16} /> Etiket PDF
                 </a>
               </div>
             </>
           ) : (
-            <p style={{ color: "var(--muted)", fontSize: 13.5 }}>
+            <div className="empty" style={{ padding: "22px 12px" }}>
+              <div className="empty-icon"><Icon name="tag" size={22} /></div>
               Etiketi görmek için soldaki listeden bir müşteri seçin.
-            </p>
+            </div>
           )}
         </div>
       </aside>
@@ -437,7 +471,9 @@ export default function LabelManager() {
   );
 }
 
-/* ---- Ekrandaki etiket önizlemesi (PDF ile aynı düzen) ---- */
+/* ---- Ekrandaki etiket önizlemesi (PDF ile aynı düzen) ----
+   Fiziksel kâğıt etiketi simüle eder: .lbl-preview renkleri (beyaz zemin,
+   siyah yazı) labels.css'te bilerek sabittir, temadan etkilenmez. */
 function LabelPreview({ c }: { c: Customer }) {
   const b = branchInfo(c.branch);
   const lines = [
@@ -448,18 +484,19 @@ function LabelPreview({ c }: { c: Customer }) {
   ].filter(Boolean);
 
   return (
-    <div className="lbl-preview">
+    <div className="lbl-preview" style={{ maxWidth: "100%", overflow: "hidden" }}>
       <div className="lbl-hdr">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/logo.png" alt="Olga Çerçeve" />
-        <div>
+        <div style={{ minWidth: 0, overflowWrap: "anywhere" }}>
           <div className="lbl-firm">{b.name}</div>
           <div className="lbl-tel">{b.cityTel}</div>
           <div className="lbl-addr">{b.addr1}, {b.addr2}</div>
           <div className="lbl-addr">{b.website}</div>
         </div>
       </div>
-      <div className="lbl-to">
+      {/* Uzun firma adı / adres etiket kutusundan taşmasın — kâğıtta da kesilir */}
+      <div className="lbl-to" style={{ minHeight: 0, overflow: "hidden", overflowWrap: "anywhere" }}>
         <div className="lbl-to-title">Alıcı</div>
         <div className="lbl-to-name">{customerTitle(c)}</div>
         {(c.phone || c.email) && (

@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getSessionUser } from "@/lib/auth";
 import OrdersList from "@/components/OrdersList";
+import PageHeader from "@/components/PageHeader";
+import Icon from "@/components/shell/Icon";
 
 export const dynamic = "force-dynamic";
 
@@ -12,18 +14,21 @@ export default async function TamamlananSiparislerPage() {
 
   return (
     <main className="container" style={{ maxWidth: 1480 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-        <div style={{ flex: 1 }}>
-          <h1>Tamamlanan Siparişler</h1>
-          <p className="subtitle">
+      <PageHeader
+        icon="check-circle"
+        title="Tamamlanan Siparişler"
+        subtitle={
+          <>
             Durumu “Tamamlandı”, ödemesi alınmış ve kontrol edilmiş siparişler —
             aktif listeden çıkıp buraya düşer.
-          </p>
-        </div>
-        <Link href="/panel/siparisler" className="btn small secondary">
-          ← Aktif Siparişler
-        </Link>
-      </div>
+          </>
+        }
+        actions={
+          <Link href="/panel/siparisler" className="btn secondary">
+            <Icon name="chevron-left" size={16} /> Aktif Siparişler
+          </Link>
+        }
+      />
       <OrdersList tamamlananlar />
     </main>
   );

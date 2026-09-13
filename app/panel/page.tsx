@@ -4,6 +4,8 @@ import { getSessionUser } from "@/lib/auth";
 import { getOrder } from "@/lib/orders";
 import OrderForm, { type KopyaOrder } from "@/components/OrderForm";
 import AiChat from "@/components/AiChat";
+import PageHeader from "@/components/PageHeader";
+import Icon from "@/components/shell/Icon";
 
 export const dynamic = "force-dynamic";
 
@@ -38,16 +40,18 @@ export default async function PanelPage({
 
   return (
     <main className="container">
-      <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-        <h1 style={{ marginBottom: 4 }}>Sipariş Paneli</h1>
-        <span style={{ flex: 1 }} />
-        <Link href="/panel/siparisler" className="btn small secondary">
-          📋 Siparişler
-        </Link>
-      </div>
-      <p className="subtitle">
-        Hoş geldin {user.name} — siparişler e-posta ve WhatsApp ile iletilir.
-      </p>
+      <PageHeader
+        icon="plus"
+        title="Sipariş Paneli"
+        subtitle={
+          <>Hoş geldin {user.name} — siparişler e-posta ve WhatsApp ile iletilir.</>
+        }
+        actions={
+          <Link href="/panel/siparisler" className="btn secondary">
+            <Icon name="list" size={16} /> Siparişler
+          </Link>
+        }
+      />
       <OrderForm employeeName={user.name} kopyaOrder={kopya} />
       <AiChat />
     </main>
