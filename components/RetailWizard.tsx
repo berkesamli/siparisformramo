@@ -26,9 +26,12 @@ import {
   hesaplaPerakende,
   dogrulaPerakende,
   pencereDuzenleri,
+  pencereYerlesim,
+  pencereTabakayaSigar,
   varsayilanDuzen,
   varsayilanAralik,
   type PerakendeGirdi,
+  type PencereYerlesim,
 } from "@/lib/perakende-fiyat";
 import { findFrameImage } from "@/data/frame-images";
 import { kurus } from "@/lib/num";
@@ -119,6 +122,70 @@ function itemShortText(it: WizardItem): string {
   if (it.glassType !== "Cam Yok") parts.push(`Cam: ${it.glassType}`);
   if (it.printType !== "Baskı Yok") parts.push(`Baskı: ${it.printType}`);
   return parts.join(" | ");
+}
+
+/**
+ * Pencereli paspartu düzen şeması — websitedeki windowLayoutSVG'nin React
+ * hali: paspartu dikdörtgeni + pencereler, orantılı küçük çizim.
+ */
+function DuzenSema({
+  geo,
+  borders,
+  w,
+  h,
+}: {
+  geo: PencereYerlesim;
+  borders: { t: number; b: number; l: number; r: number };
+  w: number;
+  h: number;
+}) {
+  const m = geo.mounting || 0;
+  const outW = geo.fieldW + borders.l + borders.r + 2 * m;
+  const outH = geo.fieldH + borders.t + borders.b + 2 * m;
+  const s = Math.min((w - 2) / outW, (h - 2) / outH);
+  const ox = (w - outW * s) / 2;
+  const oy = (h - outH * s) / 2;
+  return (
+    <svg width={w} height={h} viewBox={`0 0 ${w} ${h}`} aria-hidden="true">
+      <rect
+        x={ox}
+        y={oy}
+        width={outW * s}
+        height={outH * s}
+        rx={1.5}
+        fill="#f1ece4"
+        stroke="#cfc5b8"
+      />
+      {geo.windows.map((wn) => {
+        const x = ox + (borders.l + m + wn.x) * s;
+        const y = oy + (borders.t + m + wn.y) * s;
+        return (
+          <g key={wn.no}>
+            {m > 0 && (
+              <rect
+                x={x - m * s}
+                y={y - m * s}
+                width={(wn.w + 2 * m) * s}
+                height={(wn.h + 2 * m) * s}
+                fill="#d9d0c2"
+                stroke="#fff"
+                strokeWidth={1}
+              />
+            )}
+            <rect
+              x={x}
+              y={y}
+              width={wn.w * s}
+              height={wn.h * s}
+              fill="#c9a97a"
+              stroke="#fff"
+              strokeWidth={1}
+            />
+          </g>
+        );
+      })}
+    </svg>
+  );
 }
 
 /** Websitedeki hesaplayıcıyla aynı adım başlığı: "ADIM N" + başlık + açıklama */
@@ -952,57 +1019,126 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
                 </div>
 
                 {/* Pencereli (çoklu fotoğraf) paspartu — websitedeki
-                    hesaplayıcıyla aynı: ölçü TEK fotoğrafın ölçüsü, alan
-                    düzenden türetilir, kesim ücreti pencere başına eklenir. */}
-                <div style={{ marginTop: 16 }}>
-                  <label>Pencere (Fotoğraf) Sayısı</label>
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-                    <select
-                      style={{ width: 80 }}
-                      value={String(pencereN)}
-                      onChange={(e) => {
-                        setPencereSayisi(e.target.value);
-                        setPencereDuzen("");
-                      }}
-                    >
-                      {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
-                        <option key={n} value={n}>{n}</option>
-                      ))}
-                    </select>
-                    {pencereN > 1 && (
-                      <>
-                        <select
-                          style={{ width: "auto" }}
-                          value={duzen?.id || ""}
-                          onChange={(e) => setPencereDuzen(e.target.value)}
-                          title="Fotoğrafların dizilişi"
-                        >
-                          {pencereDuzenleri(pencereN).map((d) => (
-                            <option key={d.id} value={d.id}>
-                              {d.label} ({d.id.replace("x", "×")})
-                            </option>
-                          ))}
-                        </select>
-                        <input
-                          type="text"
-                          inputMode="decimal"
-                          style={{ width: 120 }}
-                          value={pencereAralik}
-                          onChange={(e) => setPencereAralik(e.target.value)}
-                          placeholder={`aralık ${varsayilanAralik(wMM, hMM)} mm`}
-                          title="Pencereler arası görünen köprü (mm) — boş bırakılırsa önerilen kullanılır"
-                        />
-                      </>
-                    )}
-                  </div>
-                  {pencereN > 1 && (
-                    <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 6 }}>
-                      Ölçü adımındaki giriş <b>tek fotoğrafın</b> ölçüsüdür;{" "}
-                      {pencereN} pencere {duzen ? duzen.label.toLocaleLowerCase("tr-TR") : ""}{" "}
-                      dizilir. İlk pencere hariç pencere başına kesim ücreti eklenir.
-                    </p>
-                  )}
-                </div>
+                    hesaplayıcıyla aynı arayüz: adet çipleri (standart tabakaya
+                    sığmayanlar turuncu işaretli), SVG düzen şemaları, aralık
+                    ve açıklık/dış ölçü bilgi satırı. */}
+                {(() => {
+                  const seritFit =
+                    doubleMat && innerMat.price > 0
+                      ? parseFloat(altMontaj.replace(",", ".")) || 5
+                      : 0;
+                  const sigan = (n: number) =>
+                    n <= 1 ||
+                    !(wMM > 0 && hMM > 0) ||
+                    pencereDuzenleri(n).some((d) => {
+                      const g = pencereYerlesim(wMM, hMM, d.rows, d.cols, aralikMM, seritFit);
+                      return pencereTabakayaSigar(g.fieldW, g.fieldH, seritFit);
+                    });
+                  const uyariVar = [2, 3, 4, 5, 6, 7, 8, 9].some((n) => !sigan(n));
+                  return (
+                    <div style={{ marginTop: 16 }}>
+                      <label>Pencere (Fotoğraf) Sayısı</label>
+                      <div className="rw-chips">
+                        {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
+                          <button
+                            key={n}
+                            type="button"
+                            className={`rw-chip ${pencereN === n ? "sel" : ""} ${!sigan(n) ? "uyari" : ""}`}
+                            title={
+                              !sigan(n)
+                                ? `${n} pencere bu fotoğraf ölçüsüyle 80×120 cm standart tabakaya sığmaz — özel çalışma gerektirir`
+                                : ""
+                            }
+                            onClick={() => {
+                              setPencereSayisi(String(n));
+                              setPencereDuzen("");
+                            }}
+                          >
+                            {n}
+                          </button>
+                        ))}
+                      </div>
+                      {uyariVar && (
+                        <p style={{ fontSize: 12, color: "var(--warning)", marginTop: 6 }}>
+                          Turuncu işaretli adetler {Math.round(wMM)} × {Math.round(hMM)} mm
+                          fotoğrafla 80×120 cm standart tabakaya sığmaz — yine de
+                          seçilebilir, özel çalışma gerektirir.
+                        </p>
+                      )}
+                      {pencereN > 1 && (
+                        <>
+                          <label style={{ marginTop: 14 }}>Düzen</label>
+                          <div className="rw-duzenler">
+                            {pencereDuzenleri(pencereN).map((d) => {
+                              const g = pencereYerlesim(
+                                wMM || 100,
+                                hMM || 150,
+                                d.rows,
+                                d.cols,
+                                aralikMM,
+                                seritFit
+                              );
+                              return (
+                                <button
+                                  key={d.id}
+                                  type="button"
+                                  className={`rw-duzen ${duzen?.id === d.id ? "sel" : ""}`}
+                                  title={d.label}
+                                  onClick={() => setPencereDuzen(d.id)}
+                                >
+                                  <DuzenSema
+                                    geo={g}
+                                    borders={{
+                                      t: edges.top,
+                                      b: edges.bottom,
+                                      l: edges.left,
+                                      r: edges.right,
+                                    }}
+                                    w={74}
+                                    h={56}
+                                  />
+                                  <span>
+                                    {d.label} · {d.id.replace("x", "×")}
+                                  </span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                          <div style={{ display: "flex", gap: 10, alignItems: "center", marginTop: 12, flexWrap: "wrap" }}>
+                            <label style={{ margin: 0 }}>Pencere Aralığı (mm)</label>
+                            <input
+                              type="text"
+                              inputMode="decimal"
+                              style={{ width: 110 }}
+                              value={pencereAralik}
+                              onChange={(e) => setPencereAralik(e.target.value)}
+                              placeholder={`öneri ${varsayilanAralik(wMM, hMM)}`}
+                              title="Pencereler arası görünen köprü (mm) — boş bırakılırsa önerilen kullanılır"
+                            />
+                          </div>
+                          {costs.yerlesim && (
+                            <p style={{ fontSize: 12.5, color: "var(--text-2)", marginTop: 8, lineHeight: 1.55 }}>
+                              Her pencere:{" "}
+                              <b>
+                                {Math.round(costs.yerlesim.apW)} × {Math.round(costs.yerlesim.apH)} mm
+                              </b>{" "}
+                              açıklık ({Math.round(wMM)} × {Math.round(hMM)} mm fotoğraf, her
+                              kenarda 5 mm bindirme)
+                              {costs.yerlesim.mounting > 0
+                                ? ` · her pencerede ${costs.yerlesim.mounting} mm iç paspartu şeridi`
+                                : ""}{" "}
+                              · Paspartu dış ölçüsü{" "}
+                              <b>
+                                {Math.round(costs.icEn)} × {Math.round(costs.icBoy)} mm
+                              </b>
+                              . İlk pencere hariç pencere başına kesim ücreti eklenir.
+                            </p>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  );
+                })()}
 
                 <div style={{ marginTop: 16 }}>
                   <label>{doubleMat ? "Dış Paspartu Rengi" : "Paspartu Rengi"} — {mat.name}</label>
@@ -1406,8 +1542,21 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
       <aside className="rw-preview-panel">
         <div className="card rw-preview-card" style={{ position: "sticky", top: 90 }}>
           <FramePreview
-            wMM={wMM}
-            hMM={hMM}
+            // Pencereli düzende alan (field + 2×şerit) eserin yerine geçer —
+            // pencereler önizlemede fotoğraflarıyla ayrı ayrı çizilir
+            wMM={
+              costs.yerlesim
+                ? costs.yerlesim.fieldW + 2 * costs.yerlesim.mounting
+                : wMM
+            }
+            hMM={
+              costs.yerlesim
+                ? costs.yerlesim.fieldH + 2 * costs.yerlesim.mounting
+                : hMM
+            }
+            pencere={costs.yerlesim}
+            photoWMM={wMM}
+            photoHMM={hMM}
             matTop={edges.top}
             matRight={edges.right}
             matBottom={edges.bottom}

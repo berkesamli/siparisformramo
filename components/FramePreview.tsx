@@ -6,7 +6,7 @@
 // üs ölçeği), ışık yönüne göre gölge, 45° bevel, kadife/metalik dokular,
 // gerçek çerçeve border-image + clipRatio/outset tekniği, cam katmanları.
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   type FrameImage,
   FRAME_SLICE,
@@ -129,8 +129,15 @@ function glassIdFromName(name: string): GlassId {
 }
 
 export interface FramePreviewProps {
+  // Pencereli paspartuda buraya ALAN ölçüsü (field + 2×şerit) verilir;
+  // tek pencerede eserin kendisi. Websitedeki hesaplayıcıyla aynı model.
   wMM: number;
   hMM: number;
+  /** Pencereli paspartu yerleşimi (lib/perakende-fiyat.pencereYerlesim) */
+  pencere?: import("@/lib/perakende-fiyat").PencereYerlesim | null;
+  /** Tek fotoğrafın ölçüsü (pencere etiketlerinde gösterilir) */
+  photoWMM?: number;
+  photoHMM?: number;
   matTop: number;
   matRight: number;
   matBottom: number;
@@ -219,7 +226,12 @@ export default function FramePreview(p: FramePreviewProps) {
   const hasRealFrame = Boolean(p.frameImg) && frameImgOk;
   const bare = Boolean(p.frameImg?.bareFrame) && frameImgOk;
   const glassId = bare ? "none" : glassIdFromName(p.glassName);
-  const isDouble = p.doubleMat && p.innerMatPrice > 0 && !bare;
+  // Pencereli mod: alan dış paspartu rengine boyanır, pencereler içine
+  // çizilir (çift paspartunun iç şeridi pencere çevresinde halka olur) —
+  // websitedeki hesaplayıcının çizimiyle aynı.
+  const winGeo =
+    p.pencere && p.pencere.count > 1 && p.matPrice > 0 && !bare ? p.pencere : null;
+  const isDouble = p.doubleMat && p.innerMatPrice > 0 && !bare && !winGeo;
   const bevelPx = 2;
 
   const calc = useMemo(() => {
@@ -388,13 +400,66 @@ export default function FramePreview(p: FramePreviewProps) {
   const artAreaH = (calc.contentH || 170) - (calc.cTop || 0) - (calc.cBottom || 0);
   const artBackground = bare
     ? "transparent"
-    : calc.artFill
-      ? "transparent"
-      : p.artImageUrl
-        ? artBg(artAreaW, artAreaH) || `url('${p.artImageUrl}') center/cover no-repeat`
-        : p.zeminEnabled && p.zeminColorHex && p.zeminColorHex !== "-"
-          ? p.zeminColorHex
-          : ART_BG_TEXTURE;
+    : winGeo
+      ? outerMatBg // pencereli: alan paspartu rengi, pencereler içine çizilir
+      : calc.artFill
+        ? "transparent"
+        : p.artImageUrl
+          ? artBg(artAreaW, artAreaH) || `url('${p.artImageUrl}') center/cover no-repeat`
+          : p.zeminEnabled && p.zeminColorHex && p.zeminColorHex !== "-"
+            ? p.zeminColorHex
+            : ART_BG_TEXTURE;
+
+  // Pencereli paspartu kutuları (websitedeki renderWindowBoxes'ın React hali)
+  const winBoxes =
+    winGeo && artAreaW > 20 && artAreaH > 20
+      ? (() => {
+          const m = winGeo.mounting || 0;
+          const sx = artAreaW / (winGeo.fieldW + 2 * m);
+          const sy = artAreaH / (winGeo.fieldH + 2 * m);
+          const showLabel = winGeo.apW * sx >= 46 && winGeo.apH * sy >= 22;
+          return winGeo.windows.map((wn, i) => {
+            const rx = Math.max(2, m * sx);
+            const ry = Math.max(2, m * sy);
+            return (
+              <React.Fragment key={wn.no}>
+                {m > 0 && (
+                  <div
+                    className="fp-win fp-win-ring"
+                    style={{
+                      left: (m + wn.x) * sx - rx,
+                      top: (m + wn.y) * sy - ry,
+                      width: wn.w * sx + 2 * rx,
+                      height: wn.h * sy + 2 * ry,
+                      background: innerMatBg,
+                    }}
+                  />
+                )}
+                <div
+                  className="fp-win"
+                  style={{
+                    left: (m + wn.x) * sx,
+                    top: (m + wn.y) * sy,
+                    width: wn.w * sx,
+                    height: wn.h * sy,
+                    background:
+                      i === 0 && p.artImageUrl
+                        ? artBg(wn.w * sx, wn.h * sy) ||
+                          `url('${p.artImageUrl}') center/cover no-repeat`
+                        : ART_BG_TEXTURE,
+                  }}
+                >
+                  {showLabel && !(i === 0 && p.artImageUrl) && (
+                    <span className="fp-win-label">
+                      {p.photoWMM || 0}×{p.photoHMM || 0} mm
+                    </span>
+                  )}
+                </div>
+              </React.Fragment>
+            );
+          });
+        })()
+      : null;
 
   const frameStyle: React.CSSProperties = {
     width: calc.frameW,
@@ -550,7 +615,16 @@ export default function FramePreview(p: FramePreviewProps) {
                       </div>
                     </div>
                   ) : (
-                    <div className="fp-art" style={{ background: artBackground }} />
+                    <div
+                      className="fp-art"
+                      style={{
+                        background: artBackground,
+                        position: "relative",
+                        overflow: "hidden",
+                      }}
+                    >
+                      {winBoxes}
+                    </div>
                   )}
                 </div>
               </div>
