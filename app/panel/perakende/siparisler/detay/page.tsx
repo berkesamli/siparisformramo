@@ -99,6 +99,21 @@ export default async function RetailOrderDetailPage({
               <strong>₺{fmt(it.itemTotal)}</strong>
             </div>
             <div style={{ fontSize: 13, color: "var(--text-2)", marginTop: 4 }}>
+              {it.kasa && (
+                <>
+                  <b>Kasa (kanvas) çerçeve</b> — cam ve paspartu uygulanmaz
+                  <br />
+                </>
+              )}
+              {(Number(it.pencereSayisi) || 1) > 1 && (
+                <>
+                  <b>{it.pencereSayisi} pencere</b> (
+                  {(it.pencereDuzen || "").replace("x", "×")}
+                  {it.pencereAralik ? `, aralık ${it.pencereAralik} mm` : ""}) — ölçü
+                  tek fotoğrafındır
+                  <br />
+                </>
+              )}
               {it.matType !== "Paspartu Yok" ? (
                 <>
                   Paspartu: {it.matType}

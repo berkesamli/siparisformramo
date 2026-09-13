@@ -17,7 +17,24 @@ import {
 } from "@/lib/retail-orders";
 import { sendRetailOrderEmail } from "@/lib/retail-notify";
 import { generateRetailPdf } from "@/lib/retail-pdf";
-import { RETAIL_STATUSES, type RetailStatus } from "@/data/perakende";
+import {
+  RETAIL_STATUSES,
+  MAT_TYPES,
+  INNER_MAT_TYPES,
+  GLASS_TYPES,
+  PRINT_TYPES,
+  toMM,
+  type RetailStatus,
+} from "@/data/perakende";
+// Websitedeki hesaplayıcıyla AYNI fiyat çekirdeği: sunucu, istemcinin
+// gönderdiği kalem tutarlarını yeniden hesaplayıp doğrular ve üretim
+// kurallarını (tabaka/cam/dış ölçü sınırları) uygular.
+import {
+  hesaplaPerakende,
+  dogrulaPerakende,
+  type PerakendeGirdi,
+} from "@/lib/perakende-fiyat";
+import { kurus } from "@/lib/num";
 
 export const dynamic = "force-dynamic";
 
@@ -52,6 +69,10 @@ function sanitizeItems(raw: unknown): RetailItem[] {
       matRight: Number(it?.matRight) || 0,
       matBottom: Number(it?.matBottom) || 0,
       matLeft: Number(it?.matLeft) || 0,
+      pencereSayisi: Math.min(9, Math.max(1, Math.round(Number(it?.pencereSayisi) || 1))),
+      pencereDuzen: s(it?.pencereDuzen, 8),
+      pencereAralik: r2(it?.pencereAralik),
+      kasa: Boolean(it?.kasa),
       glassType: s(it?.glassType, 60),
       printType: s(it?.printType, 60),
       frameCost: r2(it?.frameCost),
@@ -100,6 +121,109 @@ export async function POST(req: NextRequest) {
       { error: "Müşteri adı ve telefonu zorunludur" },
       { status: 400 }
     );
+  }
+
+  // ---- Sunucu tarafı fiyat doğrulama (websitedeki hesaplayıcıyla aynı) ----
+  // Her kalem çekirdekle yeniden hesaplanır; üretim kuralları (paspartu
+  // tabakası 80×120, cam plakası 100×140, dış ölçü 290 cm...) burada da
+  // uygulanır. İstemcinin tutarı ±1 TL içinde tutmalı — tutmuyorsa istemci
+  // eski sürümdür, sayfa yenilenmelidir.
+  const usdRateNum = r2(body.usdRate);
+  for (let i = 0; i < items.length; i++) {
+    const it = items[i];
+    const adres = `${i + 1}. kalem`;
+    if (!(it.framePriceTL > 0)) {
+      return NextResponse.json(
+        { error: `${adres}: çerçeve metre fiyatı eksik.` },
+        { status: 400 }
+      );
+    }
+    const matSec = MAT_TYPES.find((m) => m.name === it.matType);
+    const glassSec = GLASS_TYPES.find((g) => g.name === it.glassType);
+    const printSec = PRINT_TYPES.find((p) => p.name === it.printType);
+    if (!matSec || !glassSec || !printSec) {
+      return NextResponse.json(
+        { error: `${adres}: geçersiz paspartu/cam/baskı türü.` },
+        { status: 400 }
+      );
+    }
+    const innerSec = it.doubleMat
+      ? INNER_MAT_TYPES.find((m) => m.name === it.innerMatType)
+      : undefined;
+    if (it.doubleMat && !innerSec) {
+      return NextResponse.json(
+        { error: `${adres}: geçersiz iç paspartu türü.` },
+        { status: 400 }
+      );
+    }
+    const zeminSec = it.zeminEnabled
+      ? INNER_MAT_TYPES.find((m) => m.name === it.zeminType)
+      : undefined;
+    if (it.zeminEnabled && !zeminSec) {
+      return NextResponse.json(
+        { error: `${adres}: geçersiz zemin türü.` },
+        { status: 400 }
+      );
+    }
+    if (printSec.usdPerM2 > 0 && !(usdRateNum > 0)) {
+      return NextResponse.json(
+        { error: `${adres}: baskı fiyatı için USD kuru gerekli.` },
+        { status: 400 }
+      );
+    }
+    const duzenParca = /^(\d)x(\d)$/.exec(it.pencereDuzen || "");
+    const girdi: PerakendeGirdi = {
+      wMM: toMM(it.artWidth, it.artWidthUnit),
+      hMM: toMM(it.artHeight, it.artHeightUnit),
+      kenar: { ust: it.matTop, alt: it.matBottom, sol: it.matLeft, sag: it.matRight },
+      matPrice: matSec.price,
+      doubleMat: it.doubleMat,
+      innerMatPrice: innerSec?.price || 0,
+      icSeritMm: Number(String(it.altMontaj).replace(",", ".")) || 5,
+      zeminEnabled: it.zeminEnabled,
+      zeminPrice: zeminSec?.price || 0,
+      pencereSayisi: it.pencereSayisi || 1,
+      pencereRows: duzenParca ? Number(duzenParca[1]) : undefined,
+      pencereCols: duzenParca ? Number(duzenParca[2]) : undefined,
+      pencereAralikMm: it.pencereAralik || undefined,
+      camPrice: glassSec.price,
+      camMaxKisaMM: glassSec.maxKisaMM,
+      camMaxUzunMM: glassSec.maxUzunMM,
+      camUyariKisaMM: glassSec.uyariKisaMM,
+      camUyariUzunMM: glassSec.uyariUzunMM,
+      kasa: !!it.kasa,
+      framePriceTL: it.framePriceTL,
+      printUsdPerM2: printSec.usdPerM2,
+      usdRate: usdRateNum,
+    };
+    const engel = dogrulaPerakende(girdi).filter((h) => h.seviye === "engel");
+    if (engel.length) {
+      return NextResponse.json(
+        { error: `${adres}: ${engel[0].mesaj}` },
+        { status: 400 }
+      );
+    }
+    const hesap = hesaplaPerakende(girdi);
+    const sunucuToplam = kurus(
+      kurus(hesap.frameCost) +
+        kurus(hesap.matCost) +
+        kurus(hesap.glassCost) +
+        kurus(hesap.printCost)
+    );
+    if (Math.abs(sunucuToplam - it.itemTotal) > 1) {
+      return NextResponse.json(
+        {
+          error: `${adres}: fiyat sunucu hesabıyla uyuşmuyor (₺${sunucuToplam} hesaplandı, ₺${it.itemTotal} gönderildi). Sayfayı yenileyip tekrar deneyin.`,
+        },
+        { status: 400 }
+      );
+    }
+    // Sunucu hesabı esas alınır — kayda giden döküm her zaman çekirdeğin sonucu
+    it.frameCost = kurus(hesap.frameCost);
+    it.matCost = kurus(hesap.matCost);
+    it.glassCost = kurus(hesap.glassCost);
+    it.printCost = kurus(hesap.printCost);
+    it.itemTotal = sunucuToplam;
   }
 
   const gross = r2(items.reduce((sum, it) => sum + it.itemTotal, 0));

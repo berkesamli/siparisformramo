@@ -1,6 +1,8 @@
 // Olga Çerçeve — Perakende çerçeveletme (online çerçeve) verileri.
 // Buradaki tüm fiyatlar müşteriye gösterilen PERAKENDE satış fiyatlarıdır.
 
+import { hesaplaPerakende } from "@/lib/perakende-fiyat";
+
 // [kod, hex, metalik?]
 export type PaletteColor = [string, string, boolean?];
 
@@ -76,14 +78,22 @@ export interface GlassType {
   price: number; // TL/m² perakende
   desc: string;
   icon: string;
+  // Üretim sınırı (mm, kısa×uzun kenar) — aşılırsa sipariş ENGELlenir.
+  // Websitedeki hesaplayıcıyla aynı kural: plaka 100×140 cm.
+  maxKisaMM?: number;
+  maxUzunMM?: number;
+  // Uyarı sınırı — aşılırsa engellenmez ama personel uyarılır
+  // (gerçek cam büyük boyda kırılgan; kargolanacaksa PVC önerilir).
+  uyariKisaMM?: number;
+  uyariUzunMM?: number;
 }
 
 export const GLASS_TYPES: GlassType[] = [
   { name: "Cam Yok", price: 0, desc: "Camsız teslim", icon: "🚫" },
-  { name: "Düz Cam", price: 2000, desc: "Standart şeffaf cam", icon: "🪟" },
-  { name: "Mat Cam", price: 2000, desc: "Yansıma yapmayan mat cam", icon: "🌫️" },
-  { name: "PVC Cam", price: 2000, desc: "Kırılmaz hafif PVC (pleksi)", icon: "🛡️" },
-  { name: "Müze Camı", price: 12000, desc: "UV korumalı premium cam", icon: "🏛️" },
+  { name: "Düz Cam", price: 2000, desc: "Standart şeffaf cam", icon: "🪟", uyariKisaMM: 510, uyariUzunMM: 610 },
+  { name: "Mat Cam", price: 2000, desc: "Yansıma yapmayan mat cam", icon: "🌫️", uyariKisaMM: 510, uyariUzunMM: 610 },
+  { name: "PVC Cam", price: 2000, desc: "Kırılmaz hafif PVC (pleksi)", icon: "🛡️", maxKisaMM: 1000, maxUzunMM: 1400 },
+  { name: "Müze Camı", price: 12000, desc: "UV korumalı premium cam", icon: "🏛️", maxKisaMM: 1000, maxUzunMM: 1400 },
 ];
 
 export interface PrintType {
@@ -141,30 +151,32 @@ export interface RetailCosts {
   itemTotal: number;
 }
 
-// Orijinal hesap: dış ölçü = eser + paspartu kenarları;
-// çevre = 2×(en+boy) + 0.30 m fire; cam/paspartu alan üzerinden,
-// baskı eserin kendi alanı üzerinden hesaplanır.
+// Basit (tek pencereli) hesap — artık lib/perakende-fiyat'taki ortak
+// çekirdeğe delege eder; sihirbaz, sunucu ve yapay zeka asistanı aynı
+// kurallardan geçer (çift paspartuda iç şerit dahil).
 export function computeRetailCosts(inp: RetailCostInput): RetailCosts {
-  const tw = inp.wMM + inp.matLeft + inp.matRight;
-  const th = inp.hMM + inp.matTop + inp.matBottom;
-  const area = (tw / 1000) * (th / 1000);
-  const perim = (2 * (tw + th)) / 1000 + 0.3;
-
-  const frameCost = perim * inp.framePriceTL;
-
-  let matCost = 0;
-  if (inp.matPrice > 0) {
-    matCost += area * inp.matPrice;
-    if (inp.doubleMat) matCost += area * inp.innerMatPrice;
-    if (inp.zeminEnabled) matCost += area * inp.zeminPrice;
-  }
-
-  const glassCost = area * inp.glassPrice;
-
-  const printArea = (inp.wMM / 1000) * (inp.hMM / 1000);
-  const printCost =
-    inp.printUsdPerM2 > 0 ? printArea * inp.printUsdPerM2 * inp.usdRate : 0;
-
-  const itemTotal = frameCost + matCost + glassCost + printCost;
-  return { frameCost, matCost, glassCost, printCost, itemTotal };
+  const s = hesaplaPerakende({
+    wMM: inp.wMM,
+    hMM: inp.hMM,
+    kenar: { ust: inp.matTop, alt: inp.matBottom, sol: inp.matLeft, sag: inp.matRight },
+    matPrice: inp.matPrice,
+    doubleMat: inp.doubleMat,
+    innerMatPrice: inp.innerMatPrice,
+    icSeritMm: 5,
+    zeminEnabled: inp.zeminEnabled,
+    zeminPrice: inp.zeminPrice,
+    pencereSayisi: 1,
+    camPrice: inp.glassPrice,
+    kasa: false,
+    framePriceTL: inp.framePriceTL,
+    printUsdPerM2: inp.printUsdPerM2,
+    usdRate: inp.usdRate,
+  });
+  return {
+    frameCost: s.frameCost,
+    matCost: s.matCost,
+    glassCost: s.glassCost,
+    printCost: s.printCost,
+    itemTotal: s.itemTotal,
+  };
 }

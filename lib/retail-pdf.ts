@@ -7,6 +7,12 @@
 import path from "path";
 import PDFDocument from "pdfkit";
 import type { SavedRetailOrder, RetailItem } from "./retail-orders";
+import {
+  pencereYerlesim,
+  varsayilanDuzen,
+  varsayilanAralik,
+  PERAKENDE_SABIT,
+} from "./perakende-fiyat";
 
 const FONT = path.join(process.cwd(), "assets", "DejaVuSans.ttf");
 const FONT_BOLD = path.join(process.cwd(), "assets", "DejaVuSans-Bold.ttf");
@@ -56,11 +62,32 @@ interface ItemGeom {
 function geom(it: RetailItem): ItemGeom {
   const artW = it.artWidthUnit === "cm" ? it.artWidth * 10 : it.artWidth;
   const artH = it.artHeightUnit === "cm" ? it.artHeight * 10 : it.artHeight;
+  const kasa = !!it.kasa;
   const hasMat =
+    !kasa &&
     it.matType !== "Paspartu Yok" &&
     (it.matTop > 0 || it.matBottom > 0 || it.matLeft > 0 || it.matRight > 0);
-  const frameW = artW + (hasMat ? it.matLeft + it.matRight : 0);
-  const frameH = artH + (hasMat ? it.matTop + it.matBottom : 0);
+  // Pencereli düzende çerçeve ölçüsü tek fotoğraftan değil, tüm
+  // fotoğrafları kapsayan alandan hesaplanır (fiyat çekirdeğiyle aynı).
+  const n = Math.max(1, Number(it.pencereSayisi) || 1);
+  const serit = hasMat && it.doubleMat
+    ? Number(String(it.altMontaj).replace(",", ".")) || 5
+    : 0;
+  let fieldW = artW;
+  let fieldH = artH;
+  if (hasMat && n > 1) {
+    const m = /^(\d)x(\d)$/.exec(it.pencereDuzen || "");
+    const duzen = m
+      ? { rows: Number(m[1]), cols: Number(m[2]) }
+      : varsayilanDuzen(n) || { rows: 1, cols: n };
+    const aralik = Number(it.pencereAralik) || varsayilanAralik(artW, artH);
+    const y = pencereYerlesim(artW, artH, duzen.rows, duzen.cols, aralik, serit);
+    fieldW = y.fieldW;
+    fieldH = y.fieldH;
+  }
+  const kasaPay = kasa ? 2 * PERAKENDE_SABIT.CANVAS_SHADOW_GAP_MM : 0;
+  const frameW = fieldW + (hasMat ? it.matLeft + it.matRight : 0) + 2 * serit + kasaPay;
+  const frameH = fieldH + (hasMat ? it.matTop + it.matBottom : 0) + 2 * serit + kasaPay;
   const aski = frameW > frameH ? "Yatay" : frameH > frameW ? "Dikey" : "Kare";
   return { artW, artH, frameW, frameH, hasMat, aski };
 }
@@ -337,7 +364,19 @@ export function generateRetailPdf(o: SavedRetailOrder): Promise<Buffer> {
     items.forEach((it, idx) => {
       const g = geom(it);
       const pre = items.length > 1 ? `#${idx + 1} ` : "";
-      if (it.glassType && it.glassType !== "Cam Yok") {
+      if (it.kasa) {
+        warnLines.push(
+          `${pre}KASA (KANVAS): cam ve paspartu YOK — kasa payı ${PERAKENDE_SABIT.CANVAS_SHADOW_GAP_MM} mm/kenar`
+        );
+      }
+      if ((Number(it.pencereSayisi) || 1) > 1) {
+        warnLines.push(
+          `${pre}${it.pencereSayisi} PENCERE (${(it.pencereDuzen || "").replace("x", "×")}` +
+            `${it.pencereAralik ? `, aralık ${it.pencereAralik} mm` : ""}) — ölçü tek fotoğrafın; ` +
+            `açıklıklar fotoğraftan her kenarda ${PERAKENDE_SABIT.MAT_APERTURE_OVERLAP_MM} mm dar kesilir`
+        );
+      }
+      if (!it.kasa && it.glassType && it.glassType !== "Cam Yok") {
         warnLines.push(`${pre}ÖZEL CAM: ${it.glassType}`);
       }
       if (g.hasMat) {
