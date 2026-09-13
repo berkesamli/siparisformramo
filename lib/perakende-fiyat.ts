@@ -80,6 +80,14 @@ export function varsayilanAralik(wMM: number, hMM: number): number {
   return uzun < 200 ? 20 : uzun < 297 ? 25 : 30;
 }
 
+export interface PencereKutusu {
+  no: number;
+  x: number; // alanın sol-üst köşesinden iç açıklığın sol-üstüne (mm)
+  y: number;
+  w: number;
+  h: number;
+}
+
 export interface PencereYerlesim {
   rows: number;
   cols: number;
@@ -90,6 +98,7 @@ export interface PencereYerlesim {
   apH: number;
   fieldW: number; // tüm fotoğrafları kapsayan alan — kenarlar bundan ölçülür
   fieldH: number;
+  windows: PencereKutusu[]; // önizleme ve şema çizimi için pencere koordinatları
 }
 
 /**
@@ -113,7 +122,35 @@ export function pencereYerlesim(
   const pitchH = apH + 2 * m + gap;
   const fieldW = photoW + (cols - 1) * pitchW;
   const fieldH = photoH + (rows - 1) * pitchH;
-  return { rows, cols, count: rows * cols, gap, mounting: m, apW, apH, fieldW, fieldH };
+  const windows: PencereKutusu[] = [];
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      windows.push({
+        no: windows.length + 1,
+        x: ov + c * pitchW,
+        y: ov + r * pitchH,
+        w: apW,
+        h: apH,
+      });
+    }
+  }
+  return { rows, cols, count: rows * cols, gap, mounting: m, apW, apH, fieldW, fieldH, windows };
+}
+
+/**
+ * 80×120 cm tabaka: en dar kenarlarla (20 mm) bile sığar mı?
+ * (Websitedeki windowFieldFitsSheet — pencere adet çiplerinin
+ * gri/aktif durumu bundan hesaplanır.)
+ */
+export function pencereTabakayaSigar(
+  fieldW: number,
+  fieldH: number,
+  mounting: number
+): boolean {
+  const m2 = 2 * Math.max(0, mounting || 0);
+  const s = Math.min(fieldW, fieldH) + 40 + m2;
+  const l = Math.max(fieldW, fieldH) + 40 + m2;
+  return s <= PERAKENDE_SABIT.MAT_SHEET_SHORT_MM && l <= PERAKENDE_SABIT.MAT_SHEET_LONG_MM;
 }
 
 export interface PerakendeGirdi {

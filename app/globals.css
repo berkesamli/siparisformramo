@@ -1662,3 +1662,82 @@ tbody tr:hover td { background: #fcf9f3; }
 @media (max-width: 680px) {
   .rw-next { flex: 1; justify-content: center; }
 }
+
+/* =========================================================
+   PENCERELİ PASPARTU + PALET — websitedeki hesaplayıcıyla aynı
+   ========================================================= */
+
+/* Renk kutuları websitedeki gibi YUVARLAK; seçilide beyaz+altın halka */
+.rw-color {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.rw-color:hover { transform: scale(1.08); }
+.rw-color.sel { box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--brand); }
+@media (pointer: coarse) {
+  .rw-color { width: 46px; height: 46px; }
+}
+
+/* Pencere adet çipleri — sığmayanlar turuncu kesikli (mağazada yine seçilebilir) */
+.rw-chips { display: flex; gap: 7px; flex-wrap: wrap; }
+.rw-chip {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-2);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+.rw-chip:hover { border-color: var(--gold); }
+.rw-chip.sel { background: #1d1710; border-color: #1d1710; color: #fff; }
+.rw-chip.uyari { border-style: dashed; border-color: var(--warning); color: var(--warning); }
+.rw-chip.uyari.sel { background: var(--warning); border-color: var(--warning); border-style: solid; color: #fff; }
+
+/* Düzen (diziliş) şemaları — orantılı SVG mini çizimler */
+.rw-duzenler { display: flex; gap: 10px; flex-wrap: wrap; }
+.rw-duzen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 10px 7px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #fff;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.rw-duzen:hover { border-color: var(--gold); }
+.rw-duzen.sel { border: 1.5px solid var(--brand); background: #fdfaf4; padding: 7.5px 9.5px 6.5px; }
+.rw-duzen span { font-size: 11px; font-weight: 600; color: var(--text-2); }
+.rw-duzen.sel span { color: var(--brand-dark); }
+
+/* Önizlemede pencere kutuları (45° kesim görünümü için beyaz kontur) */
+.fp-win {
+  position: absolute;
+  box-shadow: 0 0 0 1.5px #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.fp-win-label {
+  font-size: 9px;
+  font-weight: 600;
+  color: rgba(60, 50, 40, 0.72);
+  background: rgba(255, 255, 255, 0.6);
+  padding: 1px 5px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
