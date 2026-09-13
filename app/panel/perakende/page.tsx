@@ -13,6 +13,9 @@ export default async function PerakendePage() {
       <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
         <h1 style={{ marginBottom: 4 }}>Online Çerçeve — Perakende</h1>
         <span style={{ flex: 1 }} />
+        <Link href="/panel/perakende/musteriler" className="btn small secondary">
+          👥 Müşteriler
+        </Link>
         <Link href="/panel/perakende/siparisler" className="btn small secondary">
           📋 Perakende Siparişler
         </Link>
