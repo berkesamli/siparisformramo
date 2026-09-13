@@ -121,6 +121,25 @@ function itemShortText(it: WizardItem): string {
   return parts.join(" | ");
 }
 
+/** Websitedeki hesaplayıcıyla aynı adım başlığı: "ADIM N" + başlık + açıklama */
+function AdimBaslik({
+  no,
+  baslik,
+  aciklama,
+}: {
+  no: number;
+  baslik: string;
+  aciklama?: string;
+}) {
+  return (
+    <div className="rw-adim-bas">
+      <span className="rw-adim-no">ADIM {no}</span>
+      <h2>{baslik}</h2>
+      {aciklama && <p>{aciklama}</p>}
+    </div>
+  );
+}
+
 function normalizePhoneWa(phone: string): string {
   const digits = String(phone || "").replace(/\D/g, "");
   if (!digits) return "";
@@ -710,7 +729,11 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
         {/* 1 — ÖLÇÜLER */}
         {step === 1 && (
           <div className="card">
-            <h2 style={{ marginTop: 0 }}>📐 Eser Ölçüleri</h2>
+            <AdimBaslik
+              no={1}
+              baslik="Eser Ölçüleri"
+              aciklama="Eserin genişliğini ve yüksekliğini girin — her şey ona göre hesaplanır."
+            />
             <div className="rw-grid2">
               <div>
                 <label>Genişlik</label>
@@ -786,7 +809,11 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
         {/* 2 — ÇERÇEVE */}
         {step === 2 && (
           <div className="card">
-            <h2 style={{ marginTop: 0 }}>🖼️ Çerçeve Seçimi</h2>
+            <AdimBaslik
+              no={2}
+              baslik="Çerçeve"
+              aciklama="Seri kodunu girin ya da manuel metre fiyatı yazın; kanvas için kasa seçeneğini işaretleyin."
+            />
             <div className="rw-grid2">
               <div>
                 <label>Seri Kodu</label>
@@ -883,7 +910,11 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
         {/* 3 — PASPARTU */}
         {step === 3 && (
           <div className="card">
-            <h2 style={{ marginTop: 0 }}>🎨 Paspartu</h2>
+            <AdimBaslik
+              no={3}
+              baslik="Paspartu"
+              aciklama="Eserin çevresindeki karton — türünü, rengini ve kenar genişliklerini seçin."
+            />
             {kasa && (
               <div className="notice info" style={{ marginBottom: 12 }}>
                 Kasa (kanvas) çerçevede paspartu uygulanmaz — bu adımı
@@ -898,8 +929,14 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
                   className={`rw-option ${mat.code === m.code ? "sel" : ""}`}
                   onClick={() => selectMat(m)}
                 >
-                  <span className="rw-option-icon">{m.icon}</span>
-                  <span className="rw-option-name">{m.name}</span>
+                  <span className="rw-option-name">
+                    {m.icon} {m.name}
+                  </span>
+                  <span className="rw-option-desc">
+                    {m.price > 0
+                      ? `₺${m.price.toLocaleString("tr-TR")}/m²`
+                      : "Paspartusuz hazırlanır."}
+                  </span>
                 </button>
               ))}
             </div>
@@ -1043,7 +1080,11 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
         {/* 4 — CAM */}
         {step === 4 && (
           <div className="card">
-            <h2 style={{ marginTop: 0 }}>🪟 Cam Seçimi</h2>
+            <AdimBaslik
+              no={4}
+              baslik="Cam"
+              aciklama="Eseri toz ve darbeden korur — kanvas ve yağlıboyada genellikle kullanılmaz."
+            />
             {kasa && (
               <div className="notice info" style={{ marginBottom: 12 }}>
                 Kasa (kanvas) çerçevede cam kullanılmaz — bu adımı
@@ -1056,11 +1097,16 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
                   key={g.name}
                   type="button"
                   className={`rw-option ${glass.name === g.name ? "sel" : ""}`}
+                  title={g.price > 0 ? `₺${g.price.toLocaleString("tr-TR")}/m²` : undefined}
                   onClick={() => setGlass(g)}
                 >
-                  <span className="rw-option-icon">{g.icon}</span>
-                  <span className="rw-option-name">{g.name}</span>
-                  <span className="rw-option-desc">{g.desc}</span>
+                  <span className="rw-option-name">
+                    {g.icon} {g.name}
+                  </span>
+                  <span className="rw-option-desc">
+                    {g.desc}
+                    {g.price > 0 ? ` — ₺${g.price.toLocaleString("tr-TR")}/m²` : ""}
+                  </span>
                 </button>
               ))}
             </div>
@@ -1070,10 +1116,11 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
         {/* 5 — BASKI */}
         {step === 5 && (
           <div className="card">
-            <h2 style={{ marginTop: 0 }}>🖨️ Baskı (opsiyonel)</h2>
-            <p className="subtitle" style={{ marginTop: 0 }}>
-              Baskı, eserin kendi ölçüsü üzerinden hesaplanır.
-            </p>
+            <AdimBaslik
+              no={5}
+              baslik="Baskı"
+              aciklama="Opsiyonel — baskı, eserin kendi ölçüsü üzerinden hesaplanır."
+            />
             <div className="rw-options">
               {PRINT_TYPES.map((p) => (
                 <button
@@ -1082,8 +1129,9 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
                   className={`rw-option ${print.name === p.name ? "sel" : ""}`}
                   onClick={() => setPrint(p)}
                 >
-                  <span className="rw-option-icon">{p.icon}</span>
-                  <span className="rw-option-name">{p.name}</span>
+                  <span className="rw-option-name">
+                    {p.icon} {p.name}
+                  </span>
                   <span className="rw-option-desc">{p.desc}</span>
                 </button>
               ))}
@@ -1094,9 +1142,11 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
         {/* 6 — ÖZET */}
         {step === 6 && (
           <div className="card">
-            <h2 style={{ marginTop: 0 }}>
-              🧾 {cart.length > 0 ? `Şu Anki Ürün (${cart.length + 1}. Ürün)` : "Sipariş Özeti"}
-            </h2>
+            <AdimBaslik
+              no={6}
+              baslik={cart.length > 0 ? `Şu Anki Ürün (${cart.length + 1}. Ürün)` : "Sipariş Özeti"}
+              aciklama="Seçimleri kontrol edin; başka ürün eklenecekse sepete atıp yeni ürüne geçin."
+            />
             <table style={{ marginBottom: 14 }}>
               <tbody>
                 <tr><td>Ölçü</td><td>{artWidth || "-"} {wUnit} × {artHeight || "-"} {hUnit}</td></tr>
@@ -1183,7 +1233,11 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
         {/* 7 — MÜŞTERİ & GÖNDER */}
         {step === 7 && (
           <div className="card">
-            <h2 style={{ marginTop: 0 }}>👤 Müşteri Bilgileri</h2>
+            <AdimBaslik
+              no={7}
+              baslik="Müşteri & Teslim"
+              aciklama="Perakende müşteri defterinden seçin ya da yeni ad yazın — kayıt sipariş kaydedilince deftere işlenir."
+            />
             <div className="rw-grid2">
               <div>
                 <label>Ad Soyad *</label>
@@ -1331,14 +1385,18 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
           </div>
         )}
 
-        {/* Alt gezinme */}
-        <div style={{ display: "flex", justifyContent: "space-between", marginTop: 18 }}>
-          <button className="btn secondary" disabled={step === 1} onClick={() => setStep(step - 1)}>
+        {/* Alt gezinme — websitedeki gibi: sonraki adımın adıyla geniş koyu buton */}
+        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, marginTop: 18 }}>
+          <button
+            className="btn secondary rw-geri"
+            disabled={step === 1}
+            onClick={() => setStep(step - 1)}
+          >
             ← Geri
           </button>
           {step < 7 && (
-            <button className="btn" onClick={next}>
-              İleri →
+            <button className="btn rw-next" onClick={next}>
+              Devam → {STEPS[step]}
             </button>
           )}
         </div>

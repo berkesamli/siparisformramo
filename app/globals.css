@@ -1569,3 +1569,96 @@ tbody tr:hover td { background: #fcf9f3; }
   h2 { font-size: 23px; }
   .rw-layout { grid-template-columns: minmax(0, 1fr) 560px; }
 }
+
+/* =========================================================
+   SİHİRBAZ — websitedeki hesaplayıcının tasarım dili
+   (olgacerceve.com): "ADIM N" başlıkları, sola yaslı metin
+   kartları (seçilide altın çerçeve + rozet), koyu geniş
+   "Devam →" butonu, sade segment/adım göstergeleri.
+   ========================================================= */
+
+/* ---- Adım başlığı: ADIM N + büyük başlık + açıklama ---- */
+.rw-adim-bas { margin: -2px 0 18px; }
+.rw-adim-no {
+  display: block;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  color: var(--muted);
+}
+.rw-layout .card .rw-adim-bas h2 {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin: 3px 0 4px;
+  padding: 0;
+  border: none;
+  display: block;
+}
+.rw-layout .card .rw-adim-bas h2::before { display: none; }
+.rw-adim-bas p { font-size: 13.5px; color: var(--text-2); margin: 0; line-height: 1.5; }
+
+/* ---- İlerleme: sade hap çubuğu, aktif adım koyu ---- */
+.rw-steps { background: #fff; border-radius: 999px; padding: 6px; gap: 4px; }
+.rw-step { border: none; background: transparent; padding: 8px 13px; font-size: 13px; }
+.rw-step:hover { background: #f6f1e8; }
+.rw-step .rw-step-no { background: #f0eadf; color: var(--text-2); width: 22px; height: 22px; }
+.rw-step.active { background: #1d1710; color: #fff; }
+.rw-step.active .rw-step-no { background: rgba(255, 255, 255, 0.18); color: #fff; }
+.rw-step.done { color: var(--brand-dark); }
+.rw-step.done .rw-step-no { background: rgba(169, 102, 13, 0.12); color: var(--brand); }
+
+/* ---- Seçenek kutuları: sola yaslı metin kartı + SEÇİLİ rozeti ---- */
+.rw-options { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+.rw-option {
+  align-items: flex-start;
+  text-align: left;
+  gap: 4px;
+  padding: 15px 16px 13px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  position: relative;
+}
+.rw-option:hover { border-color: var(--gold); transform: none; box-shadow: var(--shadow-sm); }
+.rw-option.sel {
+  border: 1.5px solid var(--brand);
+  background: #fdfaf4;
+  box-shadow: none;
+  padding: 14.5px 15.5px 12.5px; /* kalın çerçeve içeriği oynatmasın */
+}
+.rw-option.sel::after {
+  content: "SEÇİLİ";
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: var(--brand-dark);
+  background: rgba(169, 102, 13, 0.12);
+  padding: 2.5px 8px;
+  border-radius: 999px;
+}
+.rw-option-name { font-size: 14.5px; padding-right: 52px; }
+.rw-option-desc { font-size: 12px; line-height: 1.45; }
+.rw-option-price { font-size: 12.5px; }
+
+/* ---- Segmentler / mini seçimler: aktif koyu (websitedeki gibi) ---- */
+.rw-toggle { border-radius: 999px; }
+.rw-toggle button { padding: 8px 22px; }
+.rw-toggle button.active { background: #1d1710; }
+.rw-mini.sel { border-color: #1d1710; background: #1d1710; color: #fff; }
+
+/* ---- Devam butonu: koyu, geniş, sonraki adımın adıyla ---- */
+.rw-next {
+  background: #1d1710;
+  border-radius: 999px;
+  padding: 13px 28px;
+  font-size: 15px;
+  box-shadow: none;
+}
+.rw-next:hover { background: #000; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18); }
+.rw-geri { border-radius: 999px; }
+@media (max-width: 680px) {
+  .rw-next { flex: 1; justify-content: center; }
+}
