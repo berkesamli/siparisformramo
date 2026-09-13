@@ -9,7 +9,9 @@ export default async function PerakendePage() {
   if (user.role !== "staff") redirect("/portal");
 
   return (
-    <main className="container" style={{ maxWidth: 1200 }}>
+    // Genişlik globaldeki .container kurallarından gelir — geniş ekranda
+    // sihirbaz + önizleme daha ferah yerleşir
+    <main className="container">
       <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
         <h1 style={{ marginBottom: 4 }}>Online Çerçeve — Perakende</h1>
         <span style={{ flex: 1 }} />
