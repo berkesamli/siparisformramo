@@ -1,0 +1,143 @@
+/* =========================================================
+   TASARIM TOKENLARI — Olga Çerçeve yönetim paneli
+   Varsayılan tema: koyu "cam" (glassmorphism) — lacivert zemin
+   üzerinde bulanık renkli ışık lekeleri, yarı saydam kartlar.
+   [data-theme="light"] ile sıcak açık tema (eski görünüm) seçilir.
+   Bileşenler YALNIZCA bu değişkenleri kullanır; sabit renk yazılmaz.
+   ========================================================= */
+:root {
+  color-scheme: dark;
+
+  /* ---- Marka (altın) ---- */
+  --brand: #e0a94f;            /* metin / ikon / kenarlık vurgusu — koyu zeminde okunur */
+  --brand-dark: #8f5410;       /* derin altın — dolgu, hover, koyu bant */
+  --brand-light: #f1c97c;
+  --gold: #d9b26a;
+  --brand-btn: linear-gradient(135deg, #c48a2f 0%, #9a5c12 100%);
+  --brand-btn-hover: linear-gradient(135deg, #d39a3a 0%, #a8661a 100%);
+  --brand-soft: rgba(224, 169, 79, 0.14);   /* seçili / aktif zemin */
+  --brand-soft-2: rgba(224, 169, 79, 0.24);
+  --brand-ring: rgba(224, 169, 79, 0.38);   /* odak halkası */
+
+  /* ---- Zemin & yüzeyler ---- */
+  --bg: #0b1120;
+  --bg-2: #0f172a;
+  --surface: rgba(17, 25, 45, 0.64);        /* cam kart */
+  --surface-solid: #141c30;                 /* opak: açılır menü, modal, tooltip */
+  --surface-2: rgba(255, 255, 255, 0.045);  /* iç kutu, satır vurgusu */
+  --surface-3: rgba(255, 255, 255, 0.085);  /* hover */
+  --surface-4: rgba(255, 255, 255, 0.13);   /* basılı / seçili */
+  --card: var(--surface);                   /* geriye dönük ad */
+  --input: rgba(7, 12, 24, 0.55);
+  --input-focus: rgba(7, 12, 24, 0.85);
+  --shell: rgba(9, 14, 28, 0.72);           /* kenar çubuğu / üst çubuk */
+  --shell-solid: #0b1222;
+
+  /* ---- Metin ---- */
+  --text: #eef2f8;
+  --text-2: #b4bed0;
+  --muted: #7d8aa3;
+  --inverse: #0b1120;                       /* açık zemin üstünde metin */
+  --ink: #f4efe6;                           /* "koyu/güçlü" buton dolgusu (temaya göre tersine döner) */
+  --on-ink: #1a1206;
+  --on-brand: #ffffff;
+
+  /* ---- Kenarlık ---- */
+  --border: rgba(255, 255, 255, 0.09);
+  --border-strong: rgba(255, 255, 255, 0.18);
+  --hairline: rgba(255, 255, 255, 0.06);
+
+  /* ---- Durum ---- */
+  --success: #34d399; --success-soft: rgba(52, 211, 153, 0.14); --success-line: rgba(52, 211, 153, 0.4);
+  --error: #f87171;   --error-soft: rgba(248, 113, 113, 0.14);  --error-line: rgba(248, 113, 113, 0.4);
+  --warning: #fbbf24; --warning-soft: rgba(251, 191, 36, 0.14); --warning-line: rgba(251, 191, 36, 0.4);
+  --info: #60a5fa;    --info-soft: rgba(96, 165, 250, 0.14);    --info-line: rgba(96, 165, 250, 0.4);
+  --accent: #3b82f6;  --accent-soft: rgba(59, 130, 246, 0.16);
+  --wa: #22c55e;      --wa-dark: #16a34a;                        /* WhatsApp yeşili — sabit marka rengi */
+
+  /* ---- Grafik serileri (validate_palette ile doğrulandı, koyu yüzey) ---- */
+  --s-toptan: #3987e5;
+  --s-perakende: #c98500;
+  --st-olusturuldu: #c98500;
+  --st-hazirlaniyor: #3987e5;
+  --st-tamamlandi: #199e70;
+  --st-iptal: #e66767;
+  --grid: rgba(255, 255, 255, 0.08);
+  --axis: rgba(255, 255, 255, 0.18);
+
+  /* ---- Biçim ---- */
+  --radius: 16px;
+  --radius-sm: 11px;
+  --radius-xs: 8px;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.28);
+  --shadow-md: 0 12px 40px rgba(0, 0, 0, 0.34);
+  --shadow-lg: 0 24px 70px rgba(0, 0, 0, 0.5);
+  --blur: 16px;
+  --font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+
+  /* ---- Kabuk ölçüleri ---- */
+  --sb-w: 264px;
+  --sb-rail: 76px;
+  --topbar-h: 62px;
+  --tabbar-h: 62px;
+  --content-max: 1440px;
+}
+
+/* ---- Açık tema: sıcak, altın vurgulu (önceki görünümün cam sürümü) ---- */
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --brand: #a9660d;
+  --brand-dark: #7c4a06;
+  --brand-light: #c99b4a;
+  --gold: #c99b4a;
+  --brand-btn: linear-gradient(135deg, #b8782a 0%, #8f5410 100%);
+  --brand-btn-hover: linear-gradient(135deg, #a9660d 0%, #7c4a06 100%);
+  --brand-soft: rgba(169, 102, 13, 0.09);
+  --brand-soft-2: rgba(169, 102, 13, 0.16);
+  --brand-ring: rgba(169, 102, 13, 0.3);
+
+  --bg: #f4f1ea;
+  --bg-2: #faf9f7;
+  --surface: rgba(255, 255, 255, 0.78);
+  --surface-solid: #ffffff;
+  --surface-2: rgba(38, 32, 26, 0.035);
+  --surface-3: rgba(38, 32, 26, 0.06);
+  --surface-4: rgba(38, 32, 26, 0.1);
+  --input: rgba(255, 255, 255, 0.85);
+  --input-focus: #ffffff;
+  --shell: rgba(255, 255, 255, 0.74);
+  --shell-solid: #ffffff;
+
+  --text: #26201a;
+  --text-2: #6d6459;
+  --muted: #9a9083;
+  --inverse: #ffffff;
+  --ink: #1d1710;
+  --on-ink: #ffffff;
+  --on-brand: #ffffff;
+
+  --border: rgba(38, 32, 26, 0.1);
+  --border-strong: rgba(38, 32, 26, 0.2);
+  --hairline: rgba(38, 32, 26, 0.06);
+
+  --success: #067a55; --success-soft: rgba(6, 122, 85, 0.09);  --success-line: rgba(6, 122, 85, 0.3);
+  --error: #b91c1c;   --error-soft: rgba(185, 28, 28, 0.07);   --error-line: rgba(185, 28, 28, 0.3);
+  --warning: #b45309; --warning-soft: rgba(180, 83, 9, 0.1);   --warning-line: rgba(180, 83, 9, 0.3);
+  --info: #1d4ed8;    --info-soft: rgba(29, 78, 216, 0.08);    --info-line: rgba(29, 78, 216, 0.3);
+  --accent: #2a78d6;  --accent-soft: rgba(42, 120, 214, 0.12);
+  --wa: #16a34a;      --wa-dark: #15803d;
+
+  --s-toptan: #2a78d6;
+  --s-perakende: #eda100;
+  --st-olusturuldu: #eda100;
+  --st-hazirlaniyor: #2a78d6;
+  --st-tamamlandi: #1baf7a;
+  --st-iptal: #e34948;
+  --grid: rgba(38, 32, 26, 0.08);
+  --axis: rgba(38, 32, 26, 0.18);
+
+  --shadow-sm: 0 1px 2px rgba(38, 32, 26, 0.06);
+  --shadow-md: 0 10px 34px rgba(38, 32, 26, 0.09);
+  --shadow-lg: 0 24px 60px rgba(38, 32, 26, 0.18);
+}

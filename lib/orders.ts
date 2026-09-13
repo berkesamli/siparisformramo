@@ -314,6 +314,9 @@ export interface OrderIndexEntry {
   paidAmount?: number;
   net: number;
   note: string;
+  // Merkez kontrolü yapıldı mı? Eski indeks kayıtlarında yoktur (undefined):
+  // gösterge paneli yalnızca false olanları "kontrol bekliyor" sayar.
+  kontrol?: boolean;
 }
 
 const indexPath = (ay: string) => `orders/index/${ay}.json`;
@@ -333,6 +336,7 @@ export function toIndexEntry(o: SavedOrder): OrderIndexEntry {
     paidAmount: o.paidAmount,
     net: o.net,
     note: (o.note || "").slice(0, 200),
+    kontrol: Boolean(o.kontrol),
   };
 }
 
