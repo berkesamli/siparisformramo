@@ -33,7 +33,9 @@ import {
 import { findFrameImage } from "@/data/frame-images";
 import { kurus } from "@/lib/num";
 import FramePreview from "@/components/FramePreview";
-import CustomerPicker from "@/components/CustomerPicker";
+// Perakende müşterileri etiket/toptan defterinden AYRI tutulur —
+// seçici yalnız retail-customers/ defterinde arar.
+import RetailCustomerPicker from "@/components/RetailCustomerPicker";
 
 const fmt = (n: number) =>
   (Number(n) || 0).toLocaleString("tr-TR", {
@@ -1185,7 +1187,7 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
             <div className="rw-grid2">
               <div>
                 <label>Ad Soyad *</label>
-                <CustomerPicker
+                <RetailCustomerPicker
                   value={customerName}
                   onChange={(v) => {
                     setCustomerName(v);
@@ -1196,10 +1198,7 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
                     setCustomerId(c.id);
                     if (c.phone) setCustomerPhone(c.phone);
                     if (c.email) setCustomerEmail(c.email);
-                    const adres = [c.addr1, c.addr2, [c.district, c.city].filter(Boolean).join(" / ")]
-                      .filter(Boolean)
-                      .join(" ");
-                    if (adres) setCustomerAddress(adres);
+                    if (c.address) setCustomerAddress(c.address);
                   }}
                 />
               </div>

@@ -235,6 +235,24 @@ export async function POST(req: NextRequest) {
   const kaporaYontem: "nakit" | "krediKarti" =
     body?.kapora?.method === "krediKarti" ? "krediKarti" : "nakit";
 
+  // Müşteriyi PERAKENDE defterine kendiliğinden işle (telefonla eşleşir:
+  // varsa boş alanları tamamlar, yoksa yeni kayıt açar). Perakende
+  // müşterileri etiket/toptan defterinden ayrıdır. En iyi çaba — defter
+  // yazılamazsa sipariş etkilenmez.
+  let musteriId = s(body.customerId, 40);
+  try {
+    const { upsertRetailCustomerFromOrder } = await import("@/lib/retail-customers");
+    const otoId = await upsertRetailCustomerFromOrder({
+      name: customerName,
+      phone: customerPhone,
+      email: s(body.customerEmail, 120).trim(),
+      address: s(body.customerAddress, 240).trim(),
+    });
+    if (otoId) musteriId = otoId;
+  } catch (err) {
+    console.error("Perakende müşteri defterine yazılamadı:", err);
+  }
+
   const now = new Date();
   // ---- Önce KALICI KAYIT, sonra bildirim ----
   // Numara çakışmasız üretilir (retail/no rezervasyonu); kayıt başarısızsa
@@ -249,7 +267,7 @@ export async function POST(req: NextRequest) {
     customerPhone,
     customerEmail: s(body.customerEmail, 120).trim(),
     customerAddress: s(body.customerAddress, 240).trim(),
-    customerId: s(body.customerId, 40),
+    customerId: musteriId,
     branch: body.branch === "istanbul" ? "istanbul" : "ankara",
     payment:
       kaporaTutar <= 0

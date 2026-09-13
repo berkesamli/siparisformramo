@@ -88,10 +88,13 @@ export interface GlassType {
   uyariUzunMM?: number;
 }
 
+// Mağaza şartları: düz/mat cam GERÇEK 2 mm camdır (mağazada tercih edilen),
+// plaka ölçüsü 122×183 cm. Websitedeki 51×61 kargo uyarısı mağazada geçerli
+// değildir — teslim elden ya da kendi araçlarımızla yapılır.
 export const GLASS_TYPES: GlassType[] = [
   { name: "Cam Yok", price: 0, desc: "Camsız teslim", icon: "🚫" },
-  { name: "Düz Cam", price: 2000, desc: "Standart şeffaf cam", icon: "🪟", uyariKisaMM: 510, uyariUzunMM: 610 },
-  { name: "Mat Cam", price: 2000, desc: "Yansıma yapmayan mat cam", icon: "🌫️", uyariKisaMM: 510, uyariUzunMM: 610 },
+  { name: "Düz Cam", price: 2000, desc: "Gerçek cam, 2 mm", icon: "🪟", maxKisaMM: 1220, maxUzunMM: 1830 },
+  { name: "Mat Cam", price: 2000, desc: "Gerçek mat cam, 2 mm", icon: "🌫️", maxKisaMM: 1220, maxUzunMM: 1830 },
   { name: "PVC Cam", price: 2000, desc: "Kırılmaz hafif PVC (pleksi)", icon: "🛡️", maxKisaMM: 1000, maxUzunMM: 1400 },
   { name: "Müze Camı", price: 12000, desc: "UV korumalı premium cam", icon: "🏛️", maxKisaMM: 1000, maxUzunMM: 1400 },
 ];

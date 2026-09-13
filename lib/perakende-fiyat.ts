@@ -26,10 +26,10 @@ export const PERAKENDE_SABIT = {
   MIN_MAT_BRIDGE_MM: 20, // pencereler arası en az köprü
   MIN_MAT_EDGE_MM: 20, // paspartu kenarı en az
   MAX_MAT_EDGE_MM: 300, // paspartu kenarı en fazla
-  MAT_SHEET_SHORT_MM: 800, // en büyük paspartu tabakası 80 × 120 cm
+  MAT_SHEET_SHORT_MM: 800, // standart paspartu tabakası 80 × 120 cm (aşımı mağazada UYARI)
   MAT_SHEET_LONG_MM: 1200,
-  GLASS_MAX_SHORT_MM: 1000, // en büyük cam plakası 100 × 140 cm
-  GLASS_MAX_LONG_MM: 1400,
+  GLASS_MAX_SHORT_MM: 1220, // mağazadaki cam plakası 122 × 183 cm
+  GLASS_MAX_LONG_MM: 1830,
   MAX_OUTER_MM: 2900, // profil boyu 290 cm: iç/dış ölçü bunu aşamaz
   MIN_ART_MM: 15, // eser kenarı en az
   MAX_WINDOWS: 9,
@@ -328,10 +328,13 @@ export function dogrulaPerakende(g: PerakendeGirdi): PerakendeHata[] {
   const kisa = Math.min(sonuc.icEn, sonuc.icBoy);
   const uzun = Math.max(sonuc.icEn, sonuc.icBoy);
 
+  // Mağazada UYARI, engel değil: büyük ölçüde özel tabaka tedarik edilir
+  // ya da parçalı çalışılır; teslim gerekiyorsa araçla bırakılır.
   if (n.matPrice > 0 && (kisa > S.MAT_SHEET_SHORT_MM || uzun > S.MAT_SHEET_LONG_MM))
     push(
       "PASPARTU_TABAKA",
-      "Paspartu dış ölçüsü 80×120 cm tabakayı aşıyor — bu ölçüde paspartu kesilemez."
+      "Paspartu dış ölçüsü 80×120 cm standart tabakayı aşıyor — büyük ölçü özel çalışma/tedarik gerektirir, fiyatı kontrol edin.",
+      "uyari"
     );
 
   if (n.camPrice > 0) {
@@ -340,7 +343,7 @@ export function dogrulaPerakende(g: PerakendeGirdi): PerakendeHata[] {
     if (kisa > maxKisa || uzun > maxUzun) {
       push(
         "CAM_OLCU",
-        `Bu ölçüde bu cam üretilemez (en büyük ${maxKisa / 10}×${maxUzun / 10} cm) — PVC cam seçin.`
+        `Bu ölçüde bu cam kesilemez (plaka en büyük ${maxKisa / 10}×${maxUzun / 10} cm) — başka cam türü seçin veya camsız alın.`
       );
     } else if (
       num(g.camUyariKisaMM) > 0 &&
