@@ -6,7 +6,10 @@ export type Role = "staff" | "customer";
 
 export interface User {
   username: string;
-  password: string;
+  // Düz parola (geriye dönük uyum) — passwordHash tanımlıysa o öncelikli olur.
+  password?: string;
+  // scrypt özeti: "scrypt:<salt>:<hash>" — node scripts/parola-hash.js ile üretilir.
+  passwordHash?: string;
   name: string;
   role: Role;
   // Çalışanın varsayılan şubesi (opsiyonel) — sipariş/tahsilat formlarında
@@ -44,18 +47,17 @@ const TR_TO_ASCII: Record<string, string> = {
   ö: "o", Ö: "o", ş: "s", Ş: "s", ü: "u", Ü: "u",
 };
 
-function normalizeUsername(s: string): string {
+export function normalizeUsername(s: string): string {
   return String(s || "")
     .replace(/[çÇğĞıİöÖşŞüÜ]/g, (c) => TR_TO_ASCII[c])
     .toLowerCase()
     .replace(/\s+/g, "");
 }
 
-export function findUser(username: string, password: string): User | undefined {
+/** Kullanıcıyı yalnızca ada göre bulur — parola kontrolü lib/password'da. */
+export function findUserByUsername(username: string): User | undefined {
   const q = normalizeUsername(username);
-  return getUsers().find(
-    (u) => normalizeUsername(u.username) === q && u.password === password
-  );
+  return getUsers().find((u) => normalizeUsername(u.username) === q);
 }
 
 /**

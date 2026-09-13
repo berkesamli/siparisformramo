@@ -103,6 +103,78 @@ export async function saveRetailOrder(order: SavedRetailOrder): Promise<boolean>
   return true;
 }
 
+/**
+ * Yeni perakende siparişi ÇAKIŞMASIZ numarayla kaydeder — toptandaki
+ * createOrder ile aynı desen: numara retail/no/<id>.json rezervasyonuyla
+ * (allowOverwrite:false) kapılır, sayaç ancak kayıt başarılı olunca
+ * güncellenir. İki personel aynı anda kaydederse ikisi de kendi PRK
+ * numarasını alır; hiçbir kayıt diğerini ezmez.
+ */
+export async function createRetailOrder(
+  taslak: Omit<SavedRetailOrder, "orderId">
+): Promise<{ orderId: string; stored: boolean }> {
+  const year = taslak.dateKey.slice(0, 4);
+
+  if (!blobConfigured()) {
+    const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const rand = Math.random().toString(36).slice(2, 5).toUpperCase();
+    return {
+      orderId: `PRK-${year}-${pad(now.getMonth() + 1)}${pad(now.getDate())}${pad(now.getHours())}${pad(now.getMinutes())}-${rand}`,
+      stored: false,
+    };
+  }
+
+  const { get, put } = await import("@vercel/blob");
+  const counterPath = `retail/counter-${year}.json`;
+  let seq = 0;
+  try {
+    const r = await get(counterPath, { access: "private", useCache: false });
+    if (r && r.statusCode === 200 && r.stream) {
+      seq = Number(JSON.parse(await new Response(r.stream).text()).seq) || 0;
+    }
+  } catch {
+    /* ilk sipariş — sayaç yok */
+  }
+
+  for (let deneme = 0; deneme < 6; deneme++) {
+    const aday = seq + 1 + deneme;
+    const orderId = `PRK-${year}-${String(aday).padStart(3, "0")}`;
+    try {
+      await put(
+        `retail/no/${orderId}.json`,
+        JSON.stringify({ orderId, dateKey: taslak.dateKey }),
+        { access: "private", contentType: "application/json", addRandomSuffix: false, allowOverwrite: false }
+      );
+    } catch {
+      continue; // numara kapılmış — sıradakini dene
+    }
+    const order = { ...taslak, orderId } as SavedRetailOrder;
+    try {
+      await put(orderPath(order.dateKey, orderId), JSON.stringify(order), {
+        access: "private", contentType: "application/json", addRandomSuffix: false, allowOverwrite: false,
+      });
+    } catch {
+      try {
+        await put(orderPath(order.dateKey, orderId), JSON.stringify(order), {
+          access: "private", contentType: "application/json", addRandomSuffix: false, allowOverwrite: true,
+        });
+      } catch {
+        return { orderId, stored: false };
+      }
+    }
+    try {
+      await put(counterPath, JSON.stringify({ seq: aday }), {
+        access: "private", contentType: "application/json", addRandomSuffix: false, allowOverwrite: true,
+      });
+    } catch {
+      /* sayaç yazılamazsa sonraki kayıt rezervasyonla ilerler */
+    }
+    return { orderId, stored: true };
+  }
+  return { orderId: "", stored: false };
+}
+
 export async function getRetailOrder(
   dateKey: string,
   orderId: string

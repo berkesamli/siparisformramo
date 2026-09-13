@@ -18,6 +18,9 @@ export interface Customer {
   postalCode: string;
   country: string;
   branch: Branch; // hangi şubeden gönderiliyor
+  // Bayiye özel iskonto (%) — sipariş formunda müşteri seçilince genel
+  // iskonto alanına otomatik yazılır (personel gerekirse değiştirir).
+  iskontoPct?: number;
   note: string;
   createdAt: string;
   updatedAt: string;
@@ -90,6 +93,15 @@ export function sanitizeCustomer(raw: any, existing?: Customer): Customer {
     postalCode: s(raw?.postalCode, 20),
     country: s(raw?.country, 60) || "Türkiye",
     branch: raw?.branch === "istanbul" ? "istanbul" : "ankara",
+    iskontoPct:
+      Math.min(
+        100,
+        Math.max(
+          0,
+          // Virgüllü giriş de kabul: "12,5" → 12.5
+          Number(String(raw?.iskontoPct ?? "").replace(",", ".")) || 0
+        )
+      ) || undefined,
     note: s(raw?.note, 300),
     createdAt: existing?.createdAt || now,
     updatedAt: now,

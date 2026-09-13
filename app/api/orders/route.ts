@@ -8,18 +8,23 @@ import {
   type OrderLine,
 } from "@/lib/notify";
 import {
-  saveOrder,
+  createOrder,
+  getOrder,
   listOrders,
   listAllOrders,
   lastNDateKeys,
   istanbulDateKey,
   sanitizeLines,
   computeTotals,
-  nextOrderId,
   getDailyRates,
   saveDailyRates,
+  blobConfigured,
+  readOrderIndex,
+  rebuildOrderIndexFrom,
   type SavedOrder,
+  type OrderIndexEntry,
 } from "@/lib/orders";
+import { isKurYetkili } from "@/data/users";
 import { eslesir } from "@/lib/search-norm";
 
 export const runtime = "nodejs";
@@ -44,28 +49,52 @@ export async function GET(req: Request) {
 
   // Müşteri bazlı son siparişler — sipariş formundaki mükerrer uyarısı için.
   // Defterden seçildiyse customerId, seçilmediyse yazılan ada göre eşleşir.
+  // Aylık indeks üzerinden çalışır: tüm siparişleri tek tek okumak yerine
+  // yalnızca eşleşenler getirilir. İndeks boşsa tam taramaya düşülür ve
+  // indeks o taramadan kurulur (kendi kendini onarır).
   if (musteri || musteriAd) {
     const gun = Math.min(30, Math.max(1, Number(url.searchParams.get("gun")) || 7));
     const izin = new Set(lastNDateKeys(gun));
-    const hepsi = await listAllOrders();
-    const orders = hepsi.filter(
-      (o) =>
-        izin.has(o.dateKey) &&
-        // İptal edilen sipariş mükerrer uyarısına girmez
-        o.status !== "iptal" &&
-        (musteri
-          ? o.customerId === musteri
-          : eslesir(musteriAd, o.customer))
-    );
+    const uygun = (o: { dateKey: string; status: string; customerId?: string; customer: string }) =>
+      izin.has(o.dateKey) &&
+      // İptal edilen sipariş mükerrer uyarısına girmez
+      o.status !== "iptal" &&
+      (musteri ? o.customerId === musteri : eslesir(musteriAd, o.customer));
+
+    const idx = await readOrderIndex(2); // son 30 gün en fazla 2 aya yayılır
+    let orders: SavedOrder[];
+    if (idx.length) {
+      const hits = idx.filter(uygun).slice(0, 50);
+      orders = (
+        await Promise.all(hits.map((e) => getOrder(e.dateKey, e.orderId)))
+      ).filter(Boolean) as SavedOrder[];
+      orders.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    } else {
+      const hepsi = await listAllOrders();
+      await rebuildOrderIndexFrom(hepsi);
+      orders = hepsi.filter(uygun);
+    }
     return NextResponse.json({ ok: true, orders });
   }
 
-  // Serbest arama — müşteri adı, sipariş numarası, çalışan veya not içinde
+  // Serbest arama — müşteri adı, sipariş numarası, çalışan veya not içinde.
+  // Önce indeksten eşleşen (gün, no) bulunur, sonra yalnız onlar okunur.
   if (q) {
-    const hepsi = await listAllOrders();
-    const orders = hepsi
-      .filter((o) => eslesir(q, o.customer, o.orderId, o.employee, o.note))
-      .slice(0, 200);
+    const uygun = (o: OrderIndexEntry | SavedOrder) =>
+      eslesir(q, o.customer, o.orderId, o.employee, o.note);
+    const idx = await readOrderIndex();
+    let orders: SavedOrder[];
+    if (idx.length) {
+      const hits = idx.filter(uygun).slice(0, 200);
+      orders = (
+        await Promise.all(hits.map((e) => getOrder(e.dateKey, e.orderId)))
+      ).filter(Boolean) as SavedOrder[];
+      orders.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    } else {
+      const hepsi = await listAllOrders();
+      await rebuildOrderIndexFrom(hepsi);
+      orders = hepsi.filter(uygun).slice(0, 200);
+    }
     return NextResponse.json({ ok: true, orders, arama: q });
   }
 
@@ -92,45 +121,74 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: "Geçerli satır yok." }, { status: 400 });
   }
 
+  // ---- Sunucu tarafı doğrulama (poka-yoke) ----
+  // İstemci hesabına körü körüne güvenme: ₺0 birim fiyatlı satır (kur boşken
+  // USD×0 gibi) veya negatif tutar kalıcı kayda hiç girmesin.
+  for (const l of lines) {
+    if (!(l.unitPriceTL > 0) || !(l.lineTotal > 0)) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: `"${l.name}" satırının fiyatı geçersiz (₺${l.unitPriceTL}). Kur girilmemiş olabilir — kuru kontrol edip tekrar deneyin.`,
+        },
+        { status: 400 }
+      );
+    }
+  }
   const discountPct = Math.max(0, Number(body.discountPct) || 0);
+  if (discountPct > 100) {
+    return NextResponse.json({ ok: false, error: "İskonto %100'ü aşamaz." }, { status: 400 });
+  }
+
+  const now = new Date();
+  const dateKey = istanbulDateKey(now);
+  const rate = Number(body.rate) || 0;
+  const euroRate = Number(body.euroRate) || 0;
+
+  // Kur kilidi sunucuda da geçerli: günün kuru yetkili tarafından
+  // sabitlendiyse, yetkisiz kullanıcıdan farklı kurla gelen istek reddedilir
+  // (ekrandaki kilit aşılsa ya da form eski kurla açık kalsa bile).
+  try {
+    const gunKuru = await getDailyRates(dateKey);
+    if (gunKuru?.sabit && !isKurYetkili(user.username)) {
+      const farkli =
+        (gunKuru.rate > 0 && rate > 0 && Math.abs(rate - gunKuru.rate) > 0.005) ||
+        (gunKuru.euroRate > 0 && euroRate > 0 && Math.abs(euroRate - gunKuru.euroRate) > 0.005);
+      if (farkli) {
+        return NextResponse.json(
+          {
+            ok: false,
+            error: `Günün kuru yetkili tarafından ₺${gunKuru.rate} olarak belirlendi. Sayfayı yenileyip güncel kurla tekrar deneyin.`,
+          },
+          { status: 409 }
+        );
+      }
+    }
+  } catch {
+    /* kur okunamazsa siparişi engelleme */
+  }
+
   const vatApplied = !!body.vatApplied;
   const { gross, discount, vatAmount, net } = computeTotals(lines, discountPct, vatApplied);
 
-  const now = new Date();
-  const order: OrderPayload = {
-    orderId: await nextOrderId(),
-    employee: user.name,
-    customer: String(body.customer || "").slice(0, 200),
-    note: String(body.note || "").slice(0, 500),
-    rate: Number(body.rate) || 0,
-    euroRate: Number(body.euroRate) || 0,
-    discountPct,
-    vatApplied,
-    lines,
-    gross,
-    discount,
-    vatAmount,
-    net,
-    dateStr: now.toLocaleString("tr-TR", { timeZone: "Europe/Istanbul" }),
-  };
-
-  // Kalıcı kayıt (sipariş takip ekranı için)
-  const saved: SavedOrder = {
-    orderId: order.orderId,
-    dateKey: istanbulDateKey(now),
+  // ---- Önce KALICI KAYIT, sonra bildirim ----
+  // Numara çakışmasız üretilir (orders/no rezervasyonu); kayıt başarısızsa
+  // hiçbir bildirim gitmez — "bildirimde var, panelde yok" sipariş kalmaz.
+  const taslak: Omit<SavedOrder, "orderId"> = {
+    dateKey,
     createdAt: now.toISOString(),
     updatedAt: now.toISOString(),
     status: "olusturuldu",
-    employee: order.employee,
-    customer: order.customer,
+    employee: user.name,
+    customer: String(body.customer || "").slice(0, 200),
     // Müşteri defterinden seçildiyse cari takip için bağlanır
     customerId: String(body.customerId || "").slice(0, 40),
     branch: body.branch === "istanbul" ? "istanbul" : "ankara",
     payment: "bekliyor",
     paidAmount: 0,
-    note: order.note,
-    rate: order.rate,
-    euroRate: order.euroRate,
+    note: String(body.note || "").slice(0, 500),
+    rate,
+    euroRate,
     discountPct,
     vatApplied,
     lines,
@@ -140,12 +198,42 @@ export async function POST(req: Request) {
     net,
     rows: Array.isArray(body.rows) ? body.rows.slice(0, 100) : undefined,
   };
+
+  let orderId = "";
   let stored = false;
   try {
-    stored = await saveOrder(saved);
+    ({ orderId, stored } = await createOrder(taslak));
   } catch (err) {
-    console.error("Sipariş Blob'a kaydedilemedi:", err);
+    console.error("Sipariş kaydedilemedi:", err);
   }
+  if (blobConfigured() && !stored) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error:
+          "Sipariş KAYDEDİLEMEDİ (depo hatası). Bildirim gönderilmedi — bilgiler formda duruyor, lütfen tekrar deneyin.",
+      },
+      { status: 503 }
+    );
+  }
+
+  const order: OrderPayload = {
+    orderId,
+    employee: taslak.employee,
+    customer: taslak.customer,
+    note: taslak.note,
+    rate,
+    euroRate,
+    discountPct,
+    vatApplied,
+    lines,
+    gross,
+    discount,
+    vatAmount,
+    net,
+    dateStr: now.toLocaleString("tr-TR", { timeZone: "Europe/Istanbul" }),
+  };
+  const saved: SavedOrder = { ...taslak, orderId };
 
   // Günün kuru daha önce kaydedilmediyse bu siparişteki kuru günlük kur yap
   if (order.rate > 0) {

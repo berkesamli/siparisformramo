@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
-import { listAllOrders, orderBalance, type SavedOrder } from "@/lib/orders";
+import {
+  listAllOrders,
+  orderBalance,
+  readOrderIndex,
+  rebuildOrderIndexFrom,
+  toIndexEntry,
+  type OrderIndexEntry,
+} from "@/lib/orders";
 import { listAllRetailOrders, type SavedRetailOrder } from "@/lib/retail-orders";
 import { getCustomer, customerTitle, normalizeCity } from "@/lib/customers";
 import { listAllTahsilat, type Tahsilat } from "@/lib/tahsilat";
@@ -42,9 +49,18 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Müşteri bulunamadı" }, { status: 404 });
   }
 
-  // Tek istekte üç tarama — başka hiçbir uçta tam tarama yapılmaz.
+  // Toptan tarafı aylık indeksten okunur (ay başına tek dosya); indeks boşsa
+  // tam taramaya düşülür ve indeks o taramadan kurulur.
+  const loadWholesale = async (): Promise<OrderIndexEntry[]> => {
+    const idx = await readOrderIndex();
+    if (idx.length) return idx;
+    const full = await listAllOrders();
+    await rebuildOrderIndexFrom(full);
+    return full.map(toIndexEntry);
+  };
+
   const [wholesale, retail, tahsilatlar, acilis] = await Promise.all([
-    listAllOrders(),
+    loadWholesale(),
     listAllRetailOrders(),
     listAllTahsilat(),
     getAcilisBakiye(id),
@@ -67,7 +83,7 @@ export async function GET(req: NextRequest) {
 
   const entries: CariEntry[] = [];
 
-  wholesale.forEach((o: SavedOrder) => {
+  wholesale.forEach((o: OrderIndexEntry) => {
     const mine = o.customerId ? o.customerId === id : matchesName(o.customer);
     if (!mine) return;
     // İptal edilen sipariş cari bakiyeye ve hareketlere girmez

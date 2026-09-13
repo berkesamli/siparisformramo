@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/yedek",
+      "schedule": "0 2 * * *"
+    }
+  ]
+}

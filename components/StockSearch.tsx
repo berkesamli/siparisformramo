@@ -6,11 +6,14 @@
 import { useEffect, useMemo, useState } from "react";
 import type { StockData } from "@/lib/stock-parse";
 import { searchStock, toBoy } from "@/lib/stock-search";
-import { findProfile } from "@/data/catalog";
+// Katalog (koli metrajı için) fiyat sızmasın diye /api/katalog'dan gelir
+import { profilBul } from "@/lib/catalog-utils";
+import { useKatalog } from "@/lib/use-katalog";
 
 const nf = (n: number) => n.toLocaleString("tr-TR");
 
 export default function StockSearch() {
+  const katalog = useKatalog();
   const [data, setData] = useState<StockData | null>(null);
   const [error, setError] = useState("");
   const [query, setQuery] = useState("");
@@ -72,7 +75,7 @@ export default function StockSearch() {
             <tbody>
               {results.map(({ item, score }) => {
                 const total = item.ankaraMt + item.istanbulMt;
-                const profile = findProfile(item.code);
+                const profile = profilBul(katalog.profiles, item.code);
                 const koliM = profile?.koliMetraj || 0;
                 const cell = (mt: number) => {
                   if (mt <= 0) return <span className="badge yok">Yok</span>;

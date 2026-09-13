@@ -129,7 +129,92 @@ export async function saveOrder(order: SavedOrder): Promise<boolean> {
     addRandomSuffix: false,
     allowOverwrite: true,
   });
+  await upsertOrderIndex(order);
   return true;
+}
+
+const pad3 = (n: number) => String(n).padStart(3, "0");
+
+/**
+ * Yeni siparişi ÇAKIŞMASIZ numarayla kaydeder.
+ *
+ * Eski akış (sayaç oku → +1 → yaz → kaydet) yarışa açıktı: iki şube aynı
+ * anda kaydederse aynı OLG numarası üretilir, ikinci kayıt ilkini sessizce
+ * ezerdi. Yeni akışta numara önce orders/no/<id>.json rezervasyon dosyasıyla
+ * allowOverwrite:false olarak KAPILIR — aynı numarayı ikinci almak isteyen
+ * Blob hatası alır ve sıradaki numarayı dener. Sayaç ancak kayıt başarılı
+ * olunca güncellenir; bu yüzden kayıt düşerse numara "bildirimde var,
+ * panelde yok" hayalet siparişe dönüşmez (çağıran stored=false görür).
+ */
+export async function createOrder(
+  taslak: Omit<SavedOrder, "orderId">
+): Promise<{ orderId: string; stored: boolean }> {
+  const year = taslak.dateKey.slice(0, 4);
+
+  if (!blobConfigured()) {
+    // Blob yok (yerel geliştirme): zaman damgalı benzersiz numara, kayıt yok
+    const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const rand = Math.random().toString(36).slice(2, 5).toUpperCase();
+    return {
+      orderId: `OLG-${year}-${pad(now.getMonth() + 1)}${pad(now.getDate())}${pad(now.getHours())}${pad(now.getMinutes())}-${rand}`,
+      stored: false,
+    };
+  }
+
+  const { get, put } = await import("@vercel/blob");
+  const counterPath = `orders/counter-${year}.json`;
+  let seq = 0;
+  try {
+    const r = await get(counterPath, { access: "private", useCache: false });
+    if (r && r.statusCode === 200 && r.stream) {
+      seq = Number(JSON.parse(await new Response(r.stream).text()).seq) || 0;
+    }
+  } catch {
+    /* ilk sipariş — sayaç yok */
+  }
+
+  for (let deneme = 0; deneme < 6; deneme++) {
+    const aday = seq + 1 + deneme;
+    const orderId = `OLG-${year}-${pad3(aday)}`;
+    try {
+      // Numara rezervasyonu — atomik kilit görevi görür
+      await put(
+        `orders/no/${orderId}.json`,
+        JSON.stringify({ orderId, dateKey: taslak.dateKey }),
+        { access: "private", contentType: "application/json", addRandomSuffix: false, allowOverwrite: false }
+      );
+    } catch {
+      continue; // numara başka kayıt tarafından kapılmış — sıradakini dene
+    }
+
+    const order: SavedOrder = { ...taslak, orderId };
+    try {
+      await put(orderPath(order.dateKey, orderId), JSON.stringify(order), {
+        access: "private", contentType: "application/json", addRandomSuffix: false, allowOverwrite: false,
+      });
+    } catch {
+      // Rezervasyon bizim ama kayıt yazılamadı — bir kez daha dene
+      try {
+        await put(orderPath(order.dateKey, orderId), JSON.stringify(order), {
+          access: "private", contentType: "application/json", addRandomSuffix: false, allowOverwrite: true,
+        });
+      } catch {
+        return { orderId, stored: false };
+      }
+    }
+
+    try {
+      await put(counterPath, JSON.stringify({ seq: aday }), {
+        access: "private", contentType: "application/json", addRandomSuffix: false, allowOverwrite: true,
+      });
+    } catch {
+      /* sayaç yazılamazsa sonraki kayıt rezervasyon çakışmasıyla ilerler */
+    }
+    await upsertOrderIndex(order);
+    return { orderId, stored: true };
+  }
+  return { orderId: "", stored: false };
 }
 
 export async function getOrder(
@@ -208,6 +293,140 @@ export async function listAllOrders(limit = 2000): Promise<SavedOrder[]> {
     return [];
   }
   return orders.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+// ---- Aylık sipariş indeksi ----
+// Arama (?q=), mükerrer uyarısı (?musteri=) ve cari ekranı her seferinde tüm
+// sipariş dosyalarını tek tek okumasın diye ay başına tek indeks dosyası
+// tutulur: orders/index/YYYY-MM.json. İndeks bir ÖNBELLEKTİR — gerçek veri
+// her zaman orders/<gün>/<no>.json; indeks boşsa/eskiyse tam taramaya düşülür
+// ve indeks o taramadan yeniden kurulur.
+export interface OrderIndexEntry {
+  orderId: string;
+  dateKey: string;
+  createdAt: string;
+  status: OrderStatus;
+  employee: string;
+  customer: string;
+  customerId?: string;
+  branch?: "ankara" | "istanbul";
+  payment?: PaymentStatus;
+  paidAmount?: number;
+  net: number;
+  note: string;
+}
+
+const indexPath = (ay: string) => `orders/index/${ay}.json`;
+const ayOf = (dateKey: string) => dateKey.slice(0, 7);
+
+export function toIndexEntry(o: SavedOrder): OrderIndexEntry {
+  return {
+    orderId: o.orderId,
+    dateKey: o.dateKey,
+    createdAt: o.createdAt,
+    status: o.status,
+    employee: o.employee,
+    customer: o.customer,
+    customerId: o.customerId || undefined,
+    branch: o.branch,
+    payment: o.payment,
+    paidAmount: o.paidAmount,
+    net: o.net,
+    note: (o.note || "").slice(0, 200),
+  };
+}
+
+/**
+ * Siparişi ait olduğu ayın indeksine ekler/günceller. En iyi çaba: iki kayıt
+ * tam aynı anda yazarsa biri kaybolabilir — indeks önbellek olduğu için bir
+ * sonraki tam tarama (veya yeniden kurma) bunu kendiliğinden düzeltir.
+ */
+export async function upsertOrderIndex(o: SavedOrder): Promise<void> {
+  if (!blobConfigured()) return;
+  try {
+    const { get, put } = await import("@vercel/blob");
+    const yol = indexPath(ayOf(o.dateKey));
+    let entries: OrderIndexEntry[] = [];
+    try {
+      const r = await get(yol, { access: "private", useCache: false });
+      if (r && r.statusCode === 200 && r.stream) {
+        const parsed = JSON.parse(await new Response(r.stream).text());
+        if (Array.isArray(parsed)) entries = parsed;
+      }
+    } catch {
+      /* ilk kayıt — indeks dosyası yok */
+    }
+    const e = toIndexEntry(o);
+    const i = entries.findIndex((x) => x.orderId === o.orderId);
+    if (i >= 0) entries[i] = e;
+    else entries.push(e);
+    await put(yol, JSON.stringify(entries), {
+      access: "private",
+      contentType: "application/json",
+      addRandomSuffix: false,
+      allowOverwrite: true,
+    });
+  } catch {
+    /* indeks yazılamazsa arama tam taramaya düşer — sipariş kaydı etkilenmez */
+  }
+}
+
+/** Son `sonAy` ayın (verilmezse tüm ayların) indeks kayıtlarını getirir. */
+export async function readOrderIndex(sonAy?: number): Promise<OrderIndexEntry[]> {
+  if (!blobConfigured()) return [];
+  try {
+    const { list, get } = await import("@vercel/blob");
+    const { blobs } = await list({ prefix: "orders/index/", limit: 1000 });
+    let files = blobs
+      .map((b) => b.pathname)
+      .filter((p) => /^orders\/index\/\d{4}-\d{2}\.json$/.test(p))
+      .sort()
+      .reverse();
+    if (sonAy && sonAy > 0) files = files.slice(0, sonAy);
+    const out: OrderIndexEntry[] = [];
+    await Promise.all(
+      files.map(async (p) => {
+        try {
+          const r = await get(p, { access: "private", useCache: false });
+          if (!r || r.statusCode !== 200 || !r.stream) return;
+          const arr = JSON.parse(await new Response(r.stream).text());
+          if (Array.isArray(arr)) out.push(...arr);
+        } catch {
+          /* tek ay okunamazsa kalanlarla devam */
+        }
+      })
+    );
+    return out.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  } catch {
+    return [];
+  }
+}
+
+/** İndeksi verilen sipariş listesinden baştan kurar; yazılan ay sayısını döner. */
+export async function rebuildOrderIndexFrom(orders: SavedOrder[]): Promise<number> {
+  if (!blobConfigured() || !orders.length) return 0;
+  const { put } = await import("@vercel/blob");
+  const aylar = new Map<string, OrderIndexEntry[]>();
+  for (const o of orders) {
+    const ay = ayOf(o.dateKey);
+    if (!aylar.has(ay)) aylar.set(ay, []);
+    aylar.get(ay)!.push(toIndexEntry(o));
+  }
+  let yazilan = 0;
+  for (const [ay, entries] of aylar) {
+    try {
+      await put(indexPath(ay), JSON.stringify(entries), {
+        access: "private",
+        contentType: "application/json",
+        addRandomSuffix: false,
+        allowOverwrite: true,
+      });
+      yazilan++;
+    } catch {
+      /* tek ay yazılamazsa kalanlarla devam */
+    }
+  }
+  return yazilan;
 }
 
 /** Sıralı sipariş numarası: OLG-2026-001. Sayaç Blob'da yıl bazlı tutulur. */

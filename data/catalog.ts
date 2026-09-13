@@ -1,17 +1,18 @@
 // Olga Çerçeve — Çerçeve Profil Kataloğu
 // Fiyatlar: toptan/liste fiyatıdır (USD/mt, KDV hariç).
 // stok: "var" | "az" | "yok" — müşteri portalında gösterilir.
+//
+// DİKKAT: Bu dosya toptan fiyat listesini içerir — istemci ("use client")
+// bileşenlerinden ASLA import edilmemeli, yoksa fiyatlar herkese açık JS
+// paketine girer. İstemci tarafı /api/katalog'dan (oturumla) çeker; tipler
+// ve yardımcılar lib/catalog-utils'te.
 
-export type StockStatus = "var" | "az" | "yok";
+import { profilBul, type FrameProfile } from "@/lib/catalog-utils";
 
-export interface FrameProfile {
-  code: string;
-  series: string;
-  koliAdet: number;
-  koliMetraj: number; // MT
-  priceUSD: number; // USD/mt toptan liste fiyatı
-  stok: StockStatus;
-}
+export type { FrameProfile, StockStatus } from "@/lib/catalog-utils";
+export { SERIES_ORDER, boyLength, koliBoyText } from "@/lib/catalog-utils";
+
+type StockStatus = "var" | "az" | "yok";
 
 const p = (
   series: string,
@@ -270,47 +271,6 @@ export const FRAME_PROFILES: FrameProfile[] = [
   p("Y", "70910", 47, 136.3, 1.0),
 ];
 
-export const SERIES_ORDER = ["A", "G", "KS", "N", "T", "W", "Y"];
-
-export function boyLength(profile: FrameProfile): number {
-  return profile.koliAdet > 0 ? profile.koliMetraj / profile.koliAdet : 0;
-}
-
-/**
- * Metrajı "X koli + Y boy" metnine çevirir (fiş/PDF gösterimi için).
- * Örn. 145 mt, koli 72,5 mt → "2 koli"; 160,1 mt → "2 koli + 5 boy".
- */
-export function koliBoyText(metres: number, profile: FrameProfile): string {
-  const koliM = profile.koliMetraj;
-  const boyM = boyLength(profile) || 2.9;
-  if (metres <= 0 || koliM <= 0 || boyM <= 0) return "";
-  const EPS = 0.01;
-  let koli = Math.floor((metres + EPS) / koliM);
-  let remainder = metres - koli * koliM;
-  let boy = Math.round(remainder / boyM);
-  // Kalan boylar tam bir koliyi tamamlıyorsa yukarı yuvarla
-  if (boy >= profile.koliAdet) {
-    koli += 1;
-    boy = 0;
-  }
-  const parts: string[] = [];
-  if (koli > 0) parts.push(`${koli} koli`);
-  if (boy > 0) parts.push(`${boy} boy`);
-  if (!parts.length) return "";
-  return parts.join(" + ");
-}
-
 export function findProfile(code: string): FrameProfile | undefined {
-  const norm = (s: string) => s.toUpperCase().replace(/\s+/g, "");
-  const q = norm(code);
-  if (!q) return undefined;
-  // Birebir eşleşme
-  const exact = FRAME_PROFILES.find((f) => norm(f.code) === q);
-  if (exact) return exact;
-  // Renk/varyant ekli kodlar: "GC065-1473BX" → taban kod "GC065"
-  const base = q.split("-")[0];
-  if (base && base !== q) {
-    return FRAME_PROFILES.find((f) => norm(f.code) === base);
-  }
-  return undefined;
+  return profilBul(FRAME_PROFILES, code);
 }

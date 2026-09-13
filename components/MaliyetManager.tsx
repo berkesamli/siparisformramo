@@ -4,9 +4,10 @@
 // Yalnızca maliyet yetkisi olanlar görür (varsayılan: Berke + Özgür).
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { FRAME_PROFILES } from "@/data/catalog";
 import { GLASS_TYPES } from "@/data/glass";
-import { TECHNICAL_PRODUCTS } from "@/data/technical";
+// Katalog listeleri (öneri kutuları için) /api/katalog'dan gelir —
+// toptan fiyatlar istemci paketine girmesin.
+import { useKatalog } from "@/lib/use-katalog";
 import type { MaliyetData, Parti } from "@/lib/maliyet";
 import { eslesir } from "@/lib/search-norm";
 
@@ -50,6 +51,7 @@ const bugun = () =>
   new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Istanbul" });
 
 export default function MaliyetManager() {
+  const katalog = useKatalog();
   const [tab, setTab] = useState<"fiyat" | "analiz">("fiyat");
   const [data, setData] = useState<MaliyetData | null>(null);
   const [seciliParti, setSeciliParti] = useState("");
@@ -260,7 +262,7 @@ export default function MaliyetManager() {
                         value={fKod} onChange={(e) => setFKod(e.target.value)}
                         placeholder="örn. NS Karton Kadife" />
                       <datalist id="maliyet-teknik">
-                        {TECHNICAL_PRODUCTS.map((t) => <option key={t.code} value={t.name} />)}
+                        {katalog.technical.map((t) => <option key={t.code} value={t.name} />)}
                       </datalist>
                     </>
                   ) : (
@@ -268,7 +270,7 @@ export default function MaliyetManager() {
                       <input list="maliyet-kodlar" style={{ width: 150 }}
                         value={fKod} onChange={(e) => setFKod(e.target.value)} placeholder="örn. 4501 S" />
                       <datalist id="maliyet-kodlar">
-                        {FRAME_PROFILES.map((p) => <option key={p.code} value={p.code} />)}
+                        {katalog.profiles.map((p) => <option key={p.code} value={p.code} />)}
                       </datalist>
                     </>
                   )}

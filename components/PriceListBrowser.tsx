@@ -8,14 +8,19 @@
 // birlikte listelenir, kullanıcı hangi sekmede olduğunu düşünmek zorunda kalmaz.
 
 import { useMemo, useState } from "react";
-import { FRAME_PROFILES, SERIES_ORDER } from "@/data/catalog";
-import { TECHNICAL_PRODUCTS } from "@/data/technical";
+// Fiyat listesi istemci paketinde durmaz — oturumla /api/katalog'dan gelir.
+import {
+  SERIES_ORDER,
+  type FrameProfile,
+  type TechnicalProduct,
+} from "@/lib/catalog-utils";
+import { useKatalog } from "@/lib/use-katalog";
 import { eslesir } from "@/lib/search-norm";
 
 const fmt = (n: number) =>
   n.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-const techPrice = (t: (typeof TECHNICAL_PRODUCTS)[number]): string =>
+const techPrice = (t: TechnicalProduct): string =>
   t.priceTL != null ? `₺${fmt(t.priceTL)}` : `€${fmt(t.priceEUR || 0)}`;
 
 // Bilinen marka sırası; listede olmayan yeni bir kategori eklenirse sessizce
@@ -31,18 +36,11 @@ const BILINEN_SIRA = [
   "NS Serisi",
 ];
 
-const CATEGORY_ORDER = [
-  ...BILINEN_SIRA,
-  ...Array.from(new Set(TECHNICAL_PRODUCTS.map((t) => t.category))).filter(
-    (c) => !BILINEN_SIRA.includes(c)
-  ),
-];
-
 function FrameTable({
   items,
   seriGoster,
 }: {
-  items: typeof FRAME_PROFILES;
+  items: FrameProfile[];
   seriGoster?: boolean;
 }) {
   return (
@@ -77,7 +75,7 @@ function TechTable({
   items,
   kategoriGoster,
 }: {
-  items: typeof TECHNICAL_PRODUCTS;
+  items: TechnicalProduct[];
   kategoriGoster?: boolean;
 }) {
   return (
@@ -107,29 +105,48 @@ function TechTable({
 }
 
 export default function PriceListBrowser() {
+  const katalog = useKatalog();
   const [tab, setTab] = useState<"cerceve" | "teknik">("cerceve");
   const [query, setQuery] = useState("");
   const araniyor = query.trim().length > 0;
 
+  const CATEGORY_ORDER = useMemo(
+    () => [
+      ...BILINEN_SIRA,
+      ...Array.from(new Set(katalog.technical.map((t) => t.category))).filter(
+        (c) => !BILINEN_SIRA.includes(c)
+      ),
+    ],
+    [katalog.technical]
+  );
+
   const frames = useMemo(
     () =>
       !araniyor
-        ? FRAME_PROFILES
-        : FRAME_PROFILES.filter((f) => eslesir(query, f.code, f.series)),
-    [query, araniyor]
+        ? katalog.profiles
+        : katalog.profiles.filter((f) => eslesir(query, f.code, f.series)),
+    [query, araniyor, katalog.profiles]
   );
 
   const technicals = useMemo(
     () =>
       !araniyor
-        ? TECHNICAL_PRODUCTS
-        : TECHNICAL_PRODUCTS.filter((t) =>
+        ? katalog.technical
+        : katalog.technical.filter((t) =>
             eslesir(query, t.name, t.code, t.category)
           ),
-    [query, araniyor]
+    [query, araniyor, katalog.technical]
   );
 
   const toplam = frames.length + technicals.length;
+
+  if (!katalog.yuklendi) {
+    return (
+      <div className="card">
+        <p style={{ color: "var(--muted)", margin: 0 }}>Fiyat listesi yükleniyor…</p>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -146,13 +163,13 @@ export default function PriceListBrowser() {
             className={`btn small ${tab === "cerceve" ? "" : "secondary"}`}
             onClick={() => setTab("cerceve")}
           >
-            Çerçeve Profilleri ({FRAME_PROFILES.length})
+            Çerçeve Profilleri ({katalog.profiles.length})
           </button>
           <button
             className={`btn small ${tab === "teknik" ? "" : "secondary"}`}
             onClick={() => setTab("teknik")}
           >
-            🔧 Teknik Malzemeler ({TECHNICAL_PRODUCTS.length})
+            🔧 Teknik Malzemeler ({katalog.technical.length})
           </button>
         </div>
 
@@ -204,7 +221,7 @@ export default function PriceListBrowser() {
       {!araniyor &&
         tab === "cerceve" &&
         SERIES_ORDER.map((series) => {
-          const items = FRAME_PROFILES.filter((f) => f.series === series);
+          const items = katalog.profiles.filter((f) => f.series === series);
           if (!items.length) return null;
           return (
             <div className="card" key={series} style={{ marginBottom: 20 }}>
@@ -219,7 +236,7 @@ export default function PriceListBrowser() {
       {!araniyor &&
         tab === "teknik" &&
         CATEGORY_ORDER.map((cat) => {
-          const items = TECHNICAL_PRODUCTS.filter((t) => t.category === cat);
+          const items = katalog.technical.filter((t) => t.category === cat);
           if (!items.length) return null;
           return (
             <div className="card" key={cat} style={{ marginBottom: 20 }}>

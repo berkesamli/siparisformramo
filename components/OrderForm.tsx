@@ -1,10 +1,20 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { FRAME_PROFILES, findProfile, boyLength, koliBoyText } from "@/data/catalog";
-import { TECHNICAL_PRODUCTS, getTechnicalProduct } from "@/data/technical";
+// Fiyat listesi bilinçli olarak istemci paketinde değil — oturumla
+// /api/katalog'dan çekilir (useKatalog); yardımcılar veri içermez.
+import {
+  boyLength,
+  koliBoyText,
+  profilBul,
+  teknikBul,
+  type TechnicalProduct,
+} from "@/lib/catalog-utils";
+import { useKatalog, type Katalog } from "@/lib/use-katalog";
 import { GLASS_TYPES, GLASS_SIZES, AYNA_SIZES, plateM2 } from "@/data/glass";
 import { kurus, kesin, fmtQty, fmtPrice, fmtTL, sayi } from "@/lib/num";
+import { searchStock, toBoy } from "@/lib/stock-search";
+import type { StockItem } from "@/lib/stock-parse";
 import CustomerPicker from "@/components/CustomerPicker";
 import TechnicalPicker from "@/components/TechnicalPicker";
 import OrderTextImport, { type ParsedLine } from "@/components/OrderTextImport";
@@ -86,10 +96,10 @@ const sadeAd = (s: string) =>
     .replace(/[öÖ]/g, "o").replace(/[şŞ]/g, "s").replace(/[üÜ]/g, "u")
     .replace(/[^a-z0-9]/g, "");
 
-function findTechnicalByName(q: string) {
+function findTechnicalByName(list: TechnicalProduct[], q: string) {
   const k = sadeAd(q);
   if (k.length < 3) return undefined;
-  return TECHNICAL_PRODUCTS.find((t) => {
+  return list.find((t) => {
     const n = sadeAd(t.name);
     return n === k || n.includes(k) || k.includes(n);
   });
@@ -125,9 +135,14 @@ function satirBitir(
   };
 }
 
-function computeRow(row: Row, rate: number, euroRate: number): ComputedLine | null {
+function computeRow(
+  row: Row,
+  rate: number,
+  euroRate: number,
+  katalog: Katalog
+): ComputedLine | null {
   if (row.kind === "frame") {
-    const profile = findProfile(row.code);
+    const profile = profilBul(katalog.profiles, row.code);
     const qty = sayi(row.qty) || 0;
     if (!row.code.trim() || qty <= 0) return null;
     const usd = sayi(row.usd) || profile?.priceUSD || 0;
@@ -200,7 +215,7 @@ function computeRow(row: Row, rate: number, euroRate: number): ComputedLine | nu
   }
 
   if (row.kind === "technical") {
-    const product = getTechnicalProduct(row.techCode);
+    const product = teknikBul(katalog.technical, row.techCode);
     const kutu = sayi(row.kutuAdet) || 0;
     if (!product || kutu <= 0) return null;
     const manual = sayi(row.kutuPrice) || 0;
@@ -271,25 +286,63 @@ export interface InitialOrder {
   rows?: Partial<Row>[];
 }
 
+/** "Bu siparişi kopyala" ile açılan YENİ sipariş taslağı (düzenleme değil). */
+export interface KopyaOrder {
+  kaynakNo: string; // kopyalanan siparişin numarası (bilgi notu için)
+  customer: string;
+  customerId?: string;
+  branch?: "ankara" | "istanbul";
+  discountPct?: number;
+  vatApplied?: boolean;
+  rows?: Partial<Row>[];
+}
+
 export default function OrderForm({
   employeeName,
   initialOrder,
+  kopyaOrder,
 }: {
   employeeName: string;
   initialOrder?: InitialOrder;
+  kopyaOrder?: KopyaOrder;
 }) {
+  // Fiyat listesi (çerçeve + teknik) oturumla sunucudan gelir
+  const katalog = useKatalog();
   const [rows, setRows] = useState<Row[]>(() => {
     if (initialOrder?.rows?.length) {
       return initialOrder.rows.map((r) => ({ ...emptyRow(), ...r, id: rowSeq++ }));
     }
+    if (kopyaOrder?.rows?.length) {
+      // Kopyada döviz fiyat alanları sıfırlanır: çerçeve USD'si bugünün
+      // katalog fiyatından, TL karşılığı bugünün kurundan yeniden hesaplanır.
+      // Elle girilen TL/EUR anlaşma fiyatları da eskimiş olabileceği için
+      // taşınmaz; cam/ayna/diğer satırlarının elle fiyatları aynen kalır.
+      return kopyaOrder.rows.map((r) => {
+        const row = { ...emptyRow(), ...r, id: rowSeq++ };
+        if (row.kind === "frame") {
+          row.usd = "";
+          row.tl = "";
+          row.fx = "usd";
+        }
+        if (row.kind === "technical") {
+          row.kutuPrice = "";
+          row.techFx = "eur";
+        }
+        return row;
+      });
+    }
     return [emptyRow()];
   });
-  const [customer, setCustomer] = useState(initialOrder?.customer ?? "");
+  const [customer, setCustomer] = useState(
+    initialOrder?.customer ?? kopyaOrder?.customer ?? ""
+  );
   // Müşteri defterinden seçildiyse kaydı sipariş kaydına da bağlarız (cari takip)
-  const [customerId, setCustomerId] = useState("");
+  const [customerId, setCustomerId] = useState(kopyaOrder?.customerId ?? "");
   // Siparişin şubesi — müşteri defterden seçilince kartındaki şube önerilir,
   // personel gerekirse değiştirir (iki şubede de çalışılabiliyor).
-  const [branch, setBranch] = useState<"ankara" | "istanbul">("ankara");
+  const [branch, setBranch] = useState<"ankara" | "istanbul">(
+    kopyaOrder?.branch === "istanbul" ? "istanbul" : "ankara"
+  );
   // Sipariş onay SMS'i — varsayılan açık; müşteri defterden seçilmediyse veya
   // telefonu yoksa sunucu sessizce atlar. Düzenleme modunda gönderilmez.
   const [sendSms, setSendSms] = useState(true);
@@ -308,7 +361,7 @@ export default function OrderForm({
         r.code = l.code;
         r.unit = l.unit === "koli" || l.unit === "boy" ? l.unit : "metre";
         r.qty = String(l.qty);
-        const p = findProfile(l.code);
+        const p = profilBul(katalog.profiles, l.code);
         if (p) r.usd = String(p.priceUSD);
       } else if (l.kind === "glass" || l.kind === "ayna") {
         r.kind = l.kind;
@@ -319,7 +372,9 @@ export default function OrderForm({
       } else if (l.kind === "technical") {
         r.kind = "technical";
         // Yapay zeka ürün adı da döndürebilir: önce koda, sonra ada bakılır
-        const t = getTechnicalProduct(l.code) || findTechnicalByName(l.code);
+        const t =
+          teknikBul(katalog.technical, l.code) ||
+          findTechnicalByName(katalog.technical, l.code);
         if (t) {
           r.techCode = t.code;
           r.kutuPrice = String(t.priceTL ?? t.priceEUR ?? "");
@@ -353,9 +408,15 @@ export default function OrderForm({
     initialOrder?.euroRate ? String(initialOrder.euroRate) : ""
   );
   const [discountPct, setDiscountPct] = useState(
-    initialOrder?.discountPct ? String(initialOrder.discountPct) : ""
+    initialOrder?.discountPct
+      ? String(initialOrder.discountPct)
+      : kopyaOrder?.discountPct
+        ? String(kopyaOrder.discountPct)
+        : ""
   );
-  const [vat, setVat] = useState(initialOrder?.vatApplied ?? false);
+  const [vat, setVat] = useState(
+    initialOrder?.vatApplied ?? kopyaOrder?.vatApplied ?? false
+  );
   const [sending, setSending] = useState(false);
   const [ratesAuto, setRatesAuto] = useState(false);
   // Günün kuru yetkili tarafından belirlendiyse çalışanlarda alan kilitlenir
@@ -390,6 +451,34 @@ export default function OrderForm({
     }, 500);
     return () => clearTimeout(t);
   }, [customer, customerId, initialOrder]);
+
+  // ---- Canlı stok rozeti (yalnız çerçeve profilleri) ----
+  // Depo stok listesi bir kez çekilir; her çerçeve satırında kodun altında
+  // "ANK X boy · İST Y boy" görünür. Kod stokta hiç yoksa sarı uyarı çıkar.
+  const [stokItems, setStokItems] = useState<StockItem[] | null>(null);
+  useEffect(() => {
+    fetch("/api/stock")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (d?.ok && Array.isArray(d.data?.items)) setStokItems(d.data.items);
+      })
+      .catch(() => {});
+  }, []);
+
+  function stokRozet(code: string): { txt: string; bulundu: boolean } | null {
+    if (!stokItems || !stokItems.length) return null;
+    const q = code.trim();
+    // Kod yeterince yazılmadan rozet gösterme (model seçilirken gürültü olmasın)
+    if (q.replace(/[^A-Za-z0-9]/g, "").length < 6) return null;
+    const m = searchStock(stokItems, q, 0.95, 1)[0];
+    // Yalnızca birebir / önek / içerme eşleşmeleri (skor ≥ 0.9) sayılır —
+    // bulanık benzerlik yanlış modelin stokunu göstermesin.
+    if (!m || m.score < 0.9) return { txt: "stokta görünmüyor", bulundu: false };
+    return {
+      txt: `ANK ${toBoy(m.item.ankaraMt)} boy · İST ${toBoy(m.item.istanbulMt)} boy`,
+      bulundu: true,
+    };
+  }
 
   // Günün kuru daha önce girildiyse formu otomatik doldur.
   // Kur yetkili (firma sahibi) tarafından belirlendiyse alan kilitlenir —
@@ -434,7 +523,7 @@ export default function OrderForm({
   const euroNum = sayi(euroRate) || 0;
 
   const lines = rows
-    .map((r) => computeRow(r, rateNum, euroNum))
+    .map((r) => computeRow(r, rateNum, euroNum, katalog))
     .filter((l): l is ComputedLine => l !== null);
 
   const gross = r2(lines.reduce((s, l) => s + l.lineTotal, 0));
@@ -457,6 +546,34 @@ export default function OrderForm({
     if (!lines.length) {
       setResult({ ok: false, msg: "En az bir geçerli satır girin." });
       return;
+    }
+    // ---- Anomali perdesi (kaydetmeden önce son kontrol) ----
+    // Engelleyiciler: ₺0 fiyatlı satır (çoğunlukla kur girilmeden çerçeve
+    // satırı) ve ₺0 toplam. Onaylılar: alışılmadık yüksek iskonto.
+    const sifirli = lines.find((l) => !(l.unitPriceTL > 0) || !(l.lineTotal > 0));
+    if (sifirli) {
+      setResult({
+        ok: false,
+        msg: `"${sifirli.name}" satırının fiyatı ₺0 görünüyor — kur veya birim fiyat eksik. Kontrol edip tekrar deneyin.`,
+      });
+      return;
+    }
+    if (!(net > 0)) {
+      setResult({ ok: false, msg: "Sipariş toplamı ₺0 — fiyatları kontrol edin." });
+      return;
+    }
+    const uyarilar: string[] = [];
+    const genelIsk = sayi(discountPct);
+    if (genelIsk >= 30) uyarilar.push(`Genel iskonto %${fmt(genelIsk)}`);
+    for (const r of rows) {
+      const p = sayi(r.iskonto);
+      if (p >= 30) uyarilar.push(`Bir satırda %${fmt(p)} iskonto var`);
+    }
+    if (uyarilar.length) {
+      const onay = confirm(
+        `Dikkat — alışılmadık değerler:\n\n• ${uyarilar.join("\n• ")}\n\nYine de kaydedilsin mi?`
+      );
+      if (!onay) return;
     }
     // Aynı müşteriye yakın zamanda sipariş varsa son bir onay iste —
     // iki çalışanın habersiz aynı siparişi girmesini engeller.
@@ -517,6 +634,9 @@ export default function OrderForm({
           ok: true,
           msg: [
             `Sipariş ${data.orderId} oluşturuldu.`,
+            data.stored === false
+              ? "⚠ Kalıcı depo bağlı değil — sipariş panelde SAKLANAMADI."
+              : "",
             data.emailSent ? "E-posta gönderildi." : "",
             data.waSent ? "WhatsApp mesajı gönderildi." : "",
             smsMsg,
@@ -557,6 +677,11 @@ export default function OrderForm({
               setCustomerId(c.id);
               if (c.branch === "ankara" || c.branch === "istanbul") {
                 setBranch(c.branch);
+              }
+              // Bayiye özel iskonto: kartta tanımlıysa genel iskonto alanına
+              // otomatik yazılır (alan doluysa dokunulmaz).
+              if (c.iskontoPct && c.iskontoPct > 0) {
+                setDiscountPct((prev) => prev || String(c.iskontoPct));
               }
             }}
           />
@@ -624,6 +749,15 @@ export default function OrderForm({
         </>
       )}
 
+      {/* Kopya modu bilgisi — satırlar hazır, fiyatlar bugünden hesaplanır */}
+      {kopyaOrder && !initialOrder && (
+        <div className="notice info" style={{ marginTop: 12 }}>
+          📋 <b>{kopyaOrder.kaynakNo}</b> siparişinin kopyası açıldı — satırlar
+          aynı, çerçeve/teknik fiyatları bugünün katalog fiyatı ve kurundan
+          yeniden hesaplanır. Kontrol edip gönderin.
+        </div>
+      )}
+
       {/* Mükerrer sipariş uyarısı — aynı müşteriye başka bir çalışan
           yakın zamanda sipariş girdiyse burada görünür. */}
       {!initialOrder && sonSiparisler.length > 0 && (
@@ -654,10 +788,13 @@ export default function OrderForm({
 
       <h2>Sipariş Satırları</h2>
       {rows.map((row) => {
-        const computed = computeRow(row, rateNum, euroNum);
-        const profile = row.kind === "frame" ? findProfile(row.code) : undefined;
+        const computed = computeRow(row, rateNum, euroNum, katalog);
+        const profile =
+          row.kind === "frame" ? profilBul(katalog.profiles, row.code) : undefined;
         const tech =
-          row.kind === "technical" ? getTechnicalProduct(row.techCode) : undefined;
+          row.kind === "technical"
+            ? teknikBul(katalog.technical, row.techCode)
+            : undefined;
         const glassSizes =
           row.kind === "glass" ? GLASS_SIZES[row.glassType] || [] : [];
 
@@ -699,7 +836,7 @@ export default function OrderForm({
                       value={row.code}
                       onChange={(e) => {
                         const v = e.target.value;
-                        const pr = findProfile(v);
+                        const pr = profilBul(katalog.profiles, v);
                         // Model tam seçildiğinde depo formatına çevirip sona
                         // otomatik "-" ekle: "4501 S" → "4501S-"; renk kodu
                         // aynı kutuya devam yazılır → "4501S-1242".
@@ -715,7 +852,7 @@ export default function OrderForm({
                       placeholder="örn. 4501S-1242"
                     />
                     <datalist id={`profiles-${row.id}`}>
-                      {FRAME_PROFILES.map((f) => (
+                      {katalog.profiles.map((f) => (
                         <option key={f.code} value={f.code}>
                           {f.series} Serisi — ${f.priceUSD}/mt
                         </option>
@@ -926,6 +1063,7 @@ export default function OrderForm({
                         aranabilir seçici kullanılıyor. */}
                     <TechnicalPicker
                       value={row.techCode}
+                      products={katalog.technical}
                       onPick={(t) => {
                         update(row.id, {
                           techCode: t.code,
@@ -1089,6 +1227,34 @@ export default function OrderForm({
                     mt
                   </span>
                 )}
+                {row.kind === "frame" &&
+                  (() => {
+                    const rz = stokRozet(row.code);
+                    if (!rz) return null;
+                    return (
+                      <span
+                        title={
+                          rz.bulundu
+                            ? "Depo stok listesindeki güncel miktar (1 boy = 2,9 mt)"
+                            : "Bu kod depo stok listesinde bulunamadı — kodu kontrol edin"
+                        }
+                        style={{
+                          marginRight: 10,
+                          padding: "2px 8px",
+                          borderRadius: 8,
+                          fontSize: 12,
+                          fontWeight: 700,
+                          whiteSpace: "nowrap",
+                          background: rz.bulundu
+                            ? "rgba(21,128,61,.12)"
+                            : "rgba(180,83,9,.14)",
+                          color: rz.bulundu ? "#15803d" : "#b45309",
+                        }}
+                      >
+                        📦 {rz.txt}
+                      </span>
+                    );
+                  })()}
                 {computed
                   ? `${computed.unitText} — Tutar: ₺ ${fmt(computed.lineTotal)}`
                   : "Satır henüz eksik"}

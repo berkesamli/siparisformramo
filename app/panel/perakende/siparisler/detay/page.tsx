@@ -145,6 +145,21 @@ export default async function RetailOrderDetailPage({
             <span>GENEL TOPLAM</span>
             <span>₺{fmt(order.total)}</span>
           </div>
+          {/* Kapora alındıysa fişte kalan bakiye açıkça görünür */}
+          {(Number(order.paidAmount) || 0) > 0 && (
+            <>
+              <div style={{ display: "flex", justifyContent: "space-between", padding: "6px 0 2px", fontSize: 14 }}>
+                <span>Kapora / Ödenen</span>
+                <span>-₺{fmt(Number(order.paidAmount) || 0)}</span>
+              </div>
+              <div style={{ display: "flex", justifyContent: "space-between", padding: "2px 0", fontSize: 15, fontWeight: 800 }}>
+                <span>Teslimde Kalan</span>
+                <span>
+                  ₺{fmt(Math.max(0, order.total - (Number(order.paidAmount) || 0)))}
+                </span>
+              </div>
+            </>
+          )}
         </div>
 
         {order.notes && (

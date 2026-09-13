@@ -1,21 +1,17 @@
 // Teknik malzeme kataloğu — Form.html'den taşındı.
 // priceEUR: Euro fiyatlı ürünler (kutu fiyatı), priceTL: TL fiyatlı ürünler (OLGA).
+//
+// DİKKAT: Bu dosya toptan fiyat listesini içerir — istemci ("use client")
+// bileşenlerinden ASLA import edilmemeli (fiyatlar herkese açık JS paketine
+// girer). İstemci tarafı /api/katalog'dan çeker; tipler lib/catalog-utils'te.
 
-import type { StockStatus } from "./catalog";
+import {
+  teknikBul,
+  teknikKategorili,
+  type TechnicalProduct,
+} from "@/lib/catalog-utils";
 
-export interface TechnicalProduct {
-  code: string;
-  name: string;
-  category: string;
-  adetPerKutu: number;
-  priceEUR?: number;
-  priceTL?: number;
-  isKarton?: boolean;
-  stok?: StockStatus;
-  // Ürün görseli (tam URL). Sipariş formundaki seçicide küçük önizleme
-  // olarak çıkar. Boş bırakılabilir — görseller zamanla eklenir.
-  image?: string;
-}
+export type { TechnicalProduct } from "@/lib/catalog-utils";
 
 export const TECHNICAL_PRODUCTS: TechnicalProduct[] = [
   // ==================== POZZİ ====================
@@ -144,13 +140,9 @@ export const TECHNICAL_PRODUCTS: TechnicalProduct[] = [
 ];
 
 export function getTechnicalProduct(code: string): TechnicalProduct | undefined {
-  return TECHNICAL_PRODUCTS.find((t) => t.code === code);
+  return teknikBul(TECHNICAL_PRODUCTS, code);
 }
 
 export function technicalByCategory(): Record<string, TechnicalProduct[]> {
-  const map: Record<string, TechnicalProduct[]> = {};
-  for (const t of TECHNICAL_PRODUCTS) {
-    (map[t.category] ||= []).push(t);
-  }
-  return map;
+  return teknikKategorili(TECHNICAL_PRODUCTS);
 }

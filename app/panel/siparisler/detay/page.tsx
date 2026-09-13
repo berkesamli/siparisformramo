@@ -49,6 +49,13 @@ export default async function OrderDetailPage({
         >
           ✏️ Düzenle
         </Link>
+        <Link
+          href={`/panel?kopya=${encodeURIComponent(order.orderId)}&d=${order.dateKey}`}
+          className="btn small secondary"
+          title="Aynı satırlarla yeni sipariş aç — fiyatlar bugünün katalog fiyatı ve kurundan hesaplanır"
+        >
+          📋 Kopyala
+        </Link>
         <a
           className="btn small"
           href={`/api/orders/pdf?d=${order.dateKey}&id=${encodeURIComponent(order.orderId)}`}
