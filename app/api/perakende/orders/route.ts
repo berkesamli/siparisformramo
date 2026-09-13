@@ -11,7 +11,7 @@ import {
   saveRetailOrder,
   getRetailOrder,
   listRetailOrders,
-  nextRetailOrderId,
+  createRetailOrder,
   type RetailItem,
   type SavedRetailOrder,
 } from "@/lib/retail-orders";
@@ -106,10 +106,16 @@ export async function POST(req: NextRequest) {
   const discount = Math.min(r2(body.discount), gross);
   const total = r2(gross - Math.max(0, discount));
 
+  // Kapora — 0 ile toplam arasına kıstırılır; tahsilat kaydına da işlenir
+  const kaporaTutar = Math.min(total, Math.max(0, r2(body?.kapora?.amount)));
+  const kaporaYontem: "nakit" | "krediKarti" =
+    body?.kapora?.method === "krediKarti" ? "krediKarti" : "nakit";
+
   const now = new Date();
-  const orderId = await nextRetailOrderId();
-  const order: SavedRetailOrder = {
-    orderId,
+  // ---- Önce KALICI KAYIT, sonra bildirim ----
+  // Numara çakışmasız üretilir (retail/no rezervasyonu); kayıt başarısızsa
+  // e-posta/PDF hiç üretilmez — "bildirimde var, panelde yok" sipariş kalmaz.
+  const taslak: Omit<SavedRetailOrder, "orderId"> = {
     dateKey: istanbulDateKey(now),
     createdAt: now.toISOString(),
     updatedAt: now.toISOString(),
@@ -120,8 +126,14 @@ export async function POST(req: NextRequest) {
     customerEmail: s(body.customerEmail, 120).trim(),
     customerAddress: s(body.customerAddress, 240).trim(),
     customerId: s(body.customerId, 40),
-    payment: "bekliyor",
-    paidAmount: 0,
+    branch: body.branch === "istanbul" ? "istanbul" : "ankara",
+    payment:
+      kaporaTutar <= 0
+        ? "bekliyor"
+        : kaporaTutar + 0.01 >= total
+          ? "odendi"
+          : "kismi",
+    paidAmount: kaporaTutar,
     usdRate: r2(body.usdRate),
     deliveryDate: s(body.deliveryDate, 20),
     notes: s(body.notes, 1000),
@@ -131,7 +143,54 @@ export async function POST(req: NextRequest) {
     total,
   };
 
-  const saved = await saveRetailOrder(order);
+  let orderId = "";
+  let stored = false;
+  try {
+    ({ orderId, stored } = await createRetailOrder(taslak));
+  } catch (err) {
+    console.error("Perakende siparişi kaydedilemedi:", err);
+  }
+  if (blobConfigured() && !stored) {
+    return NextResponse.json(
+      {
+        error:
+          "Sipariş KAYDEDİLEMEDİ (depo hatası). E-posta gönderilmedi — bilgiler formda duruyor, lütfen tekrar deneyin.",
+      },
+      { status: 503 }
+    );
+  }
+  const order: SavedRetailOrder = { ...taslak, orderId };
+
+  // Kapora tahsilat kaydı — kasa ve cari hareketler eksiksiz kalsın.
+  // Tahsilat yazılamazsa sipariş kaydı geçerli kalır (listeden düzeltilebilir).
+  if (stored && kaporaTutar > 0) {
+    try {
+      const { saveTahsilat, newTahsilatId, istanbulDateKey: gunKey } = await import(
+        "@/lib/tahsilat"
+      );
+      const { applyTahsilatDelta } = await import("@/lib/finans-ozet");
+      const t = {
+        id: newTahsilatId(),
+        dateKey: gunKey(),
+        createdAt: new Date().toISOString(),
+        createdBy: user.name,
+        branch: (order.branch || "ankara") as "ankara" | "istanbul",
+        customerId: order.customerId || undefined,
+        customerName: order.customerName,
+        orderId: order.orderId,
+        orderDateKey: order.dateKey,
+        amount: kaporaTutar,
+        currency: "TL" as const,
+        method: kaporaYontem,
+        note: "Perakende kapora",
+        kaynak: "panel" as const,
+      };
+      await saveTahsilat(t);
+      await applyTahsilatDelta(t, 1);
+    } catch (err) {
+      console.error("Kapora tahsilatı kaydedilemedi:", err);
+    }
+  }
 
   // Üretim PDF'i — e-posta ekinde gider, ayrıca listeden indirilebilir
   let pdf: Buffer | undefined;
@@ -152,8 +211,10 @@ export async function POST(req: NextRequest) {
     ok: true,
     orderId,
     dateKey: order.dateKey,
-    saved,
+    saved: stored,
     emailSent,
+    kapora: kaporaTutar,
+    kalan: r2(total - kaporaTutar),
   });
 }
 

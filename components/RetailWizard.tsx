@@ -121,6 +121,12 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
   const [customerAddress, setCustomerAddress] = useState("");
   // Müşteri defterinden seçildiyse cari takip için kayıt kimliği
   const [customerId, setCustomerId] = useState("");
+  // Şube ZORUNLU — kapora hangi kasaya girdi, iş hangi dükkânda yapılacak
+  // belli olsun. Bilerek boş başlar; personel seçmeden kayıt olmaz.
+  const [branch, setBranch] = useState<"" | "ankara" | "istanbul">("");
+  // Kapora — öneri %50; nakit/kart seçimiyle tahsilat kaydına işlenir
+  const [kapora, setKapora] = useState("");
+  const [kaporaMethod, setKaporaMethod] = useState<"nakit" | "krediKarti">("nakit");
   const [deliveryDate, setDeliveryDate] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() + 7);
@@ -172,7 +178,13 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
   const [discountType, setDiscountType] = useState<"percent" | "tl">("percent");
   const [notes, setNotes] = useState("");
   const [submitting, setSubmitting] = useState(false);
-  const [success, setSuccess] = useState<{ id: string; d: string } | null>(null);
+  const [success, setSuccess] = useState<{
+    id: string;
+    d: string;
+    saved: boolean;
+    kapora?: number;
+    kalan?: number;
+  } | null>(null);
   const [error, setError] = useState("");
 
   // Günlük kuru otomatik doldur (sipariş panelindeki kur kaydından)
@@ -425,6 +437,15 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
       setError("Lütfen müşteri adı ve telefon girin.");
       return;
     }
+    if (!branch) {
+      setError("Lütfen şube seçin (Ankara / İstanbul).");
+      return;
+    }
+    const kaporaNum = parseFloat(kapora.replace(",", ".")) || 0;
+    if (kaporaNum < 0 || kaporaNum > grandTotal + 0.01) {
+      setError("Kapora 0 ile genel toplam arasında olmalı.");
+      return;
+    }
     setSubmitting(true);
     setError("");
     try {
@@ -438,6 +459,8 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
           customerEmail: customerEmail.trim(),
           customerAddress: customerAddress.trim(),
           customerId,
+          branch,
+          kapora: { amount: Math.round(kaporaNum * 100) / 100, method: kaporaMethod },
           usdRate: parseFloat(usdRate) || 0,
           deliveryDate,
           notes: notes.trim(),
@@ -447,7 +470,13 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
       });
       const d = await res.json();
       if (!res.ok || !d.ok) throw new Error(d.error || "Sipariş kaydedilemedi");
-      setSuccess({ id: d.orderId, d: d.dateKey || "" });
+      setSuccess({
+        id: d.orderId,
+        d: d.dateKey || "",
+        saved: d.saved !== false,
+        kapora: Number(d.kapora) || 0,
+        kalan: Number(d.kalan) || 0,
+      });
     } catch (e: any) {
       setError(e.message || "Bir hata oluştu");
     } finally {
@@ -461,6 +490,10 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
     setCustomerPhone("");
     setCustomerEmail("");
     setCustomerAddress("");
+    setCustomerId("");
+    setBranch("");
+    setKapora("");
+    setKaporaMethod("nakit");
     setNotes("");
     setDiscountValue("0");
     setDiscountType("percent");
@@ -539,6 +572,17 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
           Sipariş Numarası:{" "}
           <strong style={{ color: "var(--brand)", fontSize: 20 }}>{success.id}</strong>
         </p>
+        {!success.saved && (
+          <p style={{ fontSize: 13, color: "#b45309", fontWeight: 600 }}>
+            ⚠ Kalıcı depo bağlı değil — sipariş panelde SAKLANAMADI.
+          </p>
+        )}
+        {(success.kapora || 0) > 0 && (
+          <p style={{ fontSize: 14 }}>
+            Kapora alındı: <b>₺{fmt(success.kapora || 0)}</b> — Teslimde kalan:{" "}
+            <b>₺{fmt(success.kalan || 0)}</b>
+          </p>
+        )}
         <div style={{ display: "flex", gap: 10, justifyContent: "center", marginTop: 16, flexWrap: "wrap" }}>
           {success.d && (
             <>
@@ -1022,6 +1066,51 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
                 <label>Teslim Tarihi</label>
                 <input type="date" value={deliveryDate} onChange={(e) => setDeliveryDate(e.target.value)} />
               </div>
+              <div>
+                <label>Şube *</label>
+                <select
+                  value={branch}
+                  onChange={(e) =>
+                    setBranch(e.target.value as "" | "ankara" | "istanbul")
+                  }
+                >
+                  <option value="">Seçin…</option>
+                  <option value="ankara">Ankara</option>
+                  <option value="istanbul">İstanbul</option>
+                </select>
+              </div>
+              <div>
+                <label>Kapora (₺)</label>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    value={kapora}
+                    onChange={(e) => setKapora(e.target.value)}
+                    placeholder="0"
+                  />
+                  <select
+                    style={{ width: 90 }}
+                    value={kaporaMethod}
+                    onChange={(e) =>
+                      setKaporaMethod(e.target.value as "nakit" | "krediKarti")
+                    }
+                  >
+                    <option value="nakit">Nakit</option>
+                    <option value="krediKarti">Kart</option>
+                  </select>
+                  <button
+                    type="button"
+                    className="btn small secondary"
+                    title="Genel toplamın yarısını kapora yaz"
+                    onClick={() =>
+                      setKapora(String(Math.round((grandTotal / 2) * 100) / 100))
+                    }
+                  >
+                    %50
+                  </button>
+                </div>
+              </div>
               <div style={{ gridColumn: "1 / -1" }}>
                 <label>Adres (kargolu siparişlerde)</label>
                 <input
@@ -1041,6 +1130,20 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
                 <div style={{ color: "var(--error)" }}><span>İndirim</span><span>-₺{fmt(discount)}</span></div>
               )}
               <div className="rw-grand"><span>GENEL TOPLAM</span><span>₺{fmt(grandTotal)}</span></div>
+              {(parseFloat(kapora.replace(",", ".")) || 0) > 0 && (
+                <>
+                  <div>
+                    <span>Kapora ({kaporaMethod === "nakit" ? "nakit" : "kart"})</span>
+                    <span>₺{fmt(parseFloat(kapora.replace(",", ".")) || 0)}</span>
+                  </div>
+                  <div style={{ fontWeight: 700 }}>
+                    <span>Teslimde Kalan</span>
+                    <span>
+                      ₺{fmt(Math.max(0, grandTotal - (parseFloat(kapora.replace(",", ".")) || 0)))}
+                    </span>
+                  </div>
+                </>
+              )}
             </div>
 
             <div style={{ display: "flex", gap: 10, marginTop: 20, flexWrap: "wrap" }}>

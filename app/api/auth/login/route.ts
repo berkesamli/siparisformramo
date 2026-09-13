@@ -1,6 +1,14 @@
 import { NextResponse } from "next/server";
-import { findUser } from "@/data/users";
+import { findUserByUsername } from "@/data/users";
+import { verifyPassword } from "@/lib/password";
+import {
+  loginLockRemaining,
+  registerLoginFail,
+  clearLoginFails,
+} from "@/lib/login-guard";
 import { createSessionToken, SESSION_COOKIE } from "@/lib/auth";
+
+export const runtime = "nodejs";
 
 export async function POST(req: Request) {
   const body = await req.json().catch(() => null);
@@ -11,10 +19,34 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: false, error: "Kullanıcı adı ve şifre gerekli." }, { status: 400 });
   }
 
-  const user = findUser(username, password);
-  if (!user) {
-    return NextResponse.json({ ok: false, error: "Kullanıcı adı veya şifre hatalı." }, { status: 401 });
+  // Kaba kuvvet kilidi: 15 dakikada 5 hatalı deneme → 15 dakika bekleme
+  const kilitSn = await loginLockRemaining(username);
+  if (kilitSn > 0) {
+    const dk = Math.ceil(kilitSn / 60);
+    return NextResponse.json(
+      {
+        ok: false,
+        error: `Çok fazla hatalı deneme — bu hesap geçici olarak kilitlendi. ${dk} dakika sonra tekrar deneyin.`,
+      },
+      { status: 429 }
+    );
   }
+
+  const user = findUserByUsername(username);
+  if (!user || !verifyPassword(user, password)) {
+    const kilitlendi = await registerLoginFail(username);
+    return NextResponse.json(
+      {
+        ok: false,
+        error: kilitlendi
+          ? "Çok fazla hatalı deneme — hesap 15 dakika kilitlendi."
+          : "Kullanıcı adı veya şifre hatalı.",
+      },
+      { status: kilitlendi ? 429 : 401 }
+    );
+  }
+
+  await clearLoginFails(username);
 
   const token = await createSessionToken({
     username: user.username,

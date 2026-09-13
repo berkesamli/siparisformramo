@@ -6,11 +6,9 @@
 // listede küçük önizleme çıkar.
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import {
-  TECHNICAL_PRODUCTS,
-  getTechnicalProduct,
-  type TechnicalProduct,
-} from "@/data/technical";
+// Ürün listesi prop ile gelir (fiyatlar istemci paketinde durmasın diye
+// üst bileşen /api/katalog'dan çeker — bkz. lib/use-katalog).
+import { teknikBul, type TechnicalProduct } from "@/lib/catalog-utils";
 import { eslesir } from "@/lib/search-norm";
 
 const fiyatEtiketi = (t: TechnicalProduct) =>
@@ -23,11 +21,13 @@ const fiyatEtiketi = (t: TechnicalProduct) =>
 export default function TechnicalPicker({
   value,
   onPick,
+  products,
 }: {
   value: string; // seçili ürün kodu
   onPick: (t: TechnicalProduct) => void;
+  products: TechnicalProduct[];
 }) {
-  const secili = getTechnicalProduct(value);
+  const secili = teknikBul(products, value);
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const [aktif, setAktif] = useState(0);
@@ -48,9 +48,9 @@ export default function TechnicalPicker({
 
   const sonuclar = useMemo(() => {
     const q = query.trim();
-    if (!q) return TECHNICAL_PRODUCTS;
-    return TECHNICAL_PRODUCTS.filter((t) => eslesir(q, t.name, t.code, t.category));
-  }, [query]);
+    if (!q) return products;
+    return products.filter((t) => eslesir(q, t.name, t.code, t.category));
+  }, [query, products]);
 
   // Aktif satır listeden taşmasın
   useEffect(() => {

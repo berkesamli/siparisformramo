@@ -10,6 +10,7 @@ import {
   type OrderStatus,
 } from "@/lib/orders";
 import TahsilatModal, { type TahsilatBaglam } from "./TahsilatModal";
+import { sayi } from "@/lib/num";
 
 const STATUS_LABELS: Record<OrderStatus, string> = {
   olusturuldu: "Oluşturuldu",
@@ -159,6 +160,41 @@ export default function OrdersList({
   // Ödeme girişi artık tahsilat kaydı üretir (tarih/yöntem/şube ile) —
   // pay-select'in yerini TahsilatModal aldı.
   const [tahsilatBaglam, setTahsilatBaglam] = useState<TahsilatBaglam | null>(null);
+
+  // İade: müşteriye para iadesi — orijinal siparişe bağlı NEGATİF tahsilat
+  // kaydı düşülür, siparişin ödenen tutarı azalır (kasa/cari doğru kalır).
+  async function iadeYap(o: SavedOrder) {
+    const odenen = o.payment === "odendi" ? o.net : Number(o.paidAmount) || 0;
+    if (!(odenen > 0)) return;
+    const giris = prompt(
+      `${o.orderId} — ${o.customer || "müşteri"}\nÖdenen: ₺${fmt(odenen)}\n\nİade tutarı (₺):`,
+      String(odenen)
+    );
+    if (giris === null) return;
+    const tutar = sayi(giris);
+    if (!(tutar > 0) || tutar > odenen + 0.01) {
+      alert("Geçersiz tutar — iade, ödenenden fazla olamaz.");
+      return;
+    }
+    const onay = confirm(
+      `₺${fmt(tutar)} iade kaydedilsin mi?\n\nKasadan düşülür ve ${o.orderId} ` +
+        "siparişine negatif tahsilat olarak işlenir. Bu işlem geri alınamaz."
+    );
+    if (!onay) return;
+    const res = await fetch(
+      `/api/orders/iade?d=${o.dateKey}&id=${encodeURIComponent(o.orderId)}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount: tutar }),
+      }
+    ).catch(() => null);
+    const dta = res ? await res.json().catch(() => null) : null;
+    if (!res || !res.ok || !dta?.ok) {
+      setError(dta?.error || "İade kaydedilemedi, sayfayı yenileyin.");
+    }
+    load();
+  }
 
   const visible = (orders || []).filter(
     (o) =>
@@ -411,6 +447,15 @@ export default function OrdersList({
                         💰
                       </button>
                     )}
+                    {(o.payment === "odendi" || (Number(o.paidAmount) || 0) > 0) && (
+                      <button
+                        className="btn small secondary"
+                        title="İade — müşteriye para iadesi (siparişe bağlı negatif tahsilat kaydı düşülür)"
+                        onClick={() => iadeYap(o)}
+                      >
+                        ↩
+                      </button>
+                    )}
                     {o.payment === "kismi" && (
                       <div style={{ fontSize: 11, color: "var(--error)", marginTop: 2 }}>
                         Kalan ₺{fmt(orderBalance(o))}
@@ -460,6 +505,13 @@ export default function OrdersList({
                       title="Siparişi düzenle"
                     >
                       ✏️ Düzenle
+                    </Link>
+                    <Link
+                      className="btn small secondary"
+                      href={`/panel?kopya=${encodeURIComponent(o.orderId)}&d=${o.dateKey}`}
+                      title="Aynı satırlarla yeni sipariş aç — fiyatlar bugünün katalog fiyatı ve kurundan hesaplanır"
+                    >
+                      📋 Kopyala
                     </Link>
                   </td>
                 </tr>

@@ -105,8 +105,14 @@ export function generateRetailPdf(o: SavedRetailOrder): Promise<Buffer> {
     doc.font(FONT_BOLD).fontSize(20).fillColor("white");
     doc.text("OLGA Çerçeve", mm(15), mm(7));
     doc.font(FONT_BOLD).fontSize(9);
-    doc.text(`Toplam: ${fmtTL(o.total)}`, W - mm(95), mm(6), {
-      width: mm(80),
+    // Kapora alındıysa üstte kalan bakiye de görünsün
+    const odenen = Number(o.paidAmount) || 0;
+    const toplamSatiri =
+      odenen > 0
+        ? `Toplam: ${fmtTL(o.total)}  |  Kapora: ${fmtTL(odenen)}  |  Kalan: ${fmtTL(Math.max(0, o.total - odenen))}`
+        : `Toplam: ${fmtTL(o.total)}`;
+    doc.text(toplamSatiri, W - mm(135), mm(6), {
+      width: mm(120),
       align: "right",
     });
     const dateStr = new Date(o.createdAt).toLocaleDateString("tr-TR");

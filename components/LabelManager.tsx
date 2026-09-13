@@ -15,7 +15,10 @@ import {
 } from "@/lib/customers";
 import { eslesir } from "@/lib/search-norm";
 
-const BOS: Omit<Customer, "id" | "createdAt" | "updatedAt"> = {
+const BOS: Omit<Customer, "id" | "createdAt" | "updatedAt" | "iskontoPct"> & {
+  // Formda metin olarak tutulur ("10" / "12,5"); sunucu sayıya çevirir.
+  iskontoPct: string | number;
+} = {
   firstName: "",
   lastName: "",
   company: "",
@@ -28,6 +31,7 @@ const BOS: Omit<Customer, "id" | "createdAt" | "updatedAt"> = {
   postalCode: "",
   country: "Türkiye",
   branch: "ankara",
+  iskontoPct: "",
   note: "",
 };
 
@@ -127,7 +131,7 @@ export default function LabelManager() {
 
   function startEdit(c: Customer) {
     const { id, createdAt, updatedAt, ...rest } = c;
-    setForm({ ...rest, id });
+    setForm({ ...rest, id, iskontoPct: rest.iskontoPct ?? "" });
     setEditing(true);
     setMsg("");
     setErr("");
@@ -328,6 +332,17 @@ export default function LabelManager() {
                   <option value="ankara">{BRANCHES.ankara.label}</option>
                   <option value="istanbul">{BRANCHES.istanbul.label}</option>
                 </select>
+              </div>
+              <div>
+                <label>Bayi İskontosu (%)</label>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={String(form.iskontoPct ?? "")}
+                  onChange={set("iskontoPct")}
+                  placeholder="0"
+                  title="Bu müşteriye özel iskonto — sipariş formunda müşteri seçilince genel iskonto alanına otomatik yazılır"
+                />
               </div>
               <div>
                 <label>Not (etikette küçük punto)</label>
