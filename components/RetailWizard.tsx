@@ -14,12 +14,22 @@ import {
   GLASS_TYPES,
   PRINT_TYPES,
   PASPARTU_COLORS,
-  computeRetailCosts,
   toMM,
   type MatType,
   type GlassType,
   type PrintType,
 } from "@/data/perakende";
+// Fiyat çekirdeği — olgacerceve.com hesaplayıcısıyla AYNI kurallar
+// (iç şerit, pencereli paspartu, kasa/kanvas, tabaka ve cam ölçü sınırları).
+// Sunucu da POST'ta aynı çekirdekle tutarı yeniden hesaplayıp doğrular.
+import {
+  hesaplaPerakende,
+  dogrulaPerakende,
+  pencereDuzenleri,
+  varsayilanDuzen,
+  varsayilanAralik,
+  type PerakendeGirdi,
+} from "@/lib/perakende-fiyat";
 import { findFrameImage } from "@/data/frame-images";
 import { kurus } from "@/lib/num";
 import FramePreview from "@/components/FramePreview";
@@ -61,6 +71,10 @@ interface WizardItem {
   matRight: number;
   matBottom: number;
   matLeft: number;
+  pencereSayisi: number;
+  pencereDuzen: string;
+  pencereAralik: number;
+  kasa: boolean;
   glassType: string;
   printType: string;
   frameCost: number;
@@ -88,8 +102,11 @@ const SIZE_PRESETS: { label: string; w: number; h: number }[] = [
 function itemShortText(it: WizardItem): string {
   const parts = [
     `${it.artWidth}${it.artWidthUnit} x ${it.artHeight}${it.artHeightUnit}`,
-    `Çerçeve: ${it.frameCode}`,
+    `Çerçeve: ${it.frameCode}${it.kasa ? " (Kasa/Kanvas)" : ""}`,
   ];
+  if ((it.pencereSayisi || 1) > 1) {
+    parts.push(`${it.pencereSayisi} pencere (${it.pencereDuzen.replace("x", "×")})`);
+  }
   if (it.matType !== "Paspartu Yok") {
     let m = `Paspartu: ${it.matType}`;
     if (it.matColor && it.matColor !== "-") m += ` ${it.matColor}`;
@@ -168,6 +185,12 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
   const [mBottom, setMBottom] = useState("0");
   const [mLeft, setMLeft] = useState("0");
 
+  // ---- Pencereli paspartu & kasa (websitedeki hesaplayıcıyla aynı kurallar) ----
+  const [pencereSayisi, setPencereSayisi] = useState("1");
+  const [pencereDuzen, setPencereDuzen] = useState(""); // "2x3"; boş = varsayılan
+  const [pencereAralik, setPencereAralik] = useState(""); // mm; boş = öneri
+  const [kasa, setKasa] = useState(false);
+
   // ---- Cam & Baskı ----
   const [glass, setGlass] = useState<GlassType>(GLASS_TYPES[0]);
   const [print, setPrint] = useState<PrintType>(PRINT_TYPES[0]);
@@ -237,32 +260,59 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
     left: parseFloat(mLeft) || 0,
   };
 
-  const costs = useMemo(
-    () =>
-      computeRetailCosts({
-        wMM,
-        hMM,
-        matTop: edges.top,
-        matRight: edges.right,
-        matBottom: edges.bottom,
-        matLeft: edges.left,
-        framePriceTL,
-        matPrice: mat.price,
-        doubleMat,
-        innerMatPrice: innerMat.price,
-        zeminEnabled,
-        zeminPrice: zeminMat.price,
-        glassPrice: glass.price,
-        printUsdPerM2: print.usdPerM2,
-        usdRate: parseFloat(usdRate) || 0,
-      }),
+  const pencereN = Math.min(9, Math.max(1, parseInt(pencereSayisi) || 1));
+  const duzen = useMemo(() => {
+    if (pencereN <= 1) return null;
+    const liste = pencereDuzenleri(pencereN);
+    return liste.find((d) => d.id === pencereDuzen) || varsayilanDuzen(pencereN);
+  }, [pencereN, pencereDuzen]);
+  const aralikMM =
+    parseFloat(pencereAralik.replace(",", ".")) > 0
+      ? parseFloat(pencereAralik.replace(",", "."))
+      : varsayilanAralik(wMM, hMM);
+
+  // Fiyat girdisi — sihirbaz ve sunucu aynı çekirdeği kullanır
+  const fiyatGirdi: PerakendeGirdi = useMemo(
+    () => ({
+      wMM,
+      hMM,
+      kenar: { ust: edges.top, alt: edges.bottom, sol: edges.left, sag: edges.right },
+      matPrice: mat.price,
+      doubleMat,
+      innerMatPrice: innerMat.price,
+      icSeritMm: parseFloat(altMontaj.replace(",", ".")) || 5,
+      zeminEnabled,
+      zeminPrice: zeminMat.price,
+      pencereSayisi: pencereN,
+      pencereRows: duzen?.rows,
+      pencereCols: duzen?.cols,
+      pencereAralikMm: aralikMM,
+      camPrice: glass.price,
+      camMaxKisaMM: glass.maxKisaMM,
+      camMaxUzunMM: glass.maxUzunMM,
+      camUyariKisaMM: glass.uyariKisaMM,
+      camUyariUzunMM: glass.uyariUzunMM,
+      kasa,
+      framePriceTL,
+      printUsdPerM2: print.usdPerM2,
+      usdRate: parseFloat(usdRate) || 0,
+    }),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       wMM, hMM, edges.top, edges.right, edges.bottom, edges.left,
-      framePriceTL, mat, doubleMat, innerMat, zeminEnabled, zeminMat,
-      glass, print, usdRate,
+      framePriceTL, mat, doubleMat, innerMat, altMontaj, zeminEnabled, zeminMat,
+      pencereN, duzen, aralikMM, glass, print, usdRate, kasa,
     ]
   );
+
+  const costs = useMemo(() => hesaplaPerakende(fiyatGirdi), [fiyatGirdi]);
+  // Kural denetimi: "engel" kayıt/sepeti durdurur, "uyari" sarı notla geçer
+  const kurallar = useMemo(
+    () => (wMM > 0 && hMM > 0 ? dogrulaPerakende(fiyatGirdi) : []),
+    [fiyatGirdi, wMM, hMM]
+  );
+  const engeller = kurallar.filter((k) => k.seviye === "engel");
+  const uyarilar = kurallar.filter((k) => k.seviye === "uyari");
 
   const cartTotal = cart.reduce((s, it) => s + it.itemTotal, 0);
   const currentCounts = wMM > 0 && hMM > 0;
@@ -335,6 +385,10 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
       matRight: edges.right,
       matBottom: edges.bottom,
       matLeft: edges.left,
+      pencereSayisi: mat.price > 0 && !kasa ? pencereN : 1,
+      pencereDuzen: pencereN > 1 && duzen ? duzen.id : "",
+      pencereAralik: pencereN > 1 ? aralikMM : 0,
+      kasa,
       glassType: glass.name,
       printType: print.name,
       // Kalem tutarı, dökümdeki yuvarlanmış satırların toplamıdır — fişte
@@ -379,6 +433,10 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
     setMRight("0");
     setMBottom("0");
     setMLeft("0");
+    setPencereSayisi("1");
+    setPencereDuzen("");
+    setPencereAralik("");
+    setKasa(false);
     setGlass(GLASS_TYPES[0]);
     setPrint(PRINT_TYPES[0]);
   }
@@ -386,6 +444,10 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
   function addToCart() {
     if (!currentCounts) {
       setError("Ürün ölçüleri eksik.");
+      return;
+    }
+    if (engeller.length > 0) {
+      setError(engeller[0].mesaj);
       return;
     }
     setCart([...cart, captureItem()]);
@@ -410,6 +472,12 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
       setError("Baskı fiyatı için USD kuru gerekli (Çerçeve adımında girin).");
       return false;
     }
+    // Üretim kuralları (websitedeki hesaplayıcıyla aynı): tabaka/cam/dış
+    // ölçü sınırı aşılıyorsa özete geçilmez — ölçü ya da malzeme değişmeli.
+    if (s >= 3 && engeller.length > 0) {
+      setError(engeller[0].mesaj);
+      return false;
+    }
     if (s === 7 && (!customerName.trim() || !customerPhone.trim())) {
       setError("Lütfen müşteri adı ve telefon girin.");
       return false;
@@ -431,6 +499,10 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
     if (framePriceTL <= 0) {
       setError("Çerçeve fiyatı eksik — seri kodu veya manuel fiyat girin.");
       setStep(2);
+      return;
+    }
+    if (engeller.length > 0) {
+      setError(engeller[0].mesaj);
       return;
     }
     if (!customerName.trim() || !customerPhone.trim()) {
@@ -785,6 +857,18 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
                 />
               </div>
             </div>
+            <label
+              style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 14, cursor: "pointer", fontSize: 14 }}
+              title="Kanvas/tuval kasaya gerilir; cam ve paspartu uygulanmaz, kasa ile tuval arasında 5 mm gölge boşluğu bırakılır"
+            >
+              <input
+                type="checkbox"
+                checked={kasa}
+                onChange={(e) => setKasa(e.target.checked)}
+                style={{ width: "auto", margin: 0 }}
+              />
+              🖼️ Kasa (kanvas) çerçeve — tuval kasaya gerilir; cam ve paspartu uygulanmaz
+            </label>
             {framePriceTL > 0 && (
               <div className="notice ok" style={{ marginTop: 14 }}>
                 Çerçeve metre fiyatı: <strong>₺{fmt(framePriceTL)}/m</strong>
@@ -798,6 +882,12 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
         {step === 3 && (
           <div className="card">
             <h2 style={{ marginTop: 0 }}>🎨 Paspartu</h2>
+            {kasa && (
+              <div className="notice info" style={{ marginBottom: 12 }}>
+                Kasa (kanvas) çerçevede paspartu uygulanmaz — bu adımı
+                atlayabilirsiniz; seçimler fiyata girmez.
+              </div>
+            )}
             <div className="rw-options">
               {MAT_TYPES.map((m) => (
                 <button
@@ -820,6 +910,59 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
                     <button type="button" className={!doubleMat ? "active" : ""} onClick={() => setDoubleMat(false)}>Tek</button>
                     <button type="button" className={doubleMat ? "active" : ""} onClick={() => setDoubleMat(true)}>Çift</button>
                   </div>
+                </div>
+
+                {/* Pencereli (çoklu fotoğraf) paspartu — websitedeki
+                    hesaplayıcıyla aynı: ölçü TEK fotoğrafın ölçüsü, alan
+                    düzenden türetilir, kesim ücreti pencere başına eklenir. */}
+                <div style={{ marginTop: 16 }}>
+                  <label>Pencere (Fotoğraf) Sayısı</label>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+                    <select
+                      style={{ width: 80 }}
+                      value={String(pencereN)}
+                      onChange={(e) => {
+                        setPencereSayisi(e.target.value);
+                        setPencereDuzen("");
+                      }}
+                    >
+                      {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
+                        <option key={n} value={n}>{n}</option>
+                      ))}
+                    </select>
+                    {pencereN > 1 && (
+                      <>
+                        <select
+                          style={{ width: "auto" }}
+                          value={duzen?.id || ""}
+                          onChange={(e) => setPencereDuzen(e.target.value)}
+                          title="Fotoğrafların dizilişi"
+                        >
+                          {pencereDuzenleri(pencereN).map((d) => (
+                            <option key={d.id} value={d.id}>
+                              {d.label} ({d.id.replace("x", "×")})
+                            </option>
+                          ))}
+                        </select>
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          style={{ width: 120 }}
+                          value={pencereAralik}
+                          onChange={(e) => setPencereAralik(e.target.value)}
+                          placeholder={`aralık ${varsayilanAralik(wMM, hMM)} mm`}
+                          title="Pencereler arası görünen köprü (mm) — boş bırakılırsa önerilen kullanılır"
+                        />
+                      </>
+                    )}
+                  </div>
+                  {pencereN > 1 && (
+                    <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 6 }}>
+                      Ölçü adımındaki giriş <b>tek fotoğrafın</b> ölçüsüdür;{" "}
+                      {pencereN} pencere {duzen ? duzen.label.toLocaleLowerCase("tr-TR") : ""}{" "}
+                      dizilir. İlk pencere hariç pencere başına kesim ücreti eklenir.
+                    </p>
+                  )}
                 </div>
 
                 <div style={{ marginTop: 16 }}>
@@ -899,6 +1042,12 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
         {step === 4 && (
           <div className="card">
             <h2 style={{ marginTop: 0 }}>🪟 Cam Seçimi</h2>
+            {kasa && (
+              <div className="notice info" style={{ marginBottom: 12 }}>
+                Kasa (kanvas) çerçevede cam kullanılmaz — bu adımı
+                atlayabilirsiniz; seçim fiyata girmez.
+              </div>
+            )}
             <div className="rw-options">
               {GLASS_TYPES.map((g) => (
                 <button
@@ -1157,6 +1306,23 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
             <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 10 }}>
               Personel: {employeeName}
             </p>
+          </div>
+        )}
+
+        {/* Üretim kuralları — websitedeki hesaplayıcıyla aynı sınırlar.
+            Engeller kaydı durdurur; uyarılar bilgilendirir. */}
+        {currentCounts && engeller.length > 0 && (
+          <div className="notice err" style={{ marginTop: 14 }}>
+            {engeller.map((k) => (
+              <div key={k.kod}>⛔ {k.mesaj}</div>
+            ))}
+          </div>
+        )}
+        {currentCounts && uyarilar.length > 0 && (
+          <div className="notice warn" style={{ marginTop: 14 }}>
+            {uyarilar.map((k) => (
+              <div key={k.kod}>⚠️ {k.mesaj}</div>
+            ))}
           </div>
         )}
 

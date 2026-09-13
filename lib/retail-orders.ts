@@ -52,6 +52,13 @@ export interface RetailItem {
   matRight: number;
   matBottom: number;
   matLeft: number;
+  // Pencereli (çoklu açıklık) paspartu — websitedeki hesaplayıcıyla aynı:
+  // ölçü tek fotoğrafın ölçüsüdür, alan pencere düzeninden türetilir.
+  pencereSayisi?: number; // 1..9 (yoksa 1)
+  pencereDuzen?: string; // "2x3" (satır x sütun)
+  pencereAralik?: number; // pencereler arası görünen köprü (mm)
+  // Kasa (kanvas) çerçeve: cam ve paspartu uygulanmaz, tuval kasaya gerilir
+  kasa?: boolean;
   glassType: string;
   printType: string;
   frameCost: number;
