@@ -14,6 +14,7 @@ import StatusDonut from "./StatusDonut";
 import { RecentWholesale, RecentRetail } from "./RecentOrders";
 import AlertsCard from "./AlertsCard";
 import QuickActions, { type QuickTile } from "./QuickActions";
+import MySalesCard from "@/components/sales/MySalesCard";
 
 const tl = (n: number) => "₺" + (Number(n) || 0).toLocaleString("tr-TR", { maximumFractionDigits: 0 });
 const nf = (n: number) => (Number(n) || 0).toLocaleString("tr-TR");
@@ -59,8 +60,11 @@ export default function Dashboard({
 
   const d = data || BOS;
   const k = d.kpi;
-  const ayDay = Number(d.today.slice(8, 10)) || new Date().getDate();
-  const ayGun = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0).getDate();
+  // Ay ilerlemesi sunucunun `today` değerinden türetilir; render içinde new Date()
+  // kullanılmaz (sunucu/istemci saat dilimi farkı hidrasyon uyuşmazlığı yaratmasın).
+  const [tYil, tAy, tGun] = d.today.split("-").map(Number);
+  const ayDay = tGun || 0;
+  const ayGun = tYil && tAy ? new Date(Date.UTC(tYil, tAy, 0)).getUTCDate() : 30;
   const tamamlanan14 = d.durum14.toptan.tamamlandi + d.durum14.perakende["Teslim Edildi"] + d.durum14.perakende["Hazır"];
   const acikToplam = k.acik.toptan + k.acik.perakende;
   const bugunDelta = k.bugun.toplam - k.bugun.dun;
@@ -203,7 +207,10 @@ export default function Dashboard({
           </div>
         </section>
 
-        <section className="card span-5 pad-0">
+        {/* Çalışanın kendi satış özeti — kendi <section className="card span-5"> kabuğunu çizer */}
+        <MySalesCard />
+
+        <section className="card span-7 pad-0">
           <div className="card-head" style={{ margin: 0 }}>
             <span className="card-head-icon"><Icon name="frame" size={18} /></span>
             <div>
@@ -216,7 +223,7 @@ export default function Dashboard({
           <RecentRetail orders={d.sonPerakende} loading={loading} blob={d.blob} />
         </section>
 
-        <section className="card span-7">
+        <section className="card span-12">
           <div className="card-head">
             <span className="card-head-icon"><Icon name="zap" size={18} /></span>
             <div>

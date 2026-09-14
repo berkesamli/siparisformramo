@@ -7,7 +7,9 @@ import ThemeToggle from "./ThemeToggle";
 import UserMenu from "./UserMenu";
 import NotificationBell from "./NotificationBell";
 import { breadcrumbsFor } from "./nav-config";
-import type { ShellUser } from "./types";
+import type { Duyuru, ShellUser } from "./types";
+
+const BOS_DUYURU: Duyuru[] = []; // sabit referans — zilin effect bağımlılığı her render'da değişmesin
 
 export default function Topbar({
   user,
@@ -15,12 +17,14 @@ export default function Topbar({
   onSearch,
   onLogout,
   onStatsDirty,
+  duyurular = BOS_DUYURU,
 }: {
   user: ShellUser;
   onMenu: () => void;
   onSearch: () => void;
   onLogout: () => void;
   onStatsDirty: () => void;
+  duyurular?: Duyuru[];
 }) {
   const pathname = usePathname() || "/";
   const crumbs = breadcrumbsFor(user, pathname);
@@ -52,7 +56,7 @@ export default function Topbar({
       </button>
 
       <div className="tb-actions">
-        {user.role === "staff" && <NotificationBell onStatsDirty={onStatsDirty} />}
+        {user.role === "staff" && <NotificationBell onStatsDirty={onStatsDirty} duyurular={duyurular} username={user.username} />}
         <ThemeToggle />
         <UserMenu user={user} onLogout={onLogout} />
       </div>

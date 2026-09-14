@@ -21,3 +21,6 @@ export interface ShellStats {
 
 export const STATS_KEY = "olga-shell-stats";
 export const STATS_TTL_MS = 3 * 60_000;
+
+/** Kabuk bileşenleri için duyuru tipi (kaynak: data/duyurular.ts). */
+export type { Duyuru } from "@/data/duyurular";

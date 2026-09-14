@@ -180,3 +180,62 @@ a.stat:hover { text-decoration: none; border-color: var(--border-strong); }
 
 .spin { animation: spin 0.9s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* ---- Satışlarım ---- */
+/* Gösterge paneli kartı: üç satır içi stat kutusu + 14 günlük mini çizgi */
+/* İki kutu yan yana, üçüncüsü (bu ay) tam satır: span-5/6 kart ve 390px telefonda üç kutu
+   sığmayıp yetim satır bırakmaz, para değeri kırpılmaz */
+.ms-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.ms-stats > .ms-stat:nth-child(3) { grid-column: 1 / -1; }
+.ms-stat { display: flex; flex-direction: column; gap: 2px; min-width: 0; padding: 12px 14px; border-radius: var(--radius-sm); background: var(--surface-2); border: 1px solid var(--hairline); }
+.ms-stat-label { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); line-height: 1.25; }
+.ms-stat-value { font-size: 20px; font-weight: 800; letter-spacing: -0.02em; line-height: 1.15; color: var(--text); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ms-stat-value.skeleton { height: 23px; width: 72%; }
+.ms-stat-sub { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ms-spark { position: relative; margin-top: 14px; min-width: 0; }
+.ms-spark svg { display: block; overflow: visible; width: 100%; }
+.ms-spark-line { fill: none; stroke: var(--s-toptan); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.ms-spark-area { fill: var(--s-toptan); fill-opacity: 0.1; }
+.ms-spark-dot { fill: var(--s-toptan); stroke: var(--surface-solid); stroke-width: 2; }
+.ms-spark-cursor { stroke: var(--axis); stroke-width: 1; stroke-dasharray: 3 3; }
+.ms-spark-base { stroke: var(--grid); stroke-width: 1; }
+.ms-spark-skel { height: 64px; border-radius: var(--radius-xs); }
+.ms-spark-foot { display: flex; justify-content: space-between; gap: 8px; margin-top: 6px; font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.ms-err { margin: 6px 0 0; font-size: 12.5px; color: var(--muted); }
+
+/* Satışlarım sayfası: özet satırları, toptan/perakende bölme çubuğu, dipnot */
+.ms-rows { list-style: none; display: flex; flex-direction: column; }
+.ms-rows li { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 9px 0; border-top: 1px solid var(--border); font-size: 13.5px; min-width: 0; }
+.ms-rows li:first-child { border-top: 0; padding-top: 0; }
+.ms-rows .lbl { color: var(--text-2); display: inline-flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.ms-rows .val { font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; text-align: right; min-width: 0; }
+.ms-rows .val small { font-weight: 500; font-size: 12px; color: var(--muted); }
+.ms-split { margin-top: 12px; }
+.ms-split .rep-bar { display: flex; margin-top: 8px; }
+.ms-foot { display: flex; align-items: flex-start; gap: 8px; margin: 2px 4px 0; font-size: 12.5px; color: var(--muted); line-height: 1.4; }
+.ms-foot svg { flex-shrink: 0; margin-top: 1px; }
+
+/* Aylık ciro sütun grafiği (tek seri: bu çalışanın aylık cirosu) */
+.dash-grid .card-head.mc-head { flex-wrap: wrap; row-gap: 10px; }
+.mc-seg { margin-left: auto; }
+.mc-seg button { padding: 6px 11px; font-size: 12.5px; }
+.mc-bar { fill: var(--s-toptan); opacity: 0.82; cursor: pointer; transition: opacity 0.15s ease; }
+.mc-bar.active, .mc-bar.hover { opacity: 1; }
+.mc-hit { fill: transparent; cursor: pointer; outline: none; }
+.mc-marker { fill: var(--brand); }
+.mc-tick.active { fill: var(--text); font-weight: 700; }
+.mc-table tbody tr { cursor: pointer; }
+.mc-table tbody tr.active td { background: var(--surface-2); }
+.mc-pick { background: none; border: 0; padding: 0; margin: 0; font: inherit; color: var(--text-2); cursor: pointer; text-decoration: underline dotted; text-underline-offset: 3px; }
+.mc-pick:hover, .mc-pick:focus-visible { color: var(--text); }
+.mc-table tbody tr.active .mc-pick { font-weight: 700; color: var(--text); text-decoration: none; }
+/* Ay segmenti kendi satırında tam genişlik: span-6 kartta (761–1100) 6 düğme başlıkla aynı satıra
+   sığmaz, .card overflow:hidden son ayları kırpardı; telefonda base.css ile aynı davranış */
+@media (max-width: 1100px) {
+  .dash-grid .card-head.mc-head .mc-seg { flex: 1 1 100%; width: 100%; margin-left: 0; overflow-x: auto; }
+  .dash-grid .card-head.mc-head .mc-seg button { flex: 1 1 auto; padding: 6px 6px; }
+}
+/* Siparişlerim ilk yükleme iskeleti */
+.recent-skel .recent-row { pointer-events: none; }
+.recent-skel .recent-avatar { background: var(--surface-2); }
+.recent-skel .recent-main .skeleton { display: block; }

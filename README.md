@@ -31,6 +31,13 @@ Eski Apps Script kodu `legacy-apps-script/` klasöründe korunmaktadır.
   günün kuru; 45 sn süreç içi önbellek). Kenar çubuğu sayaçları `?lite=1` ile gelir.
 - Stil aileleri `app/styles/` altında: `tokens` → `base` → `shell` → `wizard`,
   `labels`, `pickers`, `orders`, `reports`, `modals`, `dashboard`.
+- **Satışlarım** (`/panel/satislarim`, `/api/cirom`): her çalışan yalnızca kendi adına
+  girilen siparişlerin cirosunu görür (toptan net + perakende toplam, iptaller hariç);
+  bugün / son 7 gün / aylık, 6 aylık grafik, 14 günlük akış ve kendi sipariş listesi.
+  Başka çalışanın rakamı hiçbir uçtan dönmez; ad oturumdan alınır.
+- **Duyurular** (`data/duyurular.ts`): tarih aralığı ve role göre yayınlanan site içi
+  duyurular; ilk girişte bir kez pencere olarak çıkar, sonrasında zil menüsünde kalır.
+  Yeni duyuru eklemek için listeye benzersiz `id` ile kayıt eklemek yeterlidir.
 - Telefonda "Ana ekrana ekle" ile uygulama gibi açılır (`app/manifest.ts`).
 
 ## Vercel'e Yayınlama
