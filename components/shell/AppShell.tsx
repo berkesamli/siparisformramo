@@ -9,11 +9,21 @@ import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
 import Tabbar from "./Tabbar";
 import SearchPalette from "./SearchPalette";
-import { STATS_KEY, STATS_TTL_MS, type ShellStats, type ShellUser } from "./types";
+import AnnouncementModal from "./AnnouncementModal";
+import { STATS_KEY, STATS_TTL_MS, type Duyuru, type ShellStats, type ShellUser } from "./types";
 
 const SB_KEY = "olga-sb";
+const BOS_DUYURU: Duyuru[] = []; // sabit referans — her render'da yeni dizi üretmesin
 
-export default function AppShell({ user, children }: { user: ShellUser; children: ReactNode }) {
+export default function AppShell({
+  user,
+  duyurular = BOS_DUYURU,
+  children,
+}: {
+  user: ShellUser;
+  duyurular?: Duyuru[];
+  children: ReactNode;
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const [drawer, setDrawer] = useState(false);
@@ -111,10 +121,12 @@ export default function AppShell({ user, children }: { user: ShellUser; children
           onSearch={() => setSearch(true)}
           onLogout={logout}
           onStatsDirty={() => loadStats(true)}
+          duyurular={duyurular}
         />
         <div className="app-content">{children}</div>
       </div>
       <Tabbar user={user} stats={stats} onMenu={() => setDrawer(true)} />
+      <AnnouncementModal duyurular={duyurular} username={user.username} />
       {search && <SearchPalette user={user} onClose={() => setSearch(false)} />}
     </div>
   );

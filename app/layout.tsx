@@ -12,6 +12,8 @@ import "./styles/dashboard.css";
 import { getSessionUser } from "@/lib/auth";
 import { isOwner, isFinance, finansAktif, isMaliyet, isKurYetkili } from "@/data/users";
 import AppShell from "@/components/shell/AppShell";
+import { aktifDuyurular } from "@/lib/duyurular";
+import { istanbulDateKey } from "@/lib/orders";
 
 export const metadata: Metadata = {
   title: "Olga Çerçeve — Yönetim Paneli",
@@ -38,6 +40,8 @@ export default async function RootLayout({
   children: React.ReactNode;
 }) {
   const user = await getSessionUser();
+  // Bugün (İstanbul) aktif olan duyurular — rolüne göre süzülür
+  const duyurular = user ? aktifDuyurular(user.role, istanbulDateKey()) : [];
 
   return (
     <html lang="tr" data-theme="light" suppressHydrationWarning>
@@ -59,6 +63,7 @@ export default async function RootLayout({
               kur: isKurYetkili(user.username),
               raporlar: isFinance(user.username),
             }}
+            duyurular={duyurular}
           >
             {children}
           </AppShell>

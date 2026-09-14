@@ -8,6 +8,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Icon from "./Icon";
+import { DUYURU_EVENT, isSeen, markSeen } from "./AnnouncementModal";
+import type { Duyuru } from "./types";
 
 const ARALIK_MS = 90_000;
 const LS_ACIK = "orderAlertOn";
@@ -37,11 +39,31 @@ function zilCal() {
 
 interface Uyari { id: number; metin: string; href: string; zaman: string; goruldu: boolean; }
 
-export default function NotificationBell({ onStatsDirty }: { onStatsDirty?: () => void }) {
+/** Uzun duyuru metnini kısaltır (tam metin title özniteliğinde kalır). */
+function kisalt(metin: string, uzunluk = 90): string {
+  if (metin.length <= uzunluk) return metin;
+  return metin.slice(0, uzunluk).trimEnd() + "…";
+}
+
+const BOS_DUYURU: Duyuru[] = [];
+
+export default function NotificationBell({
+  onStatsDirty,
+  duyurular = BOS_DUYURU,
+  username = "",
+}: {
+  onStatsDirty?: () => void;
+  duyurular?: Duyuru[];
+  username?: string;
+}) {
   const [acik, setAcik] = useState(false);
   const [uyarilar, setUyarilar] = useState<Uyari[]>([]);
   const [toast, setToast] = useState<Uyari | null>(null);
   const [menu, setMenu] = useState(false);
+  // Duyurular: görülmemiş id'ler (rozet + kırmızı nokta). Menü açılırken görülmüş
+  // sayılır ama "Yeni" rozeti menü kapanana dek kalsın diye anlık görüntü tutulur.
+  const [duyuruYeni, setDuyuruYeni] = useState<Set<string>>(new Set());
+  const [menuYeni, setMenuYeni] = useState<Set<string>>(new Set());
   const sonRef = useRef<{ t: number; p: number } | null>(null);
   const acikRef = useRef(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -57,6 +79,18 @@ export default function NotificationBell({ onStatsDirty }: { onStatsDirty?: () =
       }
     } catch { /* depolama yok */ }
   }, []);
+
+  // Görülmemiş duyurular — depodan okunur; modal veya başka bir yerde işaretlenince yenilenir
+  useEffect(() => {
+    const hesapla = () => setDuyuruYeni(new Set(duyurular.filter((d) => !isSeen(d.id, username)).map((d) => d.id)));
+    hesapla();
+    window.addEventListener(DUYURU_EVENT, hesapla);
+    window.addEventListener("storage", hesapla);
+    return () => {
+      window.removeEventListener(DUYURU_EVENT, hesapla);
+      window.removeEventListener("storage", hesapla);
+    };
+  }, [duyurular, username]);
 
   const yokla = useCallback(async () => {
     if (document.visibilityState !== "visible") return;
@@ -135,11 +169,19 @@ export default function NotificationBell({ onStatsDirty }: { onStatsDirty?: () =
   }
 
   function openMenu() {
-    setMenu((m) => !m);
+    const acilacak = !menu;
+    setMenu(acilacak);
     setUyarilar((l) => l.map((u) => ({ ...u, goruldu: true })));
+    if (acilacak) {
+      // Menü açılınca duyurular görülmüş sayılır; rozet bu açılış boyunca görünür kalır
+      setMenuYeni(new Set(duyuruYeni));
+      duyuruYeni.forEach((id) => markSeen(id, username));
+    } else {
+      setMenuYeni(new Set());
+    }
   }
 
-  const okunmamis = uyarilar.some((u) => !u.goruldu);
+  const okunmamis = uyarilar.some((u) => !u.goruldu) || duyuruYeni.size > 0;
 
   return (
     <>
@@ -162,6 +204,32 @@ export default function NotificationBell({ onStatsDirty }: { onStatsDirty?: () =
               <strong>Bildirimler</strong>
               <span>Yeni sipariş düştüğünde ses + ekran uyarısı</span>
             </div>
+            {duyurular.length > 0 && (
+              <>
+                <div className="nb-sec">Duyurular</div>
+                <div className="nb-list">
+                  {duyurular.map((d) => {
+                    const yeni = menuYeni.has(d.id);
+                    const icerik = (
+                      <>
+                        <span className="nb-item-icon"><Icon name={d.ikon || "sparkles"} size={16} /></span>
+                        <span className="nb-item-main">
+                          <strong>{d.baslik}{yeni && <span className="badge brand">Yeni</span>}</strong>
+                          <span className="nb-ann-text">{kisalt(d.metin)}</span>
+                        </span>
+                      </>
+                    );
+                    const tikla = () => { markSeen(d.id, username); setMenu(false); };
+                    return d.href ? (
+                      <Link key={d.id} href={d.href} className="nb-item nb-ann" title={d.metin} onClick={tikla}>{icerik}</Link>
+                    ) : (
+                      <div key={d.id} className="nb-item nb-ann" title={d.metin}>{icerik}</div>
+                    );
+                  })}
+                </div>
+                <div className="menu-sep" />
+              </>
+            )}
             <div className="nb-toggle">
               <Icon name={acik ? "bell" : "bell-off"} size={16} />
               <span>Sesli / tarayıcı bildirimi</span>

@@ -34,15 +34,19 @@ export function navGroups(f: NavFlags): NavGroup[] {
   const staff = f.role === "staff";
   const groups: NavGroup[] = [];
 
-  groups.push({
-    title: "Genel",
-    items: [
-      { href: "/", label: "Gösterge Paneli", icon: "home", short: "Panel", exact: true, keywords: ["ana sayfa", "dashboard", "özet"] },
-      { href: "/kataloglar", label: "Kataloglar", icon: "book", short: "Katalog", keywords: ["pdf", "dergi", "profil kataloğu", "teknik malzeme"] },
-      { href: "/portal", label: "Ürünler & Stok", icon: "package", short: "Stok", exact: true, keywords: ["stok sorgula", "depo", "ankara", "istanbul"] },
-      { href: "/portal/fiyat-listesi", label: "Toptan Fiyat Listesi", icon: "tag", short: "Fiyat", keywords: ["fiyat", "liste", "usd"] },
-    ],
-  });
+  // "Genel" grubu müşterilerle paylaşılır; "Satışlarım" yalnızca çalışanlara eklenir.
+  const genel: NavItem[] = [
+    { href: "/", label: "Gösterge Paneli", icon: "home", short: "Panel", exact: true, keywords: ["ana sayfa", "dashboard", "özet"] },
+  ];
+  if (staff) {
+    genel.push({ href: "/panel/satislarim", label: "Satışlarım", icon: "trending-up", keywords: ["cirom", "satışlarım", "kişisel ciro", "performans"] });
+  }
+  genel.push(
+    { href: "/kataloglar", label: "Kataloglar", icon: "book", short: "Katalog", keywords: ["pdf", "dergi", "profil kataloğu", "teknik malzeme"] },
+    { href: "/portal", label: "Ürünler & Stok", icon: "package", short: "Stok", exact: true, keywords: ["stok sorgula", "depo", "ankara", "istanbul"] },
+    { href: "/portal/fiyat-listesi", label: "Toptan Fiyat Listesi", icon: "tag", short: "Fiyat", keywords: ["fiyat", "liste", "usd"] },
+  );
+  groups.push({ title: "Genel", items: genel });
 
   if (staff) {
     groups.push({
