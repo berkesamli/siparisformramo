@@ -269,6 +269,8 @@
 .rw-preset.sel strong { color: var(--brand); }
 
 /* ---- Yükleme alanı ---- */
+/* <label> olarak render edilir: base.css'teki büyük-harf alan etiketi tipografisini
+   sıfırla; ipucu cümle düzeninde, ikonla aynı satırda bir çağrı metni olarak okunmalı. */
 .rw-upload {
   display: block;
   padding: 26px;
@@ -277,6 +279,10 @@
   text-align: center;
   color: var(--muted);
   font-size: 13.5px;
+  font-weight: 600;
+  letter-spacing: 0;
+  text-transform: none;
+  margin-bottom: 0;
   cursor: pointer;
   transition: border-color 0.15s ease, color 0.15s ease;
 }

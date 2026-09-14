@@ -166,7 +166,7 @@ export default function KasaRaporu() {
               <thead>
                 <tr>
                   <th>Tarih</th>
-                  <th>G/Ç</th>
+                  <th style={{ whiteSpace: "nowrap" }}>G/Ç</th>
                   <th>Taraf</th>
                   <th>Açıklama</th>
                   <th>Kanal</th>
@@ -195,15 +195,11 @@ export default function KasaRaporu() {
                     </td>
                   </tr>
                 ))}
-                {!rows.length && (
-                  <tr>
-                    <td colSpan={7}>
-                      <div className="empty" style={{ padding: "22px 12px" }}>Bu aralıkta hareket yok.</div>
-                    </td>
-                  </tr>
-                )}
               </tbody>
             </table>
+            {!rows.length && (
+              <div className="empty" style={{ padding: "22px 12px" }}>Bu aralıkta hareket yok.</div>
+            )}
           </div>
         </div>
       )}

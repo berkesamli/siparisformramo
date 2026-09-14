@@ -226,11 +226,11 @@ export default function MaliyetManager() {
                 {!partiler.length && <option value="">— henüz parti yok —</option>}
               </select>
             </div>
-            <button className="btn small" onClick={() => setYpAcik((o) => !o)}>
+            <button className="btn" onClick={() => setYpAcik((o) => !o)}>
               {ypAcik ? "Vazgeç" : <><Icon name="plus" size={14} /> Yeni Parti</>}
             </button>
             {parti && Object.keys(parti.items).length === 0 && (
-              <button className="btn small danger" disabled={saving}
+              <button className="btn danger" disabled={saving}
                 onClick={() => { if (confirm(`"${parti.ad}" partisi silinsin mi?`)) gonder({ partiSil: parti.id }); }}>
                 🗑 Partiyi Sil
               </button>
@@ -272,7 +272,7 @@ export default function MaliyetManager() {
                     value={pctInput} onChange={(e) => setPctInput(e.target.value)}
                     placeholder="sonra girilebilir" />
                 </div>
-                <button className="btn small" disabled={saving}
+                <button className="btn" disabled={saving}
                   onClick={() => gonder({ partiId: parti.id, pct: pctInput === "" ? null : Number(pctInput) })}>
                   Yüzdeyi Kaydet
                 </button>

@@ -286,15 +286,11 @@ export default function CekSenetManager() {
                     </tr>
                   );
                 })}
-                {!records.length && (
-                  <tr>
-                    <td colSpan={8}>
-                      <div className="empty" style={{ padding: "22px 12px" }}>Bu filtreye uyan kayıt yok.</div>
-                    </td>
-                  </tr>
-                )}
               </tbody>
             </table>
+            {!records.length && (
+              <div className="empty" style={{ padding: "22px 12px" }}>Bu filtreye uyan kayıt yok.</div>
+            )}
           </div>
         </div>
       )}

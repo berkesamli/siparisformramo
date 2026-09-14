@@ -227,7 +227,7 @@ export default function SmsPanel() {
         <input
           value={ara}
           onChange={(e) => setAra(e.target.value)}
-          placeholder="Müşteri ara — isim, firma, şehir veya numara…"
+          placeholder="Ara: isim / firma / şehir / numara"
           aria-label="Müşteri ara"
         />
 
@@ -267,9 +267,9 @@ export default function SmsPanel() {
           )}
         </div>
 
-        <p className="text-2" style={{ margin: "12px 0 6px", fontSize: 14 }}>
-          Listede olmayan numaralar (virgül veya satır ile ayırın):
-        </p>
+        <label style={{ marginTop: 12 }}>
+          Listede olmayan numaralar (virgül veya satır ile ayırın)
+        </label>
         <textarea
           rows={2}
           value={elle}

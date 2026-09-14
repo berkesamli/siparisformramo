@@ -368,11 +368,6 @@ export default function OrdersList({
               <Icon name="check-circle" size={14} /> Tamamlananlar{arsivlenen > 0 ? ` (${arsivlenen})` : ""}
             </Link>
           )}
-          {tamamlananlar && (
-            <Link className="btn small secondary" href="/panel/siparisler">
-              <Icon name="chevron-left" size={14} /> Aktif Siparişler
-            </Link>
-          )}
           {eldenSatis && !tamamlananlar && (
             <button
               className="btn small"

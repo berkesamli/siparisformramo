@@ -13,7 +13,7 @@
 .stat { display: flex; align-items: center; gap: 14px; padding: 18px 18px; color: var(--text); min-width: 0; }
 a.stat:hover { text-decoration: none; border-color: var(--border-strong); }
 .stat-ring { position: relative; width: 68px; height: 68px; flex-shrink: 0; }
-.stat-ring svg { display: block; }
+.stat-ring > svg { display: block; }
 .stat-ring-track { fill: none; stroke: var(--surface-4); stroke-width: 5; }
 .stat-ring-fill { fill: none; stroke: var(--brand); stroke-width: 5; stroke-linecap: round; transition: stroke-dasharray 0.6s cubic-bezier(0.2, 0.8, 0.3, 1); }
 .stat-ring.tone-blue .stat-ring-fill { stroke: var(--s-toptan); }
@@ -38,7 +38,7 @@ a.stat:hover { text-decoration: none; border-color: var(--border-strong); }
   .stat { flex-direction: column; align-items: flex-start; gap: 8px; padding: 14px 14px; }
   .stat-body { width: 100%; }
   .stat-ring { width: 52px; height: 52px; }
-  .stat-ring svg { width: 52px; height: 52px; }
+  .stat-ring > svg { width: 52px; height: 52px; }
   .stat-value { font-size: 24px; }
   .stat-label { white-space: normal; }
 }

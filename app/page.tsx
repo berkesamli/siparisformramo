@@ -63,7 +63,7 @@ export default async function HomePage() {
   }
 
   const tiles: QuickTile[] = [
-    { title: "Yeni Toptan Sipariş", sub: "Sipariş formu · e-posta + WhatsApp", href: "/panel", icon: "plus", img: cardImage("siparis") },
+    { title: "Yeni Toptan Sipariş", sub: "Sipariş formu · e\u2011posta + WhatsApp", href: "/panel", icon: "plus", img: cardImage("siparis") },
     { title: "Online Çerçeve", sub: "Perakende çerçeveletme sihirbazı", href: "/panel/perakende", icon: "frame", img: cardImage("perakende") },
     { title: "Stok Sorgula", sub: "Ankara · İstanbul", href: "/portal", icon: "package", img: cardImage("stok") },
     { title: "Kataloglar", sub: "PDF · dergi görünümü", href: "/kataloglar", icon: "book", img: cardImage("kataloglar") },

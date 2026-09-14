@@ -63,7 +63,7 @@ export default async function CatalogsPage() {
       ) : (
         <div className="grid cols-3">
           {catalogs.map((c) => (
-            <div className="card" key={c.slug}>
+            <div className="card" key={c.slug} style={{ display: "flex", flexDirection: "column" }}>
               <span
                 className="card-head-icon"
                 style={{ width: 44, height: 44, borderRadius: 12, marginBottom: 12 }}
@@ -80,7 +80,7 @@ export default async function CatalogsPage() {
               <p className="muted" style={{ fontSize: 13, marginBottom: 14 }}>
                 PDF · {c.sizeMB} MB
               </p>
-              <Link href={`/kataloglar/${c.slug}`} className="btn">
+              <Link href={`/kataloglar/${c.slug}`} className="btn" style={{ marginTop: "auto", alignSelf: "flex-start" }}>
                 <Icon name="eye" size={16} /> Dergi Görünümünde Aç
               </Link>
             </div>

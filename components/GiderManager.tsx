@@ -238,15 +238,11 @@ export default function GiderManager() {
                     </td>
                   </tr>
                 ))}
-                {!records.length && (
-                  <tr>
-                    <td colSpan={8}>
-                      <div className="empty" style={{ padding: "22px 12px" }}>Bu ayda gider kaydı yok.</div>
-                    </td>
-                  </tr>
-                )}
               </tbody>
             </table>
+            {!records.length && (
+              <div className="empty" style={{ padding: "22px 12px" }}>Bu ayda gider kaydı yok.</div>
+            )}
           </div>
         </div>
       )}

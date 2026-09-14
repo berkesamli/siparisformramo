@@ -27,7 +27,7 @@ export default async function SmsPage() {
 
       <SmsPanel />
 
-      <p className="muted" style={{ fontSize: 13 }}>
+      <p className="muted" style={{ fontSize: 13, marginTop: 16 }}>
         Kampanya, tanıtım ve kutlama mesajları <strong>ticari elektronik ileti</strong>{" "}
         sayılır; İYS (İleti Yönetim Sistemi) onayı olmayan numaralara
         gönderilmesi yasaktır. Kargo ve sipariş bilgilendirmeleri bu kapsamda

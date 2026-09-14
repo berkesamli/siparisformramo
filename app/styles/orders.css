@@ -33,18 +33,23 @@
 
 /* Sabit sütun: kart zemini yarı saydam cam olduğundan altından kayan
    hücreler görünmesin diye opak yüzey (--surface-solid) kullanılır;
-   başlık ve hover vurgusu bu opak zeminin üstüne katman olarak biner. */
+   hover vurgusu bu opak zeminin üstüne katman olarak biner. */
 .ord-table-wrap th.ord-actions,
 .ord-table-wrap td.ord-actions {
   position: sticky;
   right: 0;
   z-index: 2;
   white-space: nowrap;
+}
+.ord-table-wrap td.ord-actions {
   background: var(--surface-solid);
-  /* Kaydırınca altından geçen içeriği ayırmak için sol kenar gölgesi */
+  /* Kaydırınca altından geçen satır içeriğini ayırmak için sol kenar gölgesi */
   box-shadow: -8px 0 12px -6px rgba(0, 0, 0, 0.35);
 }
-.ord-table-wrap th.ord-actions {
+/* Başlık satırı: dokuz hücre de aynı opak tonu paylaşır — sabit İşlemler
+   başlığı diğerlerinden farklı görünüp dikey bir çizgi oluşturmasın;
+   opak olduğu için kaydırınca altından geçen başlıklar yine gizlenir. */
+.ord-table-wrap thead th {
   background: linear-gradient(var(--surface-2), var(--surface-2)), var(--surface-solid);
 }
 .ord-table-wrap td.ord-actions > * + * { margin-left: 6px; }
@@ -71,6 +76,13 @@
     position: static;
     box-shadow: none;
   }
+}
+
+/* Telefonda base.css başlıkları sarmaya izin verir (dar fiyat tabloları
+   için); bu tablo zaten yatay kaydırıldığından sarmak yalnızca "SİPARİŞ /
+   NO" gibi iki satırlı başlıklar üretir — dokuz başlık tek satırda kalsın. */
+@media (max-width: 680px) {
+  .ord-table-wrap th { white-space: nowrap; }
 }
 
 /* ---- Sipariş durumu — her aşama kendi rengiyle, listede tek bakışta ayrışsın.
@@ -147,7 +159,8 @@ select.status-select:focus {
 @media print {
   .ord-table-wrap { overflow: visible; }
   .ord-table-wrap th.ord-actions,
-  .ord-table-wrap td.ord-actions { position: static; box-shadow: none; background: var(--surface-solid); }
+  .ord-table-wrap td.ord-actions { position: static; box-shadow: none; }
+  .ord-table-wrap td.ord-actions { background: var(--surface-solid); }
   .status-select, .pay-select {
     color: var(--text);
     background-color: var(--surface-solid);

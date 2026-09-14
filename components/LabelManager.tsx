@@ -462,7 +462,7 @@ export default function LabelManager() {
           ) : (
             <div className="empty" style={{ padding: "22px 12px" }}>
               <div className="empty-icon"><Icon name="tag" size={22} /></div>
-              Etiketi görmek için soldaki listeden bir müşteri seçin.
+              Etiketi görmek için listeden bir müşteri seçin.
             </div>
           )}
         </div>
