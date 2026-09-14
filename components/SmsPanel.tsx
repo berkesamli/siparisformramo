@@ -4,6 +4,7 @@
 // canlı kredi sayacı ve gönderim geçmişi.
 
 import { useEffect, useMemo, useState } from "react";
+import Icon from "@/components/shell/Icon";
 import { normalizePhone, smsSegments, stripTurkish } from "@/lib/sms-format";
 import { eslesir } from "@/lib/search-norm";
 
@@ -50,6 +51,23 @@ function title(c: Customer): string {
   if (c.company && kisi) return `${c.company} — ${kisi}`;
   return c.company || kisi || "-";
 }
+
+// Alıcı satırı: global <label> stili (küçük, büyük harf, kalın) burada
+// istenmez — satır metni normal gövde yazısı olarak kalır.
+const aliciSatir: React.CSSProperties = {
+  display: "flex",
+  gap: 10,
+  alignItems: "center",
+  padding: "9px 12px",
+  cursor: "pointer",
+  margin: 0,
+  fontSize: 14,
+  fontWeight: 500,
+  letterSpacing: 0,
+  textTransform: "none",
+  color: "var(--text)",
+  borderBottom: "1px solid var(--hairline)",
+};
 
 export default function SmsPanel() {
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -173,30 +191,43 @@ export default function SmsPanel() {
     }
   }
 
-  if (yukleniyor) return <p className="subtitle">Yükleniyor…</p>;
+  if (yukleniyor) return <div className="empty">Yükleniyor…</div>;
 
   return (
     <>
       {!configured && (
-        <div className="card" style={{ borderColor: "var(--danger, #b00)" }}>
-          <strong>NETGSM bilgileri tanımlı değil.</strong>
-          <p style={{ margin: "6px 0 0", color: "var(--muted)", fontSize: 14 }}>
-            Vercel → Settings → Environment Variables içine{" "}
-            <code>NETGSM_USERCODE</code>, <code>NETGSM_PASSWORD</code> ve{" "}
-            <code>NETGSM_HEADER</code> girip yeniden dağıtım alın. O zamana kadar
-            gönderim yapılamaz.
-          </p>
+        <div className="notice err" style={{ margin: "0 0 16px", display: "flex", gap: 12, alignItems: "flex-start" }}>
+          <span style={{ color: "var(--error)", flexShrink: 0, display: "inline-flex", marginTop: 2 }}>
+            <Icon name="alert" size={18} />
+          </span>
+          <div>
+            <strong>NETGSM bilgileri tanımlı değil.</strong>
+            <p className="text-2" style={{ margin: "6px 0 0", fontSize: 14 }}>
+              Vercel → Settings → Environment Variables içine{" "}
+              <code>NETGSM_USERCODE</code>, <code>NETGSM_PASSWORD</code> ve{" "}
+              <code>NETGSM_HEADER</code> girip yeniden dağıtım alın. O zamana kadar
+              gönderim yapılamaz.
+            </p>
+          </div>
         </div>
       )}
 
       {/* ---------------- Alıcılar ---------------- */}
-      <div className="card">
-        <h2 style={{ marginTop: 0 }}>Alıcılar</h2>
+      <div className="card no-print">
+        <div className="card-head">
+          <span className="card-head-icon"><Icon name="users" size={16} /></span>
+          <div>
+            <h2>Alıcılar</h2>
+            <span className="card-head-sub">
+              {secili.size ? `${secili.size} seçili · ` : ""}{telefonlu.length} numaralı müşteri
+            </span>
+          </div>
+        </div>
 
         <input
           value={ara}
           onChange={(e) => setAra(e.target.value)}
-          placeholder="Müşteri ara — isim, firma, şehir veya numara…"
+          placeholder="Ara: isim / firma / şehir / numara"
           aria-label="Müşteri ara"
         />
 
@@ -205,45 +236,40 @@ export default function SmsPanel() {
             maxHeight: 260,
             overflowY: "auto",
             marginTop: 12,
-            border: "1px solid var(--border, #333)",
-            borderRadius: 8,
+            border: "1px solid var(--border)",
+            borderRadius: "var(--radius-sm)",
+            background: "var(--surface-2)",
           }}
         >
-          {listelenen.map((c) => (
+          {listelenen.map((c, i) => (
             <label
               key={c.id}
-              style={{
-                display: "flex",
-                gap: 10,
-                alignItems: "center",
-                padding: "8px 12px",
-                cursor: "pointer",
-              }}
+              style={i === listelenen.length - 1 ? { ...aliciSatir, borderBottom: "none" } : aliciSatir}
             >
               <input
                 type="checkbox"
                 checked={secili.has(c.id)}
                 onChange={() => toggle(c.id)}
-                style={{ width: "auto", margin: 0 }}
+                style={{ width: "auto", margin: 0, flexShrink: 0 }}
               />
-              <span style={{ flex: 1 }}>{title(c)}</span>
-              <span style={{ color: "var(--muted)", fontSize: 13 }}>
+              <span style={{ flex: 1, minWidth: 0, overflowWrap: "anywhere" }}>{title(c)}</span>
+              <span className="muted num" style={{ fontSize: 13, whiteSpace: "nowrap" }}>
                 {c.phone}
               </span>
             </label>
           ))}
           {!listelenen.length && (
-            <p style={{ padding: 12, margin: 0, color: "var(--muted)" }}>
+            <div className="empty" style={{ padding: "18px 12px" }}>
               {telefonlu.length
                 ? "Aramaya uyan müşteri yok."
                 : "Müşteri defterinde telefon numarası kayıtlı kimse yok."}
-            </p>
+            </div>
           )}
         </div>
 
-        <p style={{ margin: "10px 0 4px", fontSize: 14 }}>
-          Listede olmayan numaralar (virgül veya satır ile ayırın):
-        </p>
+        <label style={{ marginTop: 12 }}>
+          Listede olmayan numaralar (virgül veya satır ile ayırın)
+        </label>
         <textarea
           rows={2}
           value={elle}
@@ -253,10 +279,15 @@ export default function SmsPanel() {
       </div>
 
       {/* ---------------- Mesaj ---------------- */}
-      <div className="card">
-        <h2 style={{ marginTop: 0 }}>Mesaj</h2>
+      <div className="card no-print">
+        <div className="card-head">
+          <span className="card-head-icon"><Icon name="message" size={16} /></span>
+          <div>
+            <h2>Mesaj</h2>
+          </div>
+        </div>
 
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
+        <div className="row" style={{ gap: 8, marginBottom: 10 }}>
           {SABLONLAR.map((s) => (
             <button
               key={s.ad}
@@ -272,7 +303,7 @@ export default function SmsPanel() {
               onClick={() => setMesaj((m) => stripTurkish(m))}
               title="Türkçe harfleri kaldırarak SMS başına 70 yerine 160 karakter hakkı kazanırsınız"
             >
-              ⚡ Türkçe karakterleri kaldır
+              <Icon name="zap" size={14} /> Türkçe karakterleri kaldır
             </button>
           )}
         </div>
@@ -285,29 +316,30 @@ export default function SmsPanel() {
         />
 
         <div style={{ marginTop: 12 }}>
-          <label style={{ fontSize: 14, display: "block", marginBottom: 4 }}>
-            Mesaj türü
-          </label>
+          <label>Mesaj türü</label>
+          {/* Global select stili width:100% + 34px sağ boşluk (ok işareti) verir;
+              width:auto bu boşluğu içsel genişliğe katmadığı için son harf okla
+              çakışıyordu. Genişlik 440'ta sınırlanır, ≤680'de kart genişliğine yayılır. */}
           <select
             value={iysfilter}
             onChange={(e) => setIysfilter(e.target.value as "0" | "11" | "12")}
-            style={{ width: "auto" }}
+            style={{ maxWidth: 440, textOverflow: "ellipsis" }}
           >
             <option value="0">Bilgilendirme — kargo, sipariş, hatırlatma</option>
             <option value="11">Ticari / kampanya — alıcı bireysel</option>
             <option value="12">Ticari / kampanya — alıcı tacir (firma)</option>
           </select>
-          <p style={{ margin: "6px 0 0", color: "var(--muted)", fontSize: 13 }}>
+          <p className="muted" style={{ margin: "6px 0 0", fontSize: 13 }}>
             {iysfilter === "0"
               ? "Mevcut alışveriş ilişkisine dair mesaj — İYS onayı aranmaz."
               : "Ticari ileti — İYS'de onayı olmayan numaralara gönderilmez. Kampanya mesajını bilgilendirme olarak göndermek mevzuata aykırıdır."}
           </p>
         </div>
 
-        <p style={{ margin: "8px 0 0", color: "var(--muted)", fontSize: 13 }}>
+        <p className="muted" style={{ margin: "8px 0 0", fontSize: 13 }}>
           {sayim.chars} karakter · <strong>{sayim.segments}</strong> SMS ·{" "}
           {tekilSayi} alıcı ={" "}
-          <strong style={{ color: "var(--brand-light)" }}>{kredi} kredi</strong>
+          <strong style={{ color: "var(--brand)" }}>{kredi} kredi</strong>
           {sayim.encoding === "TR" && (
             <>
               {" "}
@@ -318,21 +350,15 @@ export default function SmsPanel() {
         </p>
 
         {gecersiz.length > 0 && (
-          <p style={{ margin: "8px 0 0", color: "#e88", fontSize: 13 }}>
+          <p style={{ margin: "8px 0 0", color: "var(--error)", fontSize: 13 }}>
             Geçersiz numara atlanacak: {gecersiz.join(", ")}
           </p>
         )}
 
         {sonuc && (
-          <p
-            style={{
-              margin: "10px 0 0",
-              fontSize: 14,
-              color: sonuc.ok ? "var(--brand-light)" : "#e88",
-            }}
-          >
+          <div className={`notice ${sonuc.ok ? "ok" : "err"}`} style={{ margin: "10px 0 0" }}>
             {sonuc.text}
-          </p>
+          </div>
         )}
 
         <div style={{ marginTop: 14 }}>
@@ -348,17 +374,23 @@ export default function SmsPanel() {
 
       {/* ---------------- Geçmiş ---------------- */}
       <div className="card">
-        <h2 style={{ marginTop: 0 }}>Gönderim Geçmişi</h2>
+        <div className="card-head">
+          <span className="card-head-icon"><Icon name="clock" size={16} /></span>
+          <div>
+            <h2>Gönderim Geçmişi</h2>
+            <span className="card-head-sub">{records.length} gönderim</span>
+          </div>
+        </div>
         {records.length ? (
-          <div style={{ overflowX: "auto" }}>
+          <div className="table-wrap">
             <table>
               <thead>
                 <tr>
                   <th>Tarih</th>
                   <th>Gönderen</th>
                   <th>Mesaj</th>
-                  <th>Alıcı</th>
-                  <th>Kredi</th>
+                  <th className="num">Alıcı</th>
+                  <th className="num">Kredi</th>
                   <th>Durum</th>
                 </tr>
               </thead>
@@ -372,15 +404,15 @@ export default function SmsPanel() {
                         timeStyle: "short",
                       })}
                     </td>
-                    <td>{r.sender}</td>
-                    <td style={{ maxWidth: 320 }}>{r.message}</td>
-                    <td>{r.recipients.length}</td>
-                    <td>{r.credits}</td>
+                    <td style={{ whiteSpace: "nowrap" }}>{r.sender}</td>
+                    <td style={{ minWidth: 200, maxWidth: 320 }}>{r.message}</td>
+                    <td className="num">{r.recipients.length}</td>
+                    <td className="num">{r.credits}</td>
                     <td>
                       {r.ok ? (
-                        <span style={{ color: "var(--brand-light)" }}>✓</span>
+                        <span className="badge ok">✓</span>
                       ) : (
-                        <span style={{ color: "#e88" }} title={r.error}>
+                        <span className="badge err" title={r.error} style={{ whiteSpace: "normal" }}>
                           ✗ {r.error?.slice(0, 40)}
                         </span>
                       )}
@@ -391,9 +423,9 @@ export default function SmsPanel() {
             </table>
           </div>
         ) : (
-          <p style={{ color: "var(--muted)", margin: 0 }}>
+          <div className="empty" style={{ padding: "18px 12px" }}>
             Henüz SMS gönderilmemiş.
-          </p>
+          </div>
         )}
       </div>
     </>

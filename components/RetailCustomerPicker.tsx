@@ -64,7 +64,7 @@ export default function RetailCustomerPicker({
         autoComplete="off"
       />
       {open && loaded && customers.length > 0 && (
-        <div className="cp-menu">
+        <div className="cp-menu" style={{ maxHeight: "min(300px, 45dvh)" }}>
           {matches.length === 0 ? (
             <div className="cp-empty">
               Eşleşen perakende müşterisi yok — yazdığınız ad kullanılır,
@@ -76,14 +76,18 @@ export default function RetailCustomerPicker({
                 key={c.id}
                 type="button"
                 className="cp-item"
+                style={{ flexWrap: "wrap" }}
                 onClick={() => {
                   onChange(c.name);
                   onPick?.(c);
                   setOpen(false);
                 }}
               >
-                <span className="cp-name">{c.name}</span>
-                <span className="cp-meta">
+                <span className="cp-name" style={{ minWidth: 0, flex: "1 1 auto" }}>{c.name}</span>
+                <span
+                  className="cp-meta"
+                  style={{ maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+                >
                   {[c.phone, c.email].filter(Boolean).join(" · ")}
                 </span>
               </button>

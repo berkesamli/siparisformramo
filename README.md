@@ -1,16 +1,37 @@
 # Olga Çerçeve — Sipariş ve Katalog Platformu
 
 Google Apps Script tabanlı sipariş formunun modern, Vercel'de yayınlanabilir
-**Next.js** sürümü. Tek sitede dört işlev:
+**Next.js** sürümü. Koyu "cam" temalı, sol menülü bir yönetim paneli olarak
+çalışır; telefon, tablet ve masaüstü için ayrı ayrı düzenlenmiştir.
 
 | Bölüm | Kim kullanır | Ne yapar |
 |---|---|---|
+| `/` | Giriş yapanlar | **Gösterge paneli**: bugünkü/açık siparişler, 14 günlük akış grafiği, durum dağılımı, son siparişler, uyarılar, hızlı işlemler |
 | `/panel` | Çalışanlar | Sipariş oluşturur; sipariş **e-posta + WhatsApp** ile firmaya iletilir |
 | `/portal` | Müşteriler/Bayiler | Ürünleri, stok durumunu ve **toptan fiyat listesini** görür |
 | `/kataloglar` | Herkes | PDF katalogları **dergi görünümünde** (sayfa çevirmeli) inceler |
 | 🤖 Asistan | Giriş yapanlar | Claude API destekli ürün/fiyat asistanı |
 
 Eski Apps Script kodu `legacy-apps-script/` klasöründe korunmaktadır.
+
+## Arayüz
+
+- **Kabuk** (`components/shell/`): sol kenar çubuğu (masaüstünde daraltılabilir ray,
+  tablette ikon rayı + çekmece, telefonda çekmece + alt sekme çubuğu), üst çubuk
+  (sayfa yolu, arama, bildirim zili, tema, kullanıcı menüsü). Menü/kırıntı/arama
+  tek kaynaktan gelir: `components/shell/nav-config.ts`.
+- **Genel arama** `Ctrl/⌘ + K`: sayfalar, toptan ve perakende siparişler, müşteriler,
+  stok kodları, çerçeve profilleri ve teknik malzeme (`/api/search`). Müşteriler
+  yalnızca ürün/stok arar.
+- **Tema**: varsayılan koyu cam; üst çubuktan açık temaya geçilir, tercih tarayıcıda
+  saklanır. Renkler yalnızca `app/styles/tokens.css` değişkenlerinden gelir.
+- **Bildirim zili**: yeni sipariş düştüğünde ses + tarayıcı bildirimi (90 sn'de bir
+  iki küçük sayaç dosyası okunur).
+- **Gösterge paneli** verisi `/api/dashboard` (aylık indeksler + tek stok dosyası +
+  günün kuru; 45 sn süreç içi önbellek). Kenar çubuğu sayaçları `?lite=1` ile gelir.
+- Stil aileleri `app/styles/` altında: `tokens` → `base` → `shell` → `wizard`,
+  `labels`, `pickers`, `orders`, `reports`, `modals`, `dashboard`.
+- Telefonda "Ana ekrana ekle" ile uygulama gibi açılır (`app/manifest.ts`).
 
 ## Vercel'e Yayınlama
 

@@ -4,6 +4,8 @@ import { getSessionUser } from "@/lib/auth";
 import { isFinance, finansAktif } from "@/data/users";
 import KasaRaporu from "@/components/KasaRaporu";
 import PrintButton from "@/components/PrintButton";
+import PageHeader from "@/components/PageHeader";
+import Icon from "@/components/shell/Icon";
 
 export const dynamic = "force-dynamic";
 
@@ -15,17 +17,19 @@ export default async function KasaPage() {
 
   return (
     <main className="container" style={{ maxWidth: 1240 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
-        <div style={{ flex: 1, minWidth: 260 }}>
-          <h1>Kasa Raporu</h1>
-          <p className="subtitle">
-            Tüm giriş/çıkış hareketleri — nakit, banka, döviz ve çek/senet
-            kırılımıyla. Çek tahsilleri bankaya tahsil tarihinde işlenir.
-          </p>
-        </div>
-        <Link href="/panel/finans" className="btn small secondary no-print">← Finans</Link>
-        <PrintButton />
-      </div>
+      <PageHeader
+        title="Kasa Raporu"
+        subtitle="Tüm giriş/çıkış hareketleri — nakit, banka, döviz ve çek/senet kırılımıyla. Çek tahsilleri bankaya tahsil tarihinde işlenir."
+        icon="credit-card"
+        actions={
+          <>
+            <Link href="/panel/finans" className="btn secondary no-print">
+              <Icon name="chevron-left" size={16} /> Finans
+            </Link>
+            <PrintButton />
+          </>
+        }
+      />
       <KasaRaporu />
     </main>
   );

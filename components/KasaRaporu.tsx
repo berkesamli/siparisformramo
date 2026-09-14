@@ -71,32 +71,41 @@ export default function KasaRaporu() {
     (ozet?.girisNakit || 0) + (ozet?.girisBanka || 0) -
     (ozet?.cikisNakit || 0) - (ozet?.cikisBanka || 0);
 
+  const buAyAktif = bas === bugun().slice(0, 7) + "-01" && son === bugun();
+  const yilAktif = bas === bugun().slice(0, 4) + "-01-01";
+
   return (
     <div>
       <div className="card no-print" style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-        <button
-          className={`btn small ${bas === bugun().slice(0, 7) + "-01" && son === bugun() ? "" : "secondary"}`}
-          onClick={() => { setBas(bugun().slice(0, 7) + "-01"); setSon(bugun()); }}
-        >
-          Bu Ay
-        </button>
-        <button
-          className={`btn small ${bas === bugun().slice(0, 4) + "-01-01" ? "" : "secondary"}`}
-          onClick={() => { setBas(bugun().slice(0, 4) + "-01-01"); setSon(bugun()); }}
-        >
-          {bugun().slice(0, 4)} Tümü
-        </button>
-        <input type="date" style={{ width: "auto" }} value={bas} onChange={(e) => setBas(e.target.value)} />
-        <span style={{ color: "var(--muted)" }}>→</span>
-        <input type="date" style={{ width: "auto" }} value={son} onChange={(e) => setSon(e.target.value)} />
+        <div className="seg" role="group" aria-label="Dönem">
+          <button
+            type="button"
+            className={buAyAktif ? "active" : ""}
+            onClick={() => { setBas(bugun().slice(0, 7) + "-01"); setSon(bugun()); }}
+          >
+            Bu Ay
+          </button>
+          <button
+            type="button"
+            className={yilAktif ? "active" : ""}
+            onClick={() => { setBas(bugun().slice(0, 4) + "-01-01"); setSon(bugun()); }}
+          >
+            {bugun().slice(0, 4)} Tümü
+          </button>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, flex: "1 1 240px", minWidth: 0 }}>
+          <input type="date" style={{ width: "auto", flex: "1 1 0", minWidth: 0 }} value={bas} onChange={(e) => setBas(e.target.value)} />
+          <span className="muted">→</span>
+          <input type="date" style={{ width: "auto", flex: "1 1 0", minWidth: 0 }} value={son} onChange={(e) => setSon(e.target.value)} />
+        </div>
         <select style={{ width: "auto" }} value={sube} onChange={(e) => setSube(e.target.value)}>
           <option value="">Tüm Şubeler</option>
           <option value="ankara">Ankara</option>
           <option value="istanbul">İstanbul</option>
         </select>
-        <span style={{ flex: 1 }} />
-        <span style={{ fontSize: 13, color: "var(--muted)" }}>{rows.length} hareket</span>
-        <button className="btn small" onClick={() => setEldenAcik(true)}>
+        <span className="spacer" />
+        <span className="muted" style={{ fontSize: 13 }}>{rows.length} hareket</span>
+        <button type="button" className="btn small" onClick={() => setEldenAcik(true)}>
           + Elden Tahsilat
         </button>
       </div>
@@ -149,49 +158,49 @@ export default function KasaRaporu() {
 
       {err && <div className="notice err">{err}</div>}
       {loading ? (
-        <p style={{ color: "var(--muted)" }}>Yükleniyor…</p>
+        <p className="muted">Yükleniyor…</p>
       ) : (
-        <div className="card" style={{ padding: 0, overflowX: "auto" }}>
-          <table>
-            <thead>
-              <tr>
-                <th>Tarih</th>
-                <th>G/Ç</th>
-                <th>Taraf</th>
-                <th>Açıklama</th>
-                <th>Kanal</th>
-                <th>Şube</th>
-                <th style={{ textAlign: "right" }}>Tutar</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r, i) => (
-                <tr key={i}>
-                  <td style={{ whiteSpace: "nowrap" }}>{r.dateKey.split("-").reverse().join(".")}</td>
-                  <td>
-                    <span style={{ fontWeight: 700, color: r.yon === "G" ? "var(--success)" : "var(--error)" }}>
-                      {r.yon === "G" ? "▲ G" : "▼ Ç"}
-                    </span>
-                  </td>
-                  <td style={{ fontWeight: 600 }}>{r.taraf}</td>
-                  <td style={{ fontSize: 12.5, maxWidth: 340 }}>{r.aciklama}</td>
-                  <td style={{ fontSize: 12.5 }}>
-                    {r.kanal === "portfoy" ? "çek/senet" : r.kanal}
-                  </td>
-                  <td style={{ fontSize: 12.5 }}>{r.branch === "istanbul" ? "İST" : "ANK"}</td>
-                  <td style={{ textAlign: "right", fontWeight: 600,
-                    color: r.yon === "G" ? "var(--success)" : "var(--error)" }}>
-                    {r.currency === "TL" ? "₺" : r.currency === "USD" ? "$" : "€"}{fmt(r.amount)}
-                  </td>
-                </tr>
-              ))}
-              {!rows.length && (
+        <div className="card pad-0">
+          <div className="table-wrap" style={{ margin: 0, padding: 0 }}>
+            <table>
+              <thead>
                 <tr>
-                  <td colSpan={7} style={{ color: "var(--muted)" }}>Bu aralıkta hareket yok.</td>
+                  <th>Tarih</th>
+                  <th style={{ whiteSpace: "nowrap" }}>G/Ç</th>
+                  <th>Taraf</th>
+                  <th>Açıklama</th>
+                  <th>Kanal</th>
+                  <th>Şube</th>
+                  <th className="num">Tutar</th>
                 </tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {rows.map((r, i) => (
+                  <tr key={i}>
+                    <td style={{ whiteSpace: "nowrap" }}>{r.dateKey.split("-").reverse().join(".")}</td>
+                    <td>
+                      <span style={{ fontWeight: 700, whiteSpace: "nowrap", color: r.yon === "G" ? "var(--success)" : "var(--error)" }}>
+                        {r.yon === "G" ? "▲ G" : "▼ Ç"}
+                      </span>
+                    </td>
+                    <td style={{ fontWeight: 600 }}>{r.taraf}</td>
+                    <td style={{ fontSize: 12.5, maxWidth: 340 }}>{r.aciklama}</td>
+                    <td style={{ fontSize: 12.5 }}>
+                      {r.kanal === "portfoy" ? "çek/senet" : r.kanal}
+                    </td>
+                    <td style={{ fontSize: 12.5 }}>{r.branch === "istanbul" ? "İST" : "ANK"}</td>
+                    <td className="num" style={{ fontWeight: 600, whiteSpace: "nowrap",
+                      color: r.yon === "G" ? "var(--success)" : "var(--error)" }}>
+                      {r.currency === "TL" ? "₺" : r.currency === "USD" ? "$" : "€"}{fmt(r.amount)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {!rows.length && (
+              <div className="empty" style={{ padding: "22px 12px" }}>Bu aralıkta hareket yok.</div>
+            )}
+          </div>
         </div>
       )}
     </div>

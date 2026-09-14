@@ -4,6 +4,8 @@
 // çözümleyip sipariş formuna satır olarak aktarır.
 
 import { useState } from "react";
+import { createPortal } from "react-dom";
+import Icon from "@/components/shell/Icon";
 
 export interface ParsedLine {
   kind: "frame" | "glass" | "ayna" | "technical" | "other";
@@ -94,13 +96,23 @@ export default function OrderTextImport({
     });
   }
 
-  return (
+  // Kart (.card) backdrop-filter ile sabit konumlu torunların kapsayıcı bloğu
+  // olur — position:fixed karartma kartın içinde kalırdı. Modal bu yüzden
+  // portal ile <body>'ye basılır; z-index 120 kabuğun (80–90) üstünde çalışır.
+  if (typeof document === "undefined") return null;
+  return createPortal(
     <div className="ti-backdrop" onClick={onClose}>
       <div className="ti-modal" onClick={(e) => e.stopPropagation()}>
         <div className="ti-head">
-          <b>🤖 Metinden Sipariş Oluştur</b>
+          <span className="card-head-icon">
+            <Icon name="sparkles" size={16} />
+          </span>
+          <b>Metinden Sipariş Oluştur</b>
           <span style={{ flex: 1 }} />
-          <button className="btn small secondary" onClick={onClose}>Kapat</button>
+          <button className="btn small secondary" onClick={onClose}>
+            <Icon name="x" size={14} />
+            Kapat
+          </button>
         </div>
 
         <div className="ti-body">
@@ -119,7 +131,14 @@ export default function OrderTextImport({
 
           <div style={{ display: "flex", gap: 10, marginTop: 10, flexWrap: "wrap" }}>
             <button className="btn" disabled={loading} onClick={parse}>
-              {loading ? "Çözümleniyor..." : "🔍 Çözümle"}
+              {loading ? (
+                "Çözümleniyor..."
+              ) : (
+                <>
+                  <Icon name="search" size={16} />
+                  Çözümle
+                </>
+              )}
             </button>
             <button
               className="btn secondary small"
@@ -171,10 +190,12 @@ export default function OrderTextImport({
 
               <div style={{ display: "flex", gap: 10, marginTop: 14, flexWrap: "wrap" }}>
                 <button className="btn" disabled={selected.size === 0} onClick={apply}>
-                  ✓ Seçilenleri Forma Ekle
+                  <Icon name="check-circle" size={16} />
+                  Seçilenleri Forma Ekle
                 </button>
                 <button className="btn secondary" onClick={() => setResult(null)}>
-                  ← Metni Düzenle
+                  <Icon name="chevron-left" size={16} />
+                  Metni Düzenle
                 </button>
               </div>
               <p style={{ fontSize: 11.5, color: "var(--muted)", marginTop: 8 }}>
@@ -184,6 +205,7 @@ export default function OrderTextImport({
           )}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

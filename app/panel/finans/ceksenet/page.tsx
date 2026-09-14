@@ -3,6 +3,8 @@ import Link from "next/link";
 import { getSessionUser } from "@/lib/auth";
 import { isFinance, finansAktif } from "@/data/users";
 import CekSenetManager from "@/components/CekSenetManager";
+import PageHeader from "@/components/PageHeader";
+import Icon from "@/components/shell/Icon";
 
 export const dynamic = "force-dynamic";
 
@@ -14,16 +16,16 @@ export default async function CekSenetPage() {
 
   return (
     <main className="container" style={{ maxWidth: 1240 }}>
-      <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
-        <div style={{ flex: 1, minWidth: 260 }}>
-          <h1>Çek / Senet</h1>
-          <p className="subtitle">
-            Alınan çek cariyi hemen düşürür, kasaya tahsil edildiğinde girer.
-            Ciro edilen çekin kimde olduğu durum sütununda izlenir.
-          </p>
-        </div>
-        <Link href="/panel/finans" className="btn small secondary">← Finans</Link>
-      </div>
+      <PageHeader
+        title="Çek / Senet"
+        subtitle="Alınan çek cariyi hemen düşürür, kasaya tahsil edildiğinde girer. Ciro edilen çekin kimde olduğu durum sütununda izlenir."
+        icon="file-text"
+        actions={
+          <Link href="/panel/finans" className="btn secondary">
+            <Icon name="chevron-left" size={16} /> Finans
+          </Link>
+        }
+      />
       <CekSenetManager />
     </main>
   );

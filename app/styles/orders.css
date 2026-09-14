@@ -1,0 +1,171 @@
+/* =========================================================
+   SİPARİŞ LİSTELERİ — ödeme rozeti, sipariş tablosu (sağa sabit
+   İşlemler sütunu), durum seçicisi ve cari özet kartları.
+   Tüm renkler tokens.css'ten gelir; sabit renk yazılmaz.
+   ========================================================= */
+
+/* ---- Cari / ödeme takibi ---- */
+.pay-select { font-weight: 600; }
+.pay-select.bekliyor { color: var(--error); }
+.pay-select.kismi { color: var(--warning); }
+.pay-select.odendi { color: var(--success); }
+
+/* ---- Sipariş listesi tablosu ----
+   9 kolonlu tablo dar ekranda taşıyor. Kaydırma çubuğu (macOS'ta gizli
+   olduğu için) fark edilmiyordu; bu yüzden İşlemler sütunu sağa
+   sabitlenir ve çubuk her zaman görünür kılınır. */
+.ord-table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: var(--brand) transparent;
+}
+.ord-table-wrap::-webkit-scrollbar { height: 10px; }
+.ord-table-wrap::-webkit-scrollbar-track {
+  background: var(--brand-soft);
+  border-radius: 999px;
+}
+.ord-table-wrap::-webkit-scrollbar-thumb {
+  background: var(--brand-ring);
+  border-radius: 999px;
+}
+.ord-table-wrap::-webkit-scrollbar-thumb:hover { background: var(--brand); }
+
+/* Sabit sütun: kart zemini yarı saydam cam olduğundan altından kayan
+   hücreler görünmesin diye opak yüzey (--surface-solid) kullanılır;
+   hover vurgusu bu opak zeminin üstüne katman olarak biner. */
+.ord-table-wrap th.ord-actions,
+.ord-table-wrap td.ord-actions {
+  position: sticky;
+  right: 0;
+  z-index: 2;
+  white-space: nowrap;
+}
+.ord-table-wrap td.ord-actions {
+  background: var(--surface-solid);
+  /* Kaydırınca altından geçen satır içeriğini ayırmak için sol kenar gölgesi */
+  box-shadow: -8px 0 12px -6px rgba(0, 0, 0, 0.35);
+}
+/* Başlık satırı: dokuz hücre de aynı opak tonu paylaşır — sabit İşlemler
+   başlığı diğerlerinden farklı görünüp dikey bir çizgi oluşturmasın;
+   opak olduğu için kaydırınca altından geçen başlıklar yine gizlenir. */
+.ord-table-wrap thead th {
+  background: linear-gradient(var(--surface-2), var(--surface-2)), var(--surface-solid);
+}
+.ord-table-wrap td.ord-actions > * + * { margin-left: 6px; }
+/* Satır üzerine gelindiğinde sabit sütun da satırla aynı vurguyu alsın */
+.ord-table-wrap tbody tr:hover td.ord-actions {
+  background: linear-gradient(var(--surface-2), var(--surface-2)), var(--surface-solid);
+}
+/* Müşteri adı gereksiz yere 4-5 satıra bölünmesin */
+.ord-table-wrap td:nth-child(3) { min-width: 170px; }
+
+/* 1280-1400 arası dizüstü ekranlarda tablo hiç kaydırmadan sığsın */
+@media (min-width: 901px) and (max-width: 1400px) {
+  .ord-table-wrap th,
+  .ord-table-wrap td { padding-left: 7px; padding-right: 7px; }
+  .ord-table-wrap td:nth-child(3) { min-width: 150px; }
+  .ord-table-wrap .btn.small { padding: 6px 9px; }
+}
+
+/* Telefonda sabit sütun ekranın yarısını kaplardı — orada normal
+   yatay kaydırma daha kullanışlı. */
+@media (max-width: 900px) {
+  .ord-table-wrap th.ord-actions,
+  .ord-table-wrap td.ord-actions {
+    position: static;
+    box-shadow: none;
+  }
+}
+
+/* Telefonda base.css başlıkları sarmaya izin verir (dar fiyat tabloları
+   için); bu tablo zaten yatay kaydırıldığından sarmak yalnızca "SİPARİŞ /
+   NO" gibi iki satırlı başlıklar üretir — dokuz başlık tek satırda kalsın. */
+@media (max-width: 680px) {
+  .ord-table-wrap th { white-space: nowrap; }
+}
+
+/* ---- Sipariş durumu — her aşama kendi rengiyle, listede tek bakışta ayrışsın.
+   <select> öğesidir: base.css ok simgesini background-image ile çizdiğinden
+   yalnızca background-color değiştirilir. Renkler durum başına özel
+   değişkenlerle verilir; böylece hover/focus kuralları da aynı rengi korur. */
+.status-select {
+  font-weight: 700;
+  border-width: 1.5px;
+  border-style: solid;
+  color: var(--ss-color, var(--text));
+  background-color: var(--ss-bg, var(--input));
+  border-color: var(--ss-line, var(--border));
+}
+select.status-select:hover:not(:disabled):not(:focus) { border-color: var(--ss-line, var(--border-strong)); }
+select.status-select:focus {
+  background-color: var(--ss-bg, var(--input-focus));
+  box-shadow: 0 0 0 3px var(--ss-line, var(--brand-ring));
+}
+.status-select.olusturuldu { --ss-color: var(--warning); --ss-bg: var(--warning-soft); --ss-line: var(--warning-line); }
+.status-select.hazirlaniyor { --ss-color: var(--info);    --ss-bg: var(--info-soft);    --ss-line: var(--info-line); }
+.status-select.tamamlandi   { --ss-color: var(--success); --ss-bg: var(--success-soft); --ss-line: var(--success-line); }
+.status-select.iptal        { --ss-color: var(--error);   --ss-bg: var(--error-soft);   --ss-line: var(--error-line); }
+
+/* ---- Cari özet kartları ---- */
+.cari-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(180px, 100%), 1fr));
+  gap: 14px;
+  margin: 18px 0 26px;
+}
+.cari-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  box-shadow: var(--shadow-sm);
+  -webkit-backdrop-filter: blur(var(--blur));
+  backdrop-filter: blur(var(--blur));
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+.cari-card span {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+/* Sayının altındaki dipnot (ör. "tahsilat kayıtlarından", "son 12 ay")
+   etiket değil açıklamadır: büyük harf ve harf aralığı kalkar, soluk renk
+   ve 11.5px boyut korunur — kart etiket / sayı / ikinci etiket gibi okunmasın. */
+.cari-card strong + span {
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 500;
+}
+.cari-card strong {
+  font-size: 21px;
+  font-weight: 800;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  overflow-wrap: anywhere;
+}
+.cari-card.borc {
+  border-color: var(--error-line);
+  background: linear-gradient(var(--error-soft), var(--error-soft)), var(--card);
+}
+
+/* ---- Yazdırma: sabit sütun ve kaydırma kalkar; durum/ödeme rozetleri
+   base.css'in yazdırma tokenlarıyla (siyah yazı, beyaz zemin) basılır. */
+@media print {
+  .ord-table-wrap { overflow: visible; }
+  .ord-table-wrap th.ord-actions,
+  .ord-table-wrap td.ord-actions { position: static; box-shadow: none; }
+  .ord-table-wrap td.ord-actions { background: var(--surface-solid); }
+  .status-select, .pay-select {
+    color: var(--text);
+    background-color: var(--surface-solid);
+    border-color: var(--border-strong);
+    box-shadow: none;
+  }
+  .cari-card, .cari-card.borc { background: var(--surface-solid); box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
+}

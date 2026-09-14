@@ -115,12 +115,26 @@ export default function CekSenetManager() {
   return (
     <div>
       <div className="card no-print" style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-        <button className={`btn small ${tur === "alinan" ? "" : "secondary"}`} onClick={() => setTur("alinan")}>
-          Alınan (Müşteri)
-        </button>
-        <button className={`btn small ${tur === "verilen" ? "" : "secondary"}`} onClick={() => setTur("verilen")}>
-          Verilen (Tedarikçi)
-        </button>
+        <div className="seg" role="tablist" aria-label="Tür">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={tur === "alinan"}
+            className={tur === "alinan" ? "active" : ""}
+            onClick={() => setTur("alinan")}
+          >
+            Alınan (Müşteri)
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={tur === "verilen"}
+            className={tur === "verilen" ? "active" : ""}
+            onClick={() => setTur("verilen")}
+          >
+            Verilen (Tedarikçi)
+          </button>
+        </div>
         <select style={{ width: "auto" }} value={durumFiltre} onChange={(e) => setDurumFiltre(e.target.value)}>
           <option value="portfoyde">Portföyde</option>
           <option value="">Tümü</option>
@@ -130,17 +144,17 @@ export default function CekSenetManager() {
               <option key={k} value={k}>{v}</option>
             ))}
         </select>
-        <span style={{ flex: 1 }} />
-        <strong>
+        <span className="spacer" />
+        <strong className="num">
           {records.length} kayıt · ₺{fmt(toplam)}
         </strong>
-        <button className="btn small" onClick={() => setFormOpen((o) => !o)}>
+        <button type="button" className="btn small" onClick={() => setFormOpen((o) => !o)}>
           {formOpen ? "Vazgeç" : "+ Yeni Kayıt"}
         </button>
       </div>
 
       {formOpen && (
-        <div className="card">
+        <div className="card no-print">
           <div className="rw-grid2">
             <div>
               <label>Tür</label>
@@ -201,7 +215,7 @@ export default function CekSenetManager() {
             </p>
           )}
           <div style={{ marginTop: 12 }}>
-            <button className="btn" onClick={kaydet} disabled={saving}>
+            <button type="button" className="btn" onClick={kaydet} disabled={saving}>
               {saving ? "Kaydediliyor…" : "Kaydet"}
             </button>
           </div>
@@ -211,69 +225,73 @@ export default function CekSenetManager() {
       {err && <div className="notice err">{err}</div>}
 
       {loading ? (
-        <p style={{ color: "var(--muted)" }}>Yükleniyor…</p>
+        <p className="muted">Yükleniyor…</p>
       ) : (
-        <div className="card" style={{ padding: 0, overflowX: "auto" }}>
-          <table>
-            <thead>
-              <tr>
-                <th>Vade</th>
-                <th>Tür</th>
-                <th>{tur === "alinan" ? "Müşteri" : "Tedarikçi"}</th>
-                <th>Banka / No</th>
-                <th style={{ textAlign: "right" }}>Tutar</th>
-                <th>Durum</th>
-                <th>Şube</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {records.map((cs) => {
-                const vd = cs.durum === "portfoyde" ? vadeDurumu(cs.vade) : "normal";
-                return (
-                  <tr key={cs.id}>
-                    <td style={{ whiteSpace: "nowrap", fontWeight: 600,
-                      color: vd === "gecti" ? "var(--error)" : vd === "yakin" ? "#b45309" : undefined }}>
-                      {cs.vade.split("-").reverse().join(".")}
-                      {vd === "gecti" && " ⚠"}
-                      {vd === "yakin" && " ⏰"}
-                    </td>
-                    <td style={{ fontSize: 12.5 }}>{cs.kind === "cek" ? "Çek" : "Senet"}</td>
-                    <td>
-                      {cs.customerName || cs.supplier}
-                      {cs.cekSahibi && cs.cekSahibi !== cs.customerName && (
-                        <div style={{ fontSize: 11.5, color: "var(--muted)" }}>keşideci: {cs.cekSahibi}</div>
-                      )}
-                    </td>
-                    <td style={{ fontSize: 12.5 }}>{[cs.banka, cs.belgeNo].filter(Boolean).join(" / ") || "—"}</td>
-                    <td style={{ textAlign: "right", fontWeight: 700 }}>₺{fmt(cs.tutar)}</td>
-                    <td>
-                      <span className={`badge ${cs.durum === "portfoyde" ? "var" : cs.durum === "karsiliksiz" ? "yok" : "az"}`}>
-                        {CEKSENET_DURUM_LABELS[cs.durum]}
-                      </span>
-                      {cs.durum === "ciro" && cs.ciroTarget && (
-                        <div style={{ fontSize: 11.5, color: "var(--muted)" }}>→ {cs.ciroTarget}</div>
-                      )}
-                    </td>
-                    <td style={{ fontSize: 12.5 }}>{cs.branch === "istanbul" ? "İST" : "ANK"}</td>
-                    <td style={{ whiteSpace: "nowrap" }}>
-                      {allowedTransitions(cs.tur, cs.durum).map((h) => (
-                        <button key={h} className="btn small secondary" style={{ marginRight: 4 }}
-                          onClick={() => gecis(cs, h)}>
-                          {CEKSENET_DURUM_LABELS[h]}
-                        </button>
-                      ))}
-                    </td>
-                  </tr>
-                );
-              })}
-              {!records.length && (
+        <div className="card pad-0">
+          <div className="table-wrap" style={{ margin: 0, padding: 0 }}>
+            <table>
+              <thead>
                 <tr>
-                  <td colSpan={8} style={{ color: "var(--muted)" }}>Bu filtreye uyan kayıt yok.</td>
+                  <th>Vade</th>
+                  <th>Tür</th>
+                  <th>{tur === "alinan" ? "Müşteri" : "Tedarikçi"}</th>
+                  <th>Banka / No</th>
+                  <th className="num">Tutar</th>
+                  <th>Durum</th>
+                  <th>Şube</th>
+                  <th className="no-print"></th>
                 </tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {records.map((cs) => {
+                  const vd = cs.durum === "portfoyde" ? vadeDurumu(cs.vade) : "normal";
+                  const gecisler = allowedTransitions(cs.tur, cs.durum);
+                  return (
+                    <tr key={cs.id}>
+                      <td style={{ whiteSpace: "nowrap", fontWeight: 600,
+                        color: vd === "gecti" ? "var(--error)" : vd === "yakin" ? "var(--warning)" : undefined }}>
+                        {cs.vade.split("-").reverse().join(".")}
+                        {vd === "gecti" && " ⚠"}
+                        {vd === "yakin" && " ⏰"}
+                      </td>
+                      <td style={{ fontSize: 12.5 }}>{cs.kind === "cek" ? "Çek" : "Senet"}</td>
+                      <td>
+                        {cs.customerName || cs.supplier}
+                        {cs.cekSahibi && cs.cekSahibi !== cs.customerName && (
+                          <div className="muted" style={{ fontSize: 11.5 }}>keşideci: {cs.cekSahibi}</div>
+                        )}
+                      </td>
+                      <td style={{ fontSize: 12.5 }}>{[cs.banka, cs.belgeNo].filter(Boolean).join(" / ") || "—"}</td>
+                      <td className="num" style={{ fontWeight: 700, whiteSpace: "nowrap" }}>₺{fmt(cs.tutar)}</td>
+                      <td>
+                        <span className={`badge ${cs.durum === "portfoyde" ? "var" : cs.durum === "karsiliksiz" ? "yok" : "az"}`}>
+                          {CEKSENET_DURUM_LABELS[cs.durum]}
+                        </span>
+                        {cs.durum === "ciro" && cs.ciroTarget && (
+                          <div className="muted" style={{ fontSize: 11.5 }}>→ {cs.ciroTarget}</div>
+                        )}
+                      </td>
+                      <td style={{ fontSize: 12.5 }}>{cs.branch === "istanbul" ? "İST" : "ANK"}</td>
+                      <td className="no-print">
+                        {gecisler.length > 0 && (
+                          <div style={{ display: "flex", flexWrap: "wrap", gap: 4, minWidth: 150 }}>
+                            {gecisler.map((h) => (
+                              <button key={h} type="button" className="btn xs secondary" onClick={() => gecis(cs, h)}>
+                                {CEKSENET_DURUM_LABELS[h]}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            {!records.length && (
+              <div className="empty" style={{ padding: "22px 12px" }}>Bu filtreye uyan kayıt yok.</div>
+            )}
+          </div>
         </div>
       )}
     </div>

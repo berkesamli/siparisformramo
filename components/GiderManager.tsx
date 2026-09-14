@@ -4,6 +4,7 @@
 // Kasa Excel'indeki "ÇIKIŞLAR" bölümünün karşılığı.
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Icon from "@/components/shell/Icon";
 import {
   GIDER_KATEGORILERI,
   GIDER_YONTEM_LABELS,
@@ -113,21 +114,21 @@ export default function GiderManager() {
   return (
     <div>
       <div className="card no-print" style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-        <input type="month" style={{ width: "auto" }} value={ay} onChange={(e) => setAy(e.target.value)} />
+        <input type="month" style={{ width: "auto", maxWidth: "100%" }} value={ay} onChange={(e) => setAy(e.target.value)} />
         <select style={{ width: "auto" }} value={sube} onChange={(e) => setSube(e.target.value)}>
           <option value="">Tüm Şubeler</option>
           <option value="ankara">Ankara</option>
           <option value="istanbul">İstanbul</option>
         </select>
-        <span style={{ flex: 1 }} />
-        <strong style={{ color: "var(--error)" }}>Toplam: ₺{fmt(toplam)}</strong>
-        <button className="btn small" onClick={() => setFormOpen((o) => !o)}>
+        <span className="spacer" />
+        <strong className="num" style={{ color: "var(--error)" }}>Toplam: ₺{fmt(toplam)}</strong>
+        <button type="button" className="btn small" onClick={() => setFormOpen((o) => !o)}>
           {formOpen ? "Vazgeç" : "+ Gider Ekle"}
         </button>
       </div>
 
       {formOpen && (
-        <div className="card">
+        <div className="card no-print">
           <div className="rw-grid2">
             <div>
               <label>Tarih</label>
@@ -175,7 +176,7 @@ export default function GiderManager() {
             </div>
           </div>
           <div style={{ marginTop: 12 }}>
-            <button className="btn" onClick={kaydet} disabled={saving}>
+            <button type="button" className="btn" onClick={kaydet} disabled={saving}>
               {saving ? "Kaydediliyor…" : "Kaydet"}
             </button>
           </div>
@@ -185,56 +186,64 @@ export default function GiderManager() {
       {err && <div className="notice err">{err}</div>}
 
       {kategoriler.length > 0 && (
-        <div className="card" style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
+        <div className="card pad-sm" style={{ display: "flex", gap: "8px 14px", flexWrap: "wrap" }}>
           {kategoriler.map(([k, v]) => (
-            <span key={k} style={{ fontSize: 13.5 }}>
-              <strong>{k}</strong>: ₺{fmt(v)}
+            <span key={k} className="num" style={{ fontSize: 13.5, color: "var(--text-2)" }}>
+              <strong style={{ color: "var(--text)" }}>{k}</strong>: ₺{fmt(v)}
             </span>
           ))}
         </div>
       )}
 
       {loading ? (
-        <p style={{ color: "var(--muted)" }}>Yükleniyor…</p>
+        <p className="muted">Yükleniyor…</p>
       ) : (
-        <div className="card" style={{ padding: 0, overflowX: "auto" }}>
-          <table>
-            <thead>
-              <tr>
-                <th>Tarih</th>
-                <th>Şube</th>
-                <th>Kategori</th>
-                <th>Açıklama</th>
-                <th>Yöntem</th>
-                <th style={{ textAlign: "right" }}>Tutar</th>
-                <th>Kaydeden</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {records.map((g) => (
-                <tr key={g.id}>
-                  <td>{g.dateKey.split("-").reverse().join(".")}</td>
-                  <td style={{ fontSize: 12.5 }}>{g.branch === "istanbul" ? "İST" : "ANK"}</td>
-                  <td style={{ fontWeight: 600 }}>{g.category}</td>
-                  <td style={{ fontSize: 13 }}>{[g.description, g.supplier].filter(Boolean).join(" — ")}</td>
-                  <td style={{ fontSize: 12.5 }}>{GIDER_YONTEM_LABELS[g.method]}</td>
-                  <td style={{ textAlign: "right", color: "var(--error)", fontWeight: 600 }}>
-                    {g.currency === "TL" ? "₺" : g.currency === "USD" ? "$" : "€"}{fmt(g.amount)}
-                  </td>
-                  <td style={{ fontSize: 12.5 }}>{g.createdBy}</td>
-                  <td>
-                    <button className="btn small danger" onClick={() => sil(g)}>🗑</button>
-                  </td>
-                </tr>
-              ))}
-              {!records.length && (
+        <div className="card pad-0">
+          <div className="table-wrap" style={{ margin: 0, padding: 0 }}>
+            <table>
+              <thead>
                 <tr>
-                  <td colSpan={8} style={{ color: "var(--muted)" }}>Bu ayda gider kaydı yok.</td>
+                  <th>Tarih</th>
+                  <th>Şube</th>
+                  <th>Kategori</th>
+                  <th>Açıklama</th>
+                  <th>Yöntem</th>
+                  <th className="num">Tutar</th>
+                  <th>Kaydeden</th>
+                  <th className="no-print"></th>
                 </tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {records.map((g) => (
+                  <tr key={g.id}>
+                    <td style={{ whiteSpace: "nowrap" }}>{g.dateKey.split("-").reverse().join(".")}</td>
+                    <td style={{ fontSize: 12.5 }}>{g.branch === "istanbul" ? "İST" : "ANK"}</td>
+                    <td style={{ fontWeight: 600 }}>{g.category}</td>
+                    <td style={{ fontSize: 13 }}>{[g.description, g.supplier].filter(Boolean).join(" — ")}</td>
+                    <td style={{ fontSize: 12.5 }}>{GIDER_YONTEM_LABELS[g.method]}</td>
+                    <td className="num" style={{ color: "var(--error)", fontWeight: 600, whiteSpace: "nowrap" }}>
+                      {g.currency === "TL" ? "₺" : g.currency === "USD" ? "$" : "€"}{fmt(g.amount)}
+                    </td>
+                    <td style={{ fontSize: 12.5 }}>{g.createdBy}</td>
+                    <td className="no-print">
+                      <button
+                        type="button"
+                        className="btn icon small danger"
+                        title="Sil"
+                        aria-label="Sil"
+                        onClick={() => sil(g)}
+                      >
+                        <Icon name="x" size={15} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {!records.length && (
+              <div className="empty" style={{ padding: "22px 12px" }}>Bu ayda gider kaydı yok.</div>
+            )}
+          </div>
         </div>
       )}
     </div>

@@ -5,6 +5,7 @@
 // diğer çalışanlar değiştiremez; herkes aynı kurdan sipariş girer.
 
 import { useCallback, useEffect, useState } from "react";
+import Icon from "@/components/shell/Icon";
 import { sayi } from "@/lib/num";
 
 interface Rates {
@@ -20,6 +21,9 @@ const fmt = (n: number) =>
     minimumFractionDigits: 2,
     maximumFractionDigits: 4,
   });
+
+// Kur değeri satır sonunda bölünmesin ("Dolar: ₺ 41,85" tek parça kalır).
+const NOWRAP = { whiteSpace: "nowrap" } as const;
 
 export default function GunlukKur() {
   const [mevcut, setMevcut] = useState<Rates | null>(null);
@@ -86,23 +90,22 @@ export default function GunlukKur() {
 
   return (
     <div className="card">
-      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-        <h2 style={{ margin: 0, fontSize: 17 }}>Bugünün Kuru</h2>
-        <span className="badge">{bugun}</span>
+      <div className="card-head">
+        <span className="card-head-icon"><Icon name="dollar" size={18} /></span>
+        <div><h2>Bugünün Kuru</h2></div>
+        <span className="spacer" />
+        <div className="card-head-actions">
+          <span className="badge">{bugun}</span>
+        </div>
       </div>
 
       {yuklendi && mevcut && (mevcut.rate > 0 || mevcut.euroRate > 0) ? (
-        <div className="notice ok" style={{ marginTop: 14 }}>
-          <div style={{ fontSize: 15 }}>
-            {mevcut.rate > 0 && (
-              <>
-                <b>Dolar: ₺ {fmt(mevcut.rate)}</b>
-                {mevcut.euroRate > 0 ? "  ·  " : ""}
-              </>
-            )}
-            {mevcut.euroRate > 0 && <b>Euro: ₺ {fmt(mevcut.euroRate)}</b>}
+        <div className="notice ok">
+          <div className="row" style={{ gap: "4px 20px", fontSize: 15 }}>
+            {mevcut.rate > 0 && <b style={NOWRAP}>Dolar: ₺ {fmt(mevcut.rate)}</b>}
+            {mevcut.euroRate > 0 && <b style={NOWRAP}>Euro: ₺ {fmt(mevcut.euroRate)}</b>}
           </div>
-          <div style={{ fontSize: 12.5, marginTop: 4 }}>
+          <div className="small" style={{ marginTop: 4 }}>
             {mevcut.sabit ? "Yetkili tarafından belirlendi" : "İlk siparişten alındı"} —{" "}
             {mevcut.by} ·{" "}
             {new Date(mevcut.updatedAt).toLocaleTimeString("tr-TR", {
@@ -113,34 +116,29 @@ export default function GunlukKur() {
           </div>
         </div>
       ) : yuklendi ? (
-        <div className="notice warn" style={{ marginTop: 14 }}>
+        <div className="notice warn">
           ⚠️ Bugün için kur henüz girilmedi. Kur girilene kadar çalışanlar
           sipariş formunda kuru kendileri yazmak zorunda kalır.
         </div>
       ) : (
-        <p style={{ color: "var(--text-2)", marginTop: 14 }}>Yükleniyor…</p>
+        <p className="text-2" style={{ marginTop: 14 }}>Yükleniyor…</p>
       )}
 
-      <div
-        className="grid"
-        style={{ gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))", marginTop: 16 }}
-      >
-        <div>
+      <div className="field-row" style={{ marginTop: 16 }}>
+        <div className="field">
           <label>Dolar Kuru (TL/USD)</label>
           <input
             type="text"
-            
             inputMode="decimal"
             value={usd}
             onChange={(e) => setUsd(e.target.value)}
             placeholder="örn. 41,85"
           />
         </div>
-        <div>
+        <div className="field">
           <label>Euro Kuru (TL/EUR)</label>
           <input
             type="text"
-            
             inputMode="decimal"
             value={eur}
             onChange={(e) => setEur(e.target.value)}
@@ -149,19 +147,19 @@ export default function GunlukKur() {
         </div>
       </div>
 
-      <div style={{ display: "flex", gap: 10, marginTop: 16, flexWrap: "wrap" }}>
+      <div className="row">
         <button className="btn" disabled={kaydediliyor} onClick={kaydet}>
           {kaydediliyor ? "Kaydediliyor…" : mevcut?.sabit ? "Kuru Güncelle" : "Günün Kurunu Belirle"}
         </button>
         <button className="btn secondary" onClick={yukle} disabled={kaydediliyor}>
-          ↻ Yenile
+          <Icon name="refresh" size={14} /> Yenile
         </button>
       </div>
 
-      {msg && <div className="notice ok" style={{ marginTop: 12 }}>{msg}</div>}
-      {err && <div className="notice err" style={{ marginTop: 12 }}>{err}</div>}
+      {msg && <div className="notice ok">{msg}</div>}
+      {err && <div className="notice err">{err}</div>}
 
-      <p style={{ color: "var(--muted)", fontSize: 12.5, marginTop: 16 }}>
+      <p className="muted small" style={{ marginTop: 16 }}>
         💡 Kuru siz belirledikten sonra sipariş formundaki kur alanı diğer
         çalışanlarda kilitlenir — herkes bu kurdan sipariş girer. Gün içinde
         değiştirirseniz yeni siparişler yeni kuru kullanır; daha önce alınan

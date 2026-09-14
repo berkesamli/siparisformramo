@@ -8,6 +8,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import Icon from "@/components/shell/Icon";
 import {
   MAT_TYPES,
   INNER_MAT_TYPES,
@@ -726,14 +727,29 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
     const q = `d=${success.d}&id=${encodeURIComponent(success.id)}`;
     return (
       <div className="card" style={{ maxWidth: 560, margin: "40px auto", textAlign: "center" }}>
-        <div style={{ fontSize: 52 }}>✅</div>
+        <div
+          style={{
+            width: 64,
+            height: 64,
+            margin: "0 auto 12px",
+            borderRadius: 20,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "var(--success-soft)",
+            border: "1px solid var(--success-line)",
+            color: "var(--success)",
+          }}
+        >
+          <Icon name="check-circle" size={32} />
+        </div>
         <h2>Sipariş Kaydedildi</h2>
         <p style={{ fontSize: 15 }}>
           Sipariş Numarası:{" "}
           <strong style={{ color: "var(--brand)", fontSize: 20 }}>{success.id}</strong>
         </p>
         {!success.saved && (
-          <p style={{ fontSize: 13, color: "#b45309", fontWeight: 600 }}>
+          <p style={{ fontSize: 13, color: "var(--warning)", fontWeight: 600 }}>
             ⚠ Kalıcı depo bağlı değil — sipariş panelde SAKLANAMADI.
           </p>
         )}
@@ -747,14 +763,16 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
           {success.d && (
             <>
               <a href={`/api/perakende/orders/pdf?${q}`} className="btn">
-                ⬇ Üretim PDF
+                <Icon name="download" size={16} /> Üretim PDF
               </a>
               <Link href={`/panel/perakende/siparisler/detay?${q}`} className="btn secondary">
-                🖨️ Fişi Gör
+                <Icon name="printer" size={16} /> Fişi Gör
               </Link>
             </>
           )}
-          <button className="btn secondary" onClick={resetAll}>Yeni Sipariş</button>
+          <button className="btn secondary" onClick={resetAll}>
+            <Icon name="plus" size={16} /> Yeni Sipariş
+          </button>
         </div>
         <p style={{ fontSize: 12.5, color: "var(--muted)", marginTop: 12 }}>
           <Link href="/panel/perakende/siparisler">Perakende Siparişler listesine git →</Link>
@@ -804,9 +822,9 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
             <div className="rw-grid2">
               <div>
                 <label>Genişlik</label>
-                <div style={{ display: "flex", gap: 8 }}>
-                  <input type="number" min="0" value={artWidth} onChange={(e) => setArtWidth(e.target.value)} placeholder="örn. 50" />
-                  <select style={{ width: 84 }} value={wUnit} onChange={(e) => setWUnit(e.target.value as "cm" | "mm")}>
+                <div style={{ display: "flex", gap: 8, minWidth: 0 }}>
+                  <input type="number" min="0" style={{ flex: 1, minWidth: 0 }} value={artWidth} onChange={(e) => setArtWidth(e.target.value)} placeholder="örn. 50" />
+                  <select style={{ width: 84, flex: "0 0 84px" }} value={wUnit} onChange={(e) => setWUnit(e.target.value as "cm" | "mm")}>
                     <option value="cm">cm</option>
                     <option value="mm">mm</option>
                   </select>
@@ -814,9 +832,9 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
               </div>
               <div>
                 <label>Yükseklik</label>
-                <div style={{ display: "flex", gap: 8 }}>
-                  <input type="number" min="0" value={artHeight} onChange={(e) => setArtHeight(e.target.value)} placeholder="örn. 70" />
-                  <select style={{ width: 84 }} value={hUnit} onChange={(e) => setHUnit(e.target.value as "cm" | "mm")}>
+                <div style={{ display: "flex", gap: 8, minWidth: 0 }}>
+                  <input type="number" min="0" style={{ flex: 1, minWidth: 0 }} value={artHeight} onChange={(e) => setArtHeight(e.target.value)} placeholder="örn. 70" />
+                  <select style={{ width: 84, flex: "0 0 84px" }} value={hUnit} onChange={(e) => setHUnit(e.target.value as "cm" | "mm")}>
                     <option value="cm">cm</option>
                     <option value="mm">mm</option>
                   </select>
@@ -866,7 +884,9 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
                     style={{ display: "none" }}
                     onChange={(e) => handleImage(e.target.files?.[0])}
                   />
-                  🖼️ Fotoğraf seçmek için tıklayın
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+                    <Icon name="image" size={16} /> Fotoğraf seçmek için tıklayın
+                  </span>
                 </label>
               )}
             </div>
@@ -1283,7 +1303,8 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
               baslik={cart.length > 0 ? `Şu Anki Ürün (${cart.length + 1}. Ürün)` : "Sipariş Özeti"}
               aciklama="Seçimleri kontrol edin; başka ürün eklenecekse sepete atıp yeni ürüne geçin."
             />
-            <table style={{ marginBottom: 14 }}>
+            <div className="table-wrap" style={{ marginBottom: 14 }}>
+            <table>
               <tbody>
                 <tr><td>Ölçü</td><td>{artWidth || "-"} {wUnit} × {artHeight || "-"} {hUnit}</td></tr>
                 <tr><td>Çerçeve</td><td>{fullFrameCode || "-"} {framePriceTL > 0 && `(₺${fmt(framePriceTL)}/m)`}</td></tr>
@@ -1300,17 +1321,18 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
                 <tr><td>Baskı</td><td>{print.name}</td></tr>
               </tbody>
             </table>
+            </div>
 
             {cart.length > 0 && (
               <div style={{ marginBottom: 14 }}>
                 <label>Sepetteki Ürünler</label>
                 {cart.map((it, i) => (
                   <div className="rw-cart-item" key={i}>
-                    <div>
+                    <div style={{ minWidth: 0 }}>
                       <strong>{i + 1}. Ürün</strong>
-                      <div style={{ fontSize: 12.5, color: "var(--text-2)" }}>{itemShortText(it)}</div>
+                      <div style={{ fontSize: 12.5, color: "var(--text-2)", overflowWrap: "anywhere" }}>{itemShortText(it)}</div>
                     </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
                       <strong>₺{fmt(it.itemTotal)}</strong>
                       <button
                         className="btn small danger"
@@ -1344,9 +1366,9 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
             <div className="rw-grid2" style={{ marginTop: 16 }}>
               <div>
                 <label>İndirim</label>
-                <div style={{ display: "flex", gap: 8 }}>
-                  <input type="number" min="0" value={discountValue} onChange={(e) => setDiscountValue(e.target.value)} />
-                  <select style={{ width: 84 }} value={discountType} onChange={(e) => setDiscountType(e.target.value as "percent" | "tl")}>
+                <div style={{ display: "flex", gap: 8, minWidth: 0 }}>
+                  <input type="number" min="0" style={{ flex: 1, minWidth: 0 }} value={discountValue} onChange={(e) => setDiscountValue(e.target.value)} />
+                  <select style={{ width: 84, flex: "0 0 84px" }} value={discountType} onChange={(e) => setDiscountType(e.target.value as "percent" | "tl")}>
                     <option value="percent">%</option>
                     <option value="tl">TL</option>
                   </select>
@@ -1360,7 +1382,7 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
 
             <div style={{ display: "flex", gap: 10, marginTop: 20, flexWrap: "wrap" }}>
               <button className="btn secondary" onClick={addToCart}>
-                ➕ Sepete Ekle & Yeni Ürün
+                <Icon name="plus" size={16} /> Sepete Ekle & Yeni Ürün
               </button>
             </div>
           </div>
@@ -1368,7 +1390,7 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
 
         {/* 7 — MÜŞTERİ & GÖNDER */}
         {step === 7 && (
-          <div className="card">
+          <div className="card overflow">
             <AdimBaslik
               no={7}
               baslik="Müşteri & Teslim"
@@ -1419,16 +1441,17 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
               </div>
               <div>
                 <label>Kapora (₺)</label>
-                <div style={{ display: "flex", gap: 8 }}>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", minWidth: 0 }}>
                   <input
                     type="text"
                     inputMode="decimal"
+                    style={{ flex: "1 1 120px", minWidth: 0 }}
                     value={kapora}
                     onChange={(e) => setKapora(e.target.value)}
                     placeholder="0"
                   />
                   <select
-                    style={{ width: 90 }}
+                    style={{ width: 90, flex: "0 0 90px" }}
                     value={kaporaMethod}
                     onChange={(e) =>
                       setKaporaMethod(e.target.value as "nakit" | "krediKarti")
@@ -1486,10 +1509,16 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
 
             <div style={{ display: "flex", gap: 10, marginTop: 20, flexWrap: "wrap" }}>
               <button className="btn wa" onClick={sendWhatsAppQuote}>
-                📲 WhatsApp Teklif Gönder
+                <Icon name="message" size={16} /> WhatsApp Teklif Gönder
               </button>
               <button className="btn" disabled={submitting} onClick={submitOrder}>
-                {submitting ? "Kaydediliyor..." : "✅ Siparişi Kaydet ve Gönder"}
+                {submitting ? (
+                  "Kaydediliyor..."
+                ) : (
+                  <>
+                    <Icon name="check-circle" size={16} /> Siparişi Kaydet ve Gönder
+                  </>
+                )}
               </button>
             </div>
             <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 10 }}>
@@ -1522,7 +1551,7 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
         )}
 
         {/* Alt gezinme — websitedeki gibi: sonraki adımın adıyla geniş koyu buton */}
-        <div style={{ display: "flex", justifyContent: "space-between", gap: 12, marginTop: 18 }}>
+        <div className="no-print" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12, marginTop: 18 }}>
           <button
             className="btn secondary rw-geri"
             disabled={step === 1}
@@ -1540,7 +1569,7 @@ export default function RetailWizard({ employeeName }: { employeeName: string })
 
       {/* Sağ — canlı önizleme (web sitesindeki hesaplayıcı tasarımının portu) */}
       <aside className="rw-preview-panel">
-        <div className="card rw-preview-card" style={{ position: "sticky", top: 90 }}>
+        <div className="card rw-preview-card" style={{ position: "sticky", top: "calc(var(--topbar-h) + 8px)" }}>
           <FramePreview
             // Pencereli düzende alan (field + 2×şerit) eserin yerine geçer —
             // pencereler önizlemede fotoğraflarıyla ayrı ayrı çizilir

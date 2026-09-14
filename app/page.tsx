@@ -1,14 +1,20 @@
-/* eslint-disable @next/next/no-img-element */
 import fs from "fs";
 import path from "path";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
+import { isFinance, isKurYetkili, finansAktif } from "@/data/users";
+import PageHeader from "@/components/PageHeader";
+import Icon from "@/components/shell/Icon";
+import Dashboard from "@/components/dashboard/Dashboard";
+import CustomerDashboard from "@/components/dashboard/CustomerDashboard";
+import AiChat from "@/components/AiChat";
+import type { QuickTile } from "@/components/dashboard/QuickActions";
 
 export const dynamic = "force-dynamic";
 
-// Ana sayfa kart görselleri: public/anasayfa/ klasörüne
-// kataloglar.jpg, stok.jpg, siparis.jpg (jpg/png/webp) eklenince otomatik kullanılır.
+// Hızlı işlem kartı görselleri: public/anasayfa/ klasöründeki
+// kataloglar/stok/siparis/perakende (jpg/png/webp) otomatik kullanılır.
 function cardImage(base: string): string | null {
   for (const ext of ["jpg", "jpeg", "png", "webp"]) {
     const p = path.join(process.cwd(), "public", "anasayfa", `${base}.${ext}`);
@@ -17,100 +23,81 @@ function cardImage(base: string): string | null {
   return null;
 }
 
+function tarihStr(): string {
+  return new Date().toLocaleDateString("tr-TR", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "Europe/Istanbul",
+  });
+}
+
 export default async function HomePage() {
   const user = await getSessionUser();
   // Site tamamen kapalıdır: giriş yapılmadan ana sayfa da görüntülenemez.
-  // Giriş sonrası kullanıcı yine ana sayfaya döner.
   if (!user) redirect("/giris?next=/");
 
-  const cards = [
-    {
-      title: "Kataloglar",
-      sub: "PDF · Dergi Görünümü",
-      href: "/kataloglar",
-      img: cardImage("kataloglar"),
-    },
-    {
-      title: "Stok Durumu",
-      sub: "Ankara · İstanbul",
-      href: user ? "/portal" : "/giris?next=/portal",
-      img: cardImage("stok"),
-    },
-    {
-      title: "Sipariş Paneli",
-      sub: "Çalışanlara Özel",
-      href: user?.role === "staff" ? "/panel" : "/giris?next=/panel",
-      img: cardImage("siparis"),
-    },
-    {
-      title: "Online Çerçeve",
-      sub: "Perakende · Çerçeveletme",
-      href:
-        user?.role === "staff"
-          ? "/panel/perakende"
-          : "/giris?next=/panel/perakende",
-      img: cardImage("perakende"),
-    },
+  const staff = user.role === "staff";
+  const finance = staff && isFinance(user.username);
+  const ilkAd = user.name.split(/\s+/)[0] || user.name;
+
+  if (!staff) {
+    const tiles: QuickTile[] = [
+      { title: "Stok Durumu", sub: "Ankara · İstanbul depoları", href: "/portal", icon: "package", img: cardImage("stok") },
+      { title: "Toptan Fiyat Listesi", sub: "Profiller ve teknik malzeme", href: "/portal/fiyat-listesi", icon: "tag", img: cardImage("siparis") },
+      { title: "Kataloglar", sub: "PDF · dergi görünümü", href: "/kataloglar", icon: "book", img: cardImage("kataloglar") },
+    ];
+    return (
+      <main className="container">
+        <PageHeader
+          kicker={tarihStr()}
+          title={`Hoş geldiniz, ${ilkAd}`}
+          subtitle={"Güncel stok, toptan fiyat listesi ve kataloglara buradan ulaşabilirsiniz. Sipariş için: 0850\u00A0305\u00A075\u00A045"}
+          icon="home"
+        />
+        <CustomerDashboard tiles={tiles} />
+        <AiChat />
+      </main>
+    );
+  }
+
+  const tiles: QuickTile[] = [
+    { title: "Yeni Toptan Sipariş", sub: "Sipariş formu · e\u2011posta + WhatsApp", href: "/panel", icon: "plus", img: cardImage("siparis") },
+    { title: "Online Çerçeve", sub: "Perakende çerçeveletme sihirbazı", href: "/panel/perakende", icon: "frame", img: cardImage("perakende") },
+    { title: "Stok Sorgula", sub: "Ankara · İstanbul", href: "/portal", icon: "package", img: cardImage("stok") },
+    { title: "Kataloglar", sub: "PDF · dergi görünümü", href: "/kataloglar", icon: "book", img: cardImage("kataloglar") },
   ];
+  const chips: { label: string; href: string; icon: "users" | "message" | "upload" | "tag" | "book" | "dollar" | "bar-chart" }[] = [
+    { label: "Müşteriler & Etiket", href: "/etiket", icon: "users" },
+    { label: "SMS Gönder", href: "/panel/sms", icon: "message" },
+    { label: "Stok Yükle", href: "/panel/stok", icon: "upload" },
+    { label: "Fiyat Listesi", href: "/portal/fiyat-listesi", icon: "tag" },
+  ];
+  if (isKurYetkili(user.username)) chips.push({ label: "Günlük Kur", href: "/panel/kur", icon: "dollar" });
+  if (finance) chips.push({ label: "Raporlar", href: "/panel/raporlar", icon: "bar-chart" });
+  if (finance && finansAktif()) chips.push({ label: "Finans", href: "/panel/finans", icon: "bar-chart" });
 
   return (
     <main className="container">
-      <div style={{ textAlign: "center", padding: "26px 0 26px" }}>
-        <p
-          className="subtitle"
-          style={{ fontSize: 15.5, maxWidth: 620, margin: "0 auto" }}
-        >
-          Profesyonel çerçeveleme ve dekorasyon çözümleri — kataloglar, güncel
-          stok ve online sipariş platformu.
-        </p>
-      </div>
-
-      <div className="hero-grid">
-        {cards.map((c) => (
-          <Link key={c.title} href={c.href} className="hero-card">
-            <span className="hero-media">
-              {c.img ? (
-                <img className="hero-bg" src={c.img} alt={c.title} />
-              ) : (
-                <img className="hero-watermark" src="/logo.png" alt="" />
-              )}
-              <span className="hero-shade" />
-            </span>
-            <span className="hero-txt">
-              <h3>{c.title}</h3>
-              <span>{c.sub}</span>
-            </span>
-            <span className="hero-btn" aria-hidden>
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.4"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <line x1="7" y1="17" x2="17" y2="7" />
-                <polyline points="8 7 17 7 17 16" />
-              </svg>
-            </span>
-          </Link>
-        ))}
-      </div>
-
-      <div
-        className="card"
-        style={{ marginTop: 34, textAlign: "center", maxWidth: 1080, marginLeft: "auto", marginRight: "auto" }}
-      >
-        <p style={{ color: "var(--text-2)" }}>
-          📞 Sipariş Hattı: <strong>0850 305 75 45</strong> · Ankara: 0312 495 75 45 ·
-          İstanbul: 0212 675 27 50 ·{" "}
-          <a href="https://olgacerceve.com" target="_blank" rel="noreferrer">
-            olgacerceve.com
-          </a>
-        </p>
-      </div>
+      <PageHeader
+        kicker={tarihStr()}
+        title={`Günün özeti — hoş geldin, ${ilkAd}`}
+        subtitle="Bugünkü siparişler, açık işler ve dikkat gerektiren konular tek bakışta."
+        icon="home"
+        actions={
+          <>
+            <Link href="/panel/perakende" className="btn secondary">
+              <Icon name="frame" size={17} /> Online Çerçeve
+            </Link>
+            <Link href="/panel" className="btn">
+              <Icon name="plus" size={17} /> Yeni Sipariş
+            </Link>
+          </>
+        }
+      />
+      <Dashboard finance={finance} tiles={tiles} chips={chips} />
+      <AiChat />
     </main>
   );
 }

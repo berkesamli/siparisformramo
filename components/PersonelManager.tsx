@@ -5,6 +5,7 @@
 // bu ekran o giderleri kişi bazında toplayıp "maaş / çektiği / kalan" gösterir.
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Icon from "@/components/shell/Icon";
 import type { Personel } from "@/lib/personel";
 import type { Gider } from "@/lib/gider";
 
@@ -125,15 +126,15 @@ export default function PersonelManager() {
   return (
     <div>
       <div className="card no-print" style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-        <input type="month" style={{ width: "auto" }} value={ay} onChange={(e) => setAy(e.target.value)} />
-        <span style={{ flex: 1 }} />
-        <button className="btn small" onClick={() => setFormOpen((o) => !o)}>
+        <input type="month" style={{ width: "auto", maxWidth: "100%" }} value={ay} onChange={(e) => setAy(e.target.value)} />
+        <span className="spacer" />
+        <button type="button" className="btn small" onClick={() => setFormOpen((o) => !o)}>
           {formOpen ? "Vazgeç" : "+ Personel Ekle"}
         </button>
       </div>
 
       {formOpen && (
-        <div className="card">
+        <div className="card no-print">
           <div className="rw-grid2">
             <div>
               <label>Ad Soyad</label>
@@ -156,7 +157,7 @@ export default function PersonelManager() {
             </div>
           </div>
           <div style={{ marginTop: 12 }}>
-            <button className="btn" onClick={personelKaydet} disabled={saving}>
+            <button type="button" className="btn" onClick={personelKaydet} disabled={saving}>
               {saving ? "Kaydediliyor…" : "Kaydet"}
             </button>
           </div>
@@ -166,91 +167,94 @@ export default function PersonelManager() {
       {err && <div className="notice err">{err}</div>}
 
       {loading ? (
-        <p style={{ color: "var(--muted)" }}>Yükleniyor…</p>
+        <p className="muted">Yükleniyor…</p>
       ) : (
-        <div className="card" style={{ padding: 0, overflowX: "auto" }}>
-          <table>
-            <thead>
-              <tr>
-                <th>Ad Soyad</th>
-                <th>Şube</th>
-                <th>İşe Başlama</th>
-                <th style={{ textAlign: "right" }}>Maaş</th>
-                <th style={{ textAlign: "right" }}>Bu Ay Çektiği</th>
-                <th style={{ textAlign: "right" }}>Kalan</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {personel.map((p) => {
-                const cekti = kisiOdeme.get(p.id) || 0;
-                const kalan = (p.salary || 0) - cekti;
-                return (
-                  <tr key={p.id} style={p.endDate ? { opacity: 0.55 } : undefined}>
-                    <td style={{ fontWeight: 600 }}>
-                      {p.name}
-                      {p.endDate && <span style={{ fontSize: 11.5, color: "var(--muted)" }}> (ayrıldı)</span>}
-                    </td>
-                    <td style={{ fontSize: 12.5 }}>{p.branch === "istanbul" ? "İST" : "ANK"}</td>
-                    <td style={{ fontSize: 12.5 }}>{p.startDate?.split("-").reverse().join(".") || "—"}</td>
-                    <td style={{ textAlign: "right" }}>{p.salary ? `₺${fmt(p.salary)}` : "—"}</td>
-                    <td style={{ textAlign: "right", color: "var(--error)" }}>₺{fmt(cekti)}</td>
-                    <td style={{ textAlign: "right", fontWeight: 600, color: kalan < 0 ? "var(--error)" : "var(--success)" }}>
-                      {p.salary ? `₺${fmt(kalan)}` : "—"}
-                    </td>
-                    <td>
-                      <button className="btn small secondary" onClick={() => setOdemePersonel(p)}>
-                        💸 Ödeme
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-              {!personel.length && (
+        <div className="card pad-0">
+          <div className="table-wrap" style={{ margin: 0, padding: 0 }}>
+            <table>
+              <thead>
                 <tr>
-                  <td colSpan={7} style={{ color: "var(--muted)" }}>
-                    Henüz personel kartı yok. &quot;+ Personel Ekle&quot; ile başlayın.
-                  </td>
+                  <th>Ad Soyad</th>
+                  <th>Şube</th>
+                  <th>İşe Başlama</th>
+                  <th className="num">Maaş</th>
+                  <th className="num">Bu Ay Çektiği</th>
+                  <th className="num">Kalan</th>
+                  <th className="no-print"></th>
                 </tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {personel.map((p) => {
+                  const cekti = kisiOdeme.get(p.id) || 0;
+                  const kalan = (p.salary || 0) - cekti;
+                  return (
+                    <tr key={p.id} style={p.endDate ? { opacity: 0.55 } : undefined}>
+                      <td style={{ fontWeight: 600 }}>
+                        {p.name}
+                        {p.endDate && <span className="muted" style={{ fontSize: 11.5 }}> (ayrıldı)</span>}
+                      </td>
+                      <td style={{ fontSize: 12.5 }}>{p.branch === "istanbul" ? "İST" : "ANK"}</td>
+                      <td style={{ fontSize: 12.5, whiteSpace: "nowrap" }}>{p.startDate?.split("-").reverse().join(".") || "—"}</td>
+                      <td className="num" style={{ whiteSpace: "nowrap" }}>{p.salary ? `₺${fmt(p.salary)}` : "—"}</td>
+                      <td className="num" style={{ color: "var(--error)", whiteSpace: "nowrap" }}>₺{fmt(cekti)}</td>
+                      <td className="num" style={{ fontWeight: 600, whiteSpace: "nowrap", color: kalan < 0 ? "var(--error)" : "var(--success)" }}>
+                        {p.salary ? `₺${fmt(kalan)}` : "—"}
+                      </td>
+                      <td className="no-print">
+                        <button type="button" className="btn small secondary" onClick={() => setOdemePersonel(p)}>
+                          <Icon name="wallet" size={14} /> Ödeme
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            {!personel.length && (
+              <div className="empty" style={{ padding: "22px 12px" }}>
+                Henüz personel kartı yok. &quot;+ Personel Ekle&quot; ile başlayın.
+              </div>
+            )}
+          </div>
         </div>
       )}
 
       <h2 style={{ marginTop: 24 }}>Bu Ayın Ödemeleri</h2>
-      <div className="card" style={{ padding: 0, overflowX: "auto" }}>
-        <table>
-          <thead>
-            <tr>
-              <th>Tarih</th>
-              <th>Kişi / Açıklama</th>
-              <th>Kategori</th>
-              <th style={{ textAlign: "right" }}>Tutar</th>
-            </tr>
-          </thead>
-          <tbody>
-            {odemeler.map((g) => (
-              <tr key={g.id}>
-                <td>{g.dateKey.split("-").reverse().join(".")}</td>
-                <td>{g.description}</td>
-                <td style={{ fontSize: 12.5 }}>{g.category}</td>
-                <td style={{ textAlign: "right", color: "var(--error)" }}>₺{fmt(g.amount)}</td>
-              </tr>
-            ))}
-            {!odemeler.length && (
+      <div className="card pad-0">
+        <div className="table-wrap" style={{ margin: 0, padding: 0 }}>
+          <table>
+            <thead>
               <tr>
-                <td colSpan={4} style={{ color: "var(--muted)" }}>Bu ayda ödeme yok.</td>
+                <th>Tarih</th>
+                <th>Kişi / Açıklama</th>
+                <th>Kategori</th>
+                <th className="num">Tutar</th>
               </tr>
-            )}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {odemeler.map((g) => (
+                <tr key={g.id}>
+                  <td style={{ whiteSpace: "nowrap" }}>{g.dateKey.split("-").reverse().join(".")}</td>
+                  <td>{g.description}</td>
+                  <td style={{ fontSize: 12.5 }}>{g.category}</td>
+                  <td className="num" style={{ color: "var(--error)", whiteSpace: "nowrap" }}>₺{fmt(g.amount)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {!odemeler.length && (
+            <div className="empty" style={{ padding: "22px 12px" }}>Bu ayda ödeme yok.</div>
+          )}
+        </div>
       </div>
 
       {odemePersonel && (
         <div className="modal-backdrop" onClick={() => setOdemePersonel(null)}>
-          <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-            <h2 style={{ marginTop: 0 }}>💸 {odemePersonel.name} — Ödeme</h2>
+          <div className="modal-card" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
+            <h2 style={{ marginTop: 0, display: "flex", alignItems: "center", gap: 8 }}>
+              <span className="card-head-icon" style={{ width: 30, height: 30 }}><Icon name="wallet" size={16} /></span>
+              <span style={{ minWidth: 0, overflowWrap: "anywhere" }}>{odemePersonel.name} — Ödeme</span>
+            </h2>
             <div className="rw-grid2">
               <div>
                 <label>Kategori</label>
@@ -272,11 +276,11 @@ export default function PersonelManager() {
                 <input type="number" step="0.01" min="0" value={oTutar} onChange={(e) => setOTutar(e.target.value)} />
               </div>
             </div>
-            <div style={{ marginTop: 12, display: "flex", gap: 10 }}>
-              <button className="btn" onClick={odemeKaydet} disabled={saving}>
+            <div style={{ marginTop: 12, display: "flex", gap: 10, flexWrap: "wrap" }}>
+              <button type="button" className="btn" onClick={odemeKaydet} disabled={saving}>
                 {saving ? "Kaydediliyor…" : "Kaydet"}
               </button>
-              <button className="btn secondary" onClick={() => setOdemePersonel(null)}>
+              <button type="button" className="btn secondary" onClick={() => setOdemePersonel(null)}>
                 Vazgeç
               </button>
             </div>

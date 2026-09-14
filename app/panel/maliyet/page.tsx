@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
 import { isMaliyet } from "@/data/users";
 import MaliyetManager from "@/components/MaliyetManager";
+import PageHeader from "@/components/PageHeader";
 
 export const dynamic = "force-dynamic";
 
@@ -13,11 +14,11 @@ export default async function MaliyetPage() {
 
   return (
     <main className="container" style={{ maxWidth: 1200 }}>
-      <h1>Maliyet &amp; Kârlılık</h1>
-      <p className="subtitle">
-        Ürün alış fiyatları, yüzdesel genel gider ve kod bazlı satış/kâr
-        analizi. Parti (konteyner) bazlı: her gelen konteynerin fiyatları ve yüzdesi ayrı girilir.
-      </p>
+      <PageHeader
+        title="Maliyet & Kârlılık"
+        subtitle="Ürün alış fiyatları, yüzdesel genel gider ve kod bazlı satış/kâr analizi. Parti (konteyner) bazlı: her gelen konteynerin fiyatları ve yüzdesi ayrı girilir."
+        icon="percent"
+      />
       <MaliyetManager />
     </main>
   );

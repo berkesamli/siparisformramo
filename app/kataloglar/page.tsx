@@ -4,6 +4,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
 import { catalogTitle } from "@/lib/catalog-meta";
+import PageHeader from "@/components/PageHeader";
+import Icon from "@/components/shell/Icon";
 
 export const dynamic = "force-dynamic";
 
@@ -42,11 +44,11 @@ export default async function CatalogsPage() {
 
   return (
     <main className="container">
-      <h1>Kataloglar</h1>
-      <p className="subtitle">
-        Ürün ve teknik malzeme kataloglarımızı dergi formatında sayfa çevirerek
-        inceleyebilirsiniz.
-      </p>
+      <PageHeader
+        title="Kataloglar"
+        subtitle="Ürün ve teknik malzeme kataloglarımızı dergi formatında sayfa çevirerek inceleyebilirsiniz."
+        icon="book"
+      />
 
       {catalogs.length === 0 ? (
         <div className="card">
@@ -61,19 +63,25 @@ export default async function CatalogsPage() {
       ) : (
         <div className="grid cols-3">
           {catalogs.map((c) => (
-            <div className="card" key={c.slug}>
-              <div style={{ fontSize: 40, marginBottom: 8 }}>📖</div>
+            <div className="card" key={c.slug} style={{ display: "flex", flexDirection: "column" }}>
+              <span
+                className="card-head-icon"
+                style={{ width: 44, height: 44, borderRadius: 12, marginBottom: 12 }}
+                aria-hidden
+              >
+                <Icon name="book" size={22} />
+              </span>
               <h2 style={{ marginTop: 0 }}>{c.name}</h2>
               {c.note && (
-                <p style={{ color: "var(--brand)", fontSize: 12.5, fontWeight: 600, marginBottom: 6 }}>
+                <p className="muted" style={{ fontSize: 12.5, fontWeight: 600, marginBottom: 6 }}>
                   {c.note}
                 </p>
               )}
-              <p style={{ color: "var(--muted)", fontSize: 13, marginBottom: 14 }}>
+              <p className="muted" style={{ fontSize: 13, marginBottom: 14 }}>
                 PDF · {c.sizeMB} MB
               </p>
-              <Link href={`/kataloglar/${c.slug}`} className="btn">
-                Dergi Görünümünde Aç
+              <Link href={`/kataloglar/${c.slug}`} className="btn" style={{ marginTop: "auto", alignSelf: "flex-start" }}>
+                <Icon name="eye" size={16} /> Dergi Görünümünde Aç
               </Link>
             </div>
           ))}
