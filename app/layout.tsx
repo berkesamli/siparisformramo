@@ -25,13 +25,11 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: [
-    { media: "(prefers-color-scheme: dark)", color: "#0b1120" },
-    { media: "(prefers-color-scheme: light)", color: "#f4f1ea" },
-  ],
+  themeColor: "#f4f1ea",
 };
 
-// Tema ve kenar çubuğu tercihi ilk boyamadan ÖNCE uygulanır (flash olmasın).
+// Varsayılan tema AÇIK; kullanıcı koyuyu seçtiyse kayıtlı tercih ilk boyamadan
+// ÖNCE uygulanır (flash olmasın). Kenar çubuğu daraltma tercihi de burada okunur.
 const INIT_SCRIPT = `(function(){try{var t=localStorage.getItem("olga-theme");if(t==="light"||t==="dark"){document.documentElement.setAttribute("data-theme",t)}var s=localStorage.getItem("olga-sb");if(s==="rail"){document.documentElement.setAttribute("data-sb","rail")}}catch(e){}})();`;
 
 export default async function RootLayout({
@@ -42,7 +40,7 @@ export default async function RootLayout({
   const user = await getSessionUser();
 
   return (
-    <html lang="tr" suppressHydrationWarning>
+    <html lang="tr" data-theme="light" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: INIT_SCRIPT }} />
       </head>

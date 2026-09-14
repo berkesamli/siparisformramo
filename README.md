@@ -23,8 +23,8 @@ Eski Apps Script kodu `legacy-apps-script/` klasöründe korunmaktadır.
 - **Genel arama** `Ctrl/⌘ + K`: sayfalar, toptan ve perakende siparişler, müşteriler,
   stok kodları, çerçeve profilleri ve teknik malzeme (`/api/search`). Müşteriler
   yalnızca ürün/stok arar.
-- **Tema**: varsayılan koyu cam; üst çubuktan açık temaya geçilir, tercih tarayıcıda
-  saklanır. Renkler yalnızca `app/styles/tokens.css` değişkenlerinden gelir.
+- **Tema**: varsayılan açık tema; üst çubuktan koyu "cam" temaya geçilir, tercih
+  tarayıcıda saklanır. Renkler yalnızca `app/styles/tokens.css` değişkenlerinden gelir.
 - **Bildirim zili**: yeni sipariş düştüğünde ses + tarayıcı bildirimi (90 sn'de bir
   iki küçük sayaç dosyası okunur).
 - **Gösterge paneli** verisi `/api/dashboard` (aylık indeksler + tek stok dosyası +

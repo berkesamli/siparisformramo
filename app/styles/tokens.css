@@ -1,8 +1,9 @@
 /* =========================================================
    TASARIM TOKENLARI — Olga Çerçeve yönetim paneli
-   Varsayılan tema: koyu "cam" (glassmorphism) — lacivert zemin
-   üzerinde bulanık renkli ışık lekeleri, yarı saydam kartlar.
-   [data-theme="light"] ile sıcak açık tema (eski görünüm) seçilir.
+   İki tema: koyu "cam" (:root tabanı — lacivert zemin, bulanık renkli
+   ışık lekeleri, yarı saydam kartlar) ve sıcak AÇIK tema
+   ([data-theme="light"]). Uygulama AÇIK temayla başlar (layout.tsx
+   html etiketine yazar); koyu tema üst çubuktan seçilir ve saklanır.
    Bileşenler YALNIZCA bu değişkenleri kullanır; sabit renk yazılmaz.
    ========================================================= */
 :root {
