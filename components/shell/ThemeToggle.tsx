@@ -11,11 +11,19 @@ export function applyTheme(t: "dark" | "light") {
 }
 
 export default function ThemeToggle({ label = false, className = "" }: { label?: boolean; className?: string }) {
-  const [theme, setTheme] = useState<"dark" | "light">("dark");
+  const [theme, setTheme] = useState<"dark" | "light">("light");
 
+  // Birden fazla anahtar (üst çubuk + kenar çubuğu) aynı anda var: biri
+  // değiştirince diğeri html[data-theme] üzerinden senkron kalır.
   useEffect(() => {
-    const cur = document.documentElement.getAttribute("data-theme");
-    setTheme(cur === "light" ? "light" : "dark");
+    const oku = () => {
+      const cur = document.documentElement.getAttribute("data-theme");
+      setTheme(cur === "dark" ? "dark" : "light");
+    };
+    oku();
+    const mo = new MutationObserver(oku);
+    mo.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+    return () => mo.disconnect();
   }, []);
 
   function toggle() {
