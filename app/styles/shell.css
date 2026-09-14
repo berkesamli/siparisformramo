@@ -54,7 +54,24 @@
 .sb-brand-text { display: flex; flex-direction: column; line-height: 1.05; min-width: 0; }
 .sb-brand-word { font-size: 17px; font-weight: 300; letter-spacing: 0.34em; margin-right: -0.34em; color: var(--text); white-space: nowrap; }
 .sb-brand-sub { font-size: 8px; font-weight: 700; letter-spacing: 0.5em; margin-right: -0.5em; color: var(--brand); white-space: nowrap; margin-top: 3px; }
-.sb-collapse { margin-left: auto; }
+/* Daralt / genişlet tutamacı: sağ kenarda yarım taşan yuvarlak düğme (masaüstü) */
+.sb-handle {
+  position: absolute;
+  top: calc(var(--topbar-h) + 16px);
+  right: -14px;
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  border: 1px solid var(--border-strong);
+  background: var(--surface-solid);
+  color: var(--text-2);
+  display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  box-shadow: var(--shadow-md);
+  z-index: 2;
+  transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+.sb-handle:hover { background: var(--brand-soft-2); color: var(--brand); border-color: var(--brand-ring); transform: scale(1.06); }
+.sb-handle:focus-visible { outline: 2px solid var(--brand-ring); outline-offset: 2px; }
 
 /* Kullanıcı kartı */
 .sb-user {
@@ -132,7 +149,7 @@ a.sb-stat:hover { background: var(--surface-3); text-decoration: none; color: va
 :root[data-sb="rail"] .sb { width: var(--sb-rail); }
 :root[data-sb="rail"] .app-main { margin-left: var(--sb-rail); }
 :root[data-sb="rail"] .sb-brand { padding: 0; justify-content: center; }
-:root[data-sb="rail"] .sb-brand-text, :root[data-sb="rail"] .sb-collapse { display: none; }
+:root[data-sb="rail"] .sb-brand-text { display: none; }
 :root[data-sb="rail"] .sb-user { padding: 14px 8px; }
 :root[data-sb="rail"] .sb-user .avatar { width: 42px; height: 42px; font-size: 14px; margin-bottom: 0; }
 :root[data-sb="rail"] .sb-user-name, :root[data-sb="rail"] .sb-user-role, :root[data-sb="rail"] .sb-stats { display: none; }
@@ -153,7 +170,8 @@ a.sb-stat:hover { background: var(--surface-3); text-decoration: none; color: va
   .sb { width: var(--sb-rail); }
   .app-main { margin-left: var(--sb-rail); }
   .sb-brand { padding: 0; justify-content: center; }
-  .sb-brand-text, .sb-collapse { display: none; }
+  .sb-brand-text { display: none; }
+  .sb-handle { display: none; } /* tablet/telefonda ray sabittir; menü hamburger ile açılır */
   .sb-user { padding: 14px 8px; }
   .sb-user .avatar { width: 42px; height: 42px; font-size: 14px; margin-bottom: 0; }
   .sb-user-name, .sb-user-role, .sb-stats { display: none; }

@@ -130,13 +130,22 @@ export default function Sidebar({
             <span className="sb-brand-sub">ÇERÇEVE</span>
           </span>
         </Link>
-        <button type="button" className="btn icon ghost small sb-collapse" onClick={onToggleRail} title={rail ? "Menüyü genişlet" : "Menüyü daralt"} aria-label={rail ? "Menüyü genişlet" : "Menüyü daralt"}>
-          <Icon name="sidebar" size={18} />
-        </button>
         <button type="button" className="btn icon ghost small sb-close" onClick={onClose} aria-label="Menüyü kapat">
           <Icon name="x" size={18} />
         </button>
       </div>
+
+      {/* Daralt / genişlet tutamacı — kenar çubuğunun sağ kenarında, ray modunda da görünür */}
+      <button
+        type="button"
+        className="sb-handle"
+        onClick={onToggleRail}
+        title={rail ? "Menüyü genişlet" : "Menüyü daralt"}
+        aria-label={rail ? "Menüyü genişlet" : "Menüyü daralt"}
+        aria-expanded={!rail}
+      >
+        <Icon name={rail ? "chevron-right" : "chevron-left"} size={15} strokeWidth={2.4} />
+      </button>
 
       <div className="sb-user">
         <span className="avatar lg" aria-hidden>{initials(user.name)}</span>
