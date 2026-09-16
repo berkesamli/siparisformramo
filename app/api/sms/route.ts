@@ -3,7 +3,7 @@ import { getSessionUser } from "@/lib/auth";
 import { sendSms, smsConfigured, type IysFilter } from "@/lib/sms";
 import { smsSegments } from "@/lib/sms-format";
 import {
-  listSmsRecords,
+  listSmsHistory,
   saveSmsRecord,
   newSmsId,
   istanbulDateKey,
@@ -19,8 +19,8 @@ export async function GET() {
   if (!user || user.role !== "staff") {
     return NextResponse.json({ ok: false, error: "Yetkisiz." }, { status: 401 });
   }
-  const records = await listSmsRecords();
-  return NextResponse.json({ ok: true, configured: smsConfigured(), records });
+  const { records, total } = await listSmsHistory();
+  return NextResponse.json({ ok: true, configured: smsConfigured(), records, total });
 }
 
 // Tek seferde gönderilebilecek alıcı sayısı — yanlışlıkla yüzlerce kişiye
