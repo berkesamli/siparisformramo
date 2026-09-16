@@ -60,5 +60,15 @@ export async function POST() {
     tutar: 1421,
     calisan: user.name,
   });
-  return NextResponse.json({ ok: sonuc.ok, sonuc: { ...sonuc, gonderilen: sonuc.gonderilen.map(maskele) } });
+  // Ekranda numaralar maskelenir (gidenler, notlar ve hatalar "numara: ..." ile başlar).
+  const maskeleSatir = (s: string) => s.replace(/^(\d{11,15})(?=:)/, maskele);
+  return NextResponse.json({
+    ok: sonuc.ok,
+    sonuc: {
+      ...sonuc,
+      gonderilen: sonuc.gonderilen.map(maskele),
+      notlar: sonuc.notlar.map(maskeleSatir),
+      hatalar: sonuc.hatalar.map(maskeleSatir),
+    },
+  });
 }

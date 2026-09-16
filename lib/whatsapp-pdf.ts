@@ -4,8 +4,9 @@
 //
 // Neden şablon? WhatsApp, işletmenin kendiliğinden yazmasına yalnızca onaylı
 // şablonla izin verir; alıcı son 24 saatte yazmadıysa serbest mesaj reddedilir.
-// Şablon adı tanımlı değilse serbest belge mesajı denenir (yalnızca 24 saat
-// penceresi açıkken çalışır) — kurulum/test aşaması için.
+// Şablon adı tanımlı değilse ya da Meta şablonu reddederse (henüz onaylanmamış,
+// yok, duraklatılmış, parametre uyumsuz) serbest belge mesajı denenir — bu
+// yalnızca alıcı son 24 saatte yazdıysa gider; kurulum/onay bekleme aşaması için.
 //
 // Ortam değişkenleri:
 //   WHATSAPP_TOKEN, WHATSAPP_PHONE_ID   — mevcut Cloud API bağlantısı
@@ -27,6 +28,7 @@ export interface PatronGonderim {
   ok: boolean;             // en az bir alıcıya gitti
   gonderilen: string[];    // başarılı numaralar
   hatalar: string[];       // numara: hata
+  notlar: string[];        // uyarılar (örn. şablon reddedildi, serbest mesajla gitti)
   yontem: "sablon" | "serbest" | "yok";
 }
 
@@ -76,15 +78,34 @@ function param(s: string, max = 80): string {
 const fmtTL = (n: number) =>
   (Number(n) || 0).toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-async function grafHata(res: Response): Promise<string> {
+// Sık görülen Meta hata kodları için Türkçe açıklama (ekranda yöneticiye gösterilir).
+const HATA_IPUCU: Record<number, string> = {
+  190: "token geçersiz ya da süresi dolmuş; Meta'da yeni token üretip WHATSAPP_TOKEN'ı güncelleyin",
+  132001: "şablon Meta'da yok ya da henüz onaylanmadı (İnceleniyor); onaylanınca kendiliğinden düzelir",
+  132000: "şablondaki değişken sayısı gönderilenle uyuşmuyor; gövdede 4 değişken olmalı",
+  132012: "şablon parametre biçimi uyuşmuyor; başlık Belge, gövde 4 metin değişkeni olmalı",
+  132015: "şablon Meta tarafından duraklatıldı",
+  132016: "şablon Meta tarafından devre dışı bırakıldı",
+  131030: "alıcı numara Meta'daki izin listesinde değil (uygulama geliştirme modundayken alıcı listeye eklenmeli)",
+  131047: "24 saat penceresi kapalı; alıcı önce işletme numarasına yazmalı ya da onaylı şablon kullanılmalı",
+  131026: "mesaj teslim edilemedi; alıcı numara WhatsApp'ta kayıtlı olmayabilir",
+};
+
+// Bu kodlarda şablon yerine serbest belge mesajı denemek anlamlı (sorun şablonda).
+const SABLON_HATALARI = new Set([132000, 132001, 132005, 132007, 132012, 132015, 132016]);
+
+interface GrafHata { mesaj: string; kod?: number }
+
+async function grafHata(res: Response): Promise<GrafHata> {
   try {
     const j = (await res.json()) as { error?: { message?: string; code?: number; error_data?: { details?: string } } };
     const e = j?.error;
-    if (!e) return `HTTP ${res.status}`;
+    if (!e) return { mesaj: `HTTP ${res.status}` };
     const detay = e.error_data?.details ? ` — ${e.error_data.details}` : "";
-    return `${e.message || "hata"} (kod ${e.code ?? "?"})${detay}`;
+    const ipucu = typeof e.code === "number" && HATA_IPUCU[e.code] ? ` → ${HATA_IPUCU[e.code]}` : "";
+    return { mesaj: `${e.message || "hata"} (kod ${e.code ?? "?"})${detay}${ipucu}`, kod: e.code };
   } catch {
-    return `HTTP ${res.status}`;
+    return { mesaj: `HTTP ${res.status}` };
   }
 }
 
@@ -101,12 +122,12 @@ export async function uploadWhatsappPdf(pdf: Buffer, filename: string): Promise<
     headers: { Authorization: `Bearer ${token}` },
     body: form,
   });
-  if (!res.ok) return { hata: await grafHata(res) };
+  if (!res.ok) return { hata: (await grafHata(res)).mesaj };
   const j = (await res.json()) as { id?: string };
   return j.id ? { id: j.id } : { hata: "Medya kimliği dönmedi." };
 }
 
-async function mesajGonder(body: Record<string, unknown>): Promise<{ ok: boolean; hata?: string }> {
+async function mesajGonder(body: Record<string, unknown>): Promise<{ ok: boolean; hata?: string; kod?: number }> {
   const token = process.env.WHATSAPP_TOKEN!;
   const phoneId = process.env.WHATSAPP_PHONE_ID!;
   const res = await fetch(`${GRAPH}/${phoneId}/messages`, {
@@ -115,7 +136,8 @@ async function mesajGonder(body: Record<string, unknown>): Promise<{ ok: boolean
     body: JSON.stringify({ messaging_product: "whatsapp", recipient_type: "individual", ...body }),
   });
   if (res.ok) return { ok: true };
-  return { ok: false, hata: await grafHata(res) };
+  const h = await grafHata(res);
+  return { ok: false, hata: h.mesaj, kod: h.kod };
 }
 
 /**
@@ -125,49 +147,70 @@ async function mesajGonder(body: Record<string, unknown>): Promise<{ ok: boolean
 export async function sendPdfToPatron(pdf: Buffer, bilgi: FisBildirim): Promise<PatronGonderim> {
   const alicilar = patronNumaralari();
   if (!whatsappConfigured() || !alicilar.length) {
-    return { ok: false, gonderilen: [], hatalar: ["WhatsApp Cloud API veya PATRON_WHATSAPP tanımlı değil."], yontem: "yok" };
+    return { ok: false, gonderilen: [], hatalar: ["WhatsApp Cloud API veya PATRON_WHATSAPP tanımlı değil."], notlar: [], yontem: "yok" };
   }
   const dosya = `${bilgi.orderId}.pdf`;
   const up = await uploadWhatsappPdf(pdf, dosya);
   if (!up.id) {
-    return { ok: false, gonderilen: [], hatalar: [`PDF yüklenemedi: ${up.hata}`], yontem: "yok" };
+    return { ok: false, gonderilen: [], hatalar: [`PDF yüklenemedi: ${up.hata}`], notlar: [], yontem: "yok" };
   }
 
   const sablon = sablonAdi();
   const turEtiket = bilgi.tur === "toptan" ? "Toptan" : "Perakende";
   const ozet = `${turEtiket} sipariş ${bilgi.orderId} · ${param(bilgi.musteri, 60)} · ₺${fmtTL(bilgi.tutar)} · ${param(bilgi.calisan, 40)}`;
 
+  const sablonMesaji = (to: string) => ({
+    to,
+    type: "template",
+    template: {
+      name: sablon,
+      language: { code: sablonDili() },
+      components: [
+        { type: "header", parameters: [{ type: "document", document: { id: up.id, filename: dosya } }] },
+        {
+          type: "body",
+          parameters: [
+            { type: "text", text: param(`${turEtiket} ${bilgi.orderId}`) },
+            { type: "text", text: param(bilgi.musteri, 60) },
+            { type: "text", text: fmtTL(bilgi.tutar) },
+            { type: "text", text: param(bilgi.calisan, 40) },
+          ],
+        },
+      ],
+    },
+  });
+  const serbestMesaj = (to: string) => ({
+    to,
+    type: "document",
+    document: { id: up.id, filename: dosya, caption: ozet },
+  });
+
   const gonderilen: string[] = [];
   const hatalar: string[] = [];
+  const notlar: string[] = [];
+  let sablonlaGitti = false;
+  let serbestGitti = false;
   for (const to of alicilar) {
-    const r = sablon
-      ? await mesajGonder({
-          to,
-          type: "template",
-          template: {
-            name: sablon,
-            language: { code: sablonDili() },
-            components: [
-              { type: "header", parameters: [{ type: "document", document: { id: up.id, filename: dosya } }] },
-              {
-                type: "body",
-                parameters: [
-                  { type: "text", text: param(`${turEtiket} ${bilgi.orderId}`) },
-                  { type: "text", text: param(bilgi.musteri, 60) },
-                  { type: "text", text: fmtTL(bilgi.tutar) },
-                  { type: "text", text: param(bilgi.calisan, 40) },
-                ],
-              },
-            ],
-          },
-        })
-      : await mesajGonder({
-          to,
-          type: "document",
-          document: { id: up.id, filename: dosya, caption: ozet },
-        });
-    if (r.ok) gonderilen.push(to);
-    else hatalar.push(`${to}: ${r.hata}`);
+    if (!sablon) {
+      const r = await mesajGonder(serbestMesaj(to));
+      if (r.ok) { gonderilen.push(to); serbestGitti = true; }
+      else hatalar.push(`${to}: ${r.hata}`);
+      continue;
+    }
+    const r = await mesajGonder(sablonMesaji(to));
+    if (r.ok) { gonderilen.push(to); sablonlaGitti = true; continue; }
+    if (!(r.kod && SABLON_HATALARI.has(r.kod))) { hatalar.push(`${to}: ${r.hata}`); continue; }
+    // Sorun şablonda (onaysız/yok/uyumsuz): 24 saat penceresi açıksa serbest belge gider.
+    const r2 = await mesajGonder(serbestMesaj(to));
+    if (r2.ok) {
+      gonderilen.push(to);
+      serbestGitti = true;
+      notlar.push(`${to}: şablon kabul edilmedi (${r.hata}); serbest belge mesajıyla gönderildi.`);
+    } else {
+      hatalar.push(`${to}: şablon: ${r.hata} · serbest belge: ${r2.hata}`);
+    }
   }
-  return { ok: gonderilen.length > 0, gonderilen, hatalar, yontem: sablon ? "sablon" : "serbest" };
+  const yontem: PatronGonderim["yontem"] =
+    sablonlaGitti ? "sablon" : serbestGitti ? "serbest" : sablon ? "sablon" : "serbest";
+  return { ok: gonderilen.length > 0, gonderilen, hatalar, notlar, yontem };
 }

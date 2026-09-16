@@ -364,6 +364,7 @@ export async function POST(req: NextRequest) {
         });
         patronWa = r.ok;
         if (r.hatalar.length) console.error("Patron WhatsApp:", r.hatalar.join(" | "));
+        if (r.notlar.length) console.warn("Patron WhatsApp:", r.notlar.join(" | "));
       }
     } catch (err) {
       console.error("Patron WhatsApp gönderilemedi:", err);
