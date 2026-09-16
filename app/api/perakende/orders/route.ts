@@ -349,12 +349,34 @@ export async function POST(req: NextRequest) {
     /* e-posta hatası siparişi engellemesin */
   }
 
+  // Patrona fiş PDF'i (WhatsApp belge mesajı) — hata siparişi asla engellemez
+  let patronWa = false;
+  if (pdf) {
+    try {
+      const { patronBildirimHazir, sendPdfToPatron } = await import("@/lib/whatsapp-pdf");
+      if (patronBildirimHazir()) {
+        const r = await sendPdfToPatron(pdf, {
+          tur: "perakende",
+          orderId: order.orderId,
+          musteri: order.customerName,
+          tutar: order.total,
+          calisan: order.employee,
+        });
+        patronWa = r.ok;
+        if (r.hatalar.length) console.error("Patron WhatsApp:", r.hatalar.join(" | "));
+      }
+    } catch (err) {
+      console.error("Patron WhatsApp gönderilemedi:", err);
+    }
+  }
+
   return NextResponse.json({
     ok: true,
     orderId,
     dateKey: order.dateKey,
     saved: stored,
     emailSent,
+    patronWa,
     kapora: kaporaTutar,
     kalan: r2(total - kaporaTutar),
   });
