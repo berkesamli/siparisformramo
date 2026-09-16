@@ -72,6 +72,7 @@ const aliciSatir: React.CSSProperties = {
 export default function SmsPanel() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [records, setRecords] = useState<SmsRecord[]>([]);
+  const [toplam, setToplam] = useState<number | null>(null); // depodaki toplam gönderim
   const [configured, setConfigured] = useState(true);
   const [yukleniyor, setYukleniyor] = useState(true);
 
@@ -95,6 +96,7 @@ export default function SmsPanel() {
       .then(([m, s]) => {
         setCustomers(Array.isArray(m?.customers) ? m.customers : []);
         if (s?.records) setRecords(s.records);
+        if (typeof s?.total === "number") setToplam(s.total);
         if (typeof s?.configured === "boolean") setConfigured(s.configured);
       })
       .finally(() => setYukleniyor(false));
@@ -173,7 +175,10 @@ export default function SmsPanel() {
         setElle("");
         fetch("/api/sms")
           .then((x) => x.json())
-          .then((s) => s?.records && setRecords(s.records))
+          .then((s) => {
+            if (s?.records) setRecords(s.records);
+            if (typeof s?.total === "number") setToplam(s.total);
+          })
           .catch(() => {});
       } else {
         // Ham yanıtı da gösteriyoruz: kod çevirileri kesin değil, gerçek
@@ -378,7 +383,11 @@ export default function SmsPanel() {
           <span className="card-head-icon"><Icon name="clock" size={16} /></span>
           <div>
             <h2>Gönderim Geçmişi</h2>
-            <span className="card-head-sub">{records.length} gönderim</span>
+            <span className="card-head-sub">
+              {toplam !== null && toplam > records.length
+                ? `Son ${records.length} gönderim · toplam ${toplam.toLocaleString("tr-TR")}`
+                : `${records.length} gönderim`}
+            </span>
           </div>
         </div>
         {records.length ? (
