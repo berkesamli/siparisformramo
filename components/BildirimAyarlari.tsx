@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import Icon from "@/components/shell/Icon";
 
 interface Durum { api: boolean; alicilar: string[]; sablon: string | null; dil: string; }
-interface Sonuc { ok: boolean; gonderilen: string[]; hatalar: string[]; yontem: string; }
+interface Sonuc { ok: boolean; gonderilen: string[]; hatalar: string[]; notlar?: string[]; yontem: string; }
 
 export default function BildirimAyarlari() {
   const [durum, setDurum] = useState<Durum | null>(null);
@@ -77,6 +77,7 @@ export default function BildirimAyarlari() {
             <strong>{sonuc.ok ? "Test fişi gönderildi" : "Gönderilemedi"}</strong>
             {" · "}yöntem: {sonuc.yontem === "sablon" ? "onaylı şablon" : sonuc.yontem === "serbest" ? "serbest belge mesajı (24 saat penceresi)" : "—"}
             {sonuc.gonderilen.length > 0 && <div>Gidenler: {sonuc.gonderilen.join(", ")}</div>}
+            {(sonuc.notlar || []).map((n, i) => <div key={`n${i}`} style={{ marginTop: 4 }}>Not: {n}</div>)}
             {sonuc.hatalar.map((h, i) => <div key={i} style={{ marginTop: 4 }}>{h}</div>)}
           </div>
         )}
