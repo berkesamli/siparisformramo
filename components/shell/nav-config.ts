@@ -94,6 +94,7 @@ export function navGroups(f: NavFlags): NavGroup[] {
     }
     if (f.maliyet) yonetim.push({ href: "/panel/maliyet", label: "Maliyet & Kârlılık", icon: "percent", keywords: ["alış fiyatı", "kâr", "konteyner"] });
     if (f.raporlar) yonetim.push({ href: "/panel/raporlar", label: "Raporlar", icon: "bar-chart", keywords: ["ciro", "rapor", "analiz"] });
+    if (f.owner) yonetim.push({ href: "/panel/ayarlar", label: "Bildirim Ayarları", icon: "bell", keywords: ["whatsapp", "patron", "bildirim", "şablon", "ayar"] });
     groups.push({ title: "Yönetim", items: yonetim });
   }
 

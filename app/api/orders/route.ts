@@ -254,14 +254,15 @@ export async function POST(req: Request) {
 
   let emailSent = false;
   let waSent = false;
+  let patronWa = false;
+  let pdf: Buffer | undefined;
   try {
-    let pdf: Buffer | undefined;
-    try {
-      const { generateOrderPdf } = await import("@/lib/order-pdf");
-      pdf = await generateOrderPdf(order);
-    } catch (err) {
-      console.error("PDF üretilemedi:", err);
-    }
+    const { generateOrderPdf } = await import("@/lib/order-pdf");
+    pdf = await generateOrderPdf(order);
+  } catch (err) {
+    console.error("PDF üretilemedi:", err);
+  }
+  try {
     emailSent = await sendOrderEmail(order, pdf);
   } catch (err) {
     console.error("E-posta gönderilemedi:", err);
@@ -270,6 +271,25 @@ export async function POST(req: Request) {
     waSent = await sendOrderWhatsApp(order);
   } catch (err) {
     console.error("WhatsApp gönderilemedi:", err);
+  }
+  // Patrona fiş PDF'i (WhatsApp belge mesajı) — hata siparişi asla engellemez
+  if (pdf) {
+    try {
+      const { patronBildirimHazir, sendPdfToPatron } = await import("@/lib/whatsapp-pdf");
+      if (patronBildirimHazir()) {
+        const r = await sendPdfToPatron(pdf, {
+          tur: "toptan",
+          orderId: order.orderId,
+          musteri: order.customer,
+          tutar: order.net,
+          calisan: order.employee,
+        });
+        patronWa = r.ok;
+        if (r.hatalar.length) console.error("Patron WhatsApp:", r.hatalar.join(" | "));
+      }
+    } catch (err) {
+      console.error("Patron WhatsApp gönderilemedi:", err);
+    }
   }
 
   // Müşteriye sipariş onay SMS'i — form işaretliyse ve müşteri defterden
@@ -327,6 +347,7 @@ export async function POST(req: Request) {
     stored,
     emailSent,
     waSent,
+    patronWa,
     waLink: waSent ? undefined : waLink(order),
     smsSent,
     smsInfo,
