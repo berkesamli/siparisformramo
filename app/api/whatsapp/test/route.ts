@@ -7,6 +7,8 @@ import {
   sablonAdi,
   sablonDili,
   sendPdfToPatron,
+  musteriSablonAdlari,
+  sendPdfToCustomer,
 } from "@/lib/whatsapp-pdf";
 import { generateOrderPdf } from "@/lib/order-pdf";
 
@@ -28,15 +30,22 @@ export async function GET() {
     alicilar: patronNumaralari().map(maskele),
     sablon: sablonAdi() || null,
     dil: sablonDili(),
+    musteriSablon: musteriSablonAdlari().join(", ") || null,
+    webhook: Boolean((process.env.WHATSAPP_VERIFY_TOKEN || "").trim()),
+    imza: Boolean((process.env.WHATSAPP_APP_SECRET || "").trim()),
   });
 }
 
-// Örnek bir fiş PDF'i üretip patron numaralarına gönderir — kurulumu sınamak için.
-export async function POST() {
+// Örnek bir fiş PDF'i üretip gönderir — kurulumu sınamak için.
+//   gövde yok / {}                → patron numaralarına (PATRON_WHATSAPP)
+//   { musteriTelefon: "05…" }     → o numaraya müşteri şablonuyla
+export async function POST(req: Request) {
   const user = await getSessionUser();
   if (!user || user.role !== "staff" || !isOwner(user.username)) {
     return NextResponse.json({ ok: false, error: "Yetkisiz." }, { status: 401 });
   }
+  const body = (await req.json().catch(() => null)) as { musteriTelefon?: string } | null;
+  const musteriTelefon = String(body?.musteriTelefon || "").trim();
   const simdi = new Date();
   const pdf = await generateOrderPdf({
     orderId: "TEST-" + simdi.toISOString().slice(11, 16).replace(":", ""),
@@ -53,6 +62,19 @@ export async function POST() {
     vatAmount: 0,
     net: 1421,
   });
+  if (musteriTelefon) {
+    const w = await sendPdfToCustomer(pdf, { telefon: musteriTelefon, musteri: "Deneme Müşteri", orderId: "TEST" });
+    return NextResponse.json({
+      ok: w.ok,
+      sonuc: {
+        ok: w.ok,
+        gonderilen: w.ok && w.to ? [maskele(w.to)] : [],
+        hatalar: w.hata ? [w.hata] : [],
+        notlar: w.ok ? ["Meta mesajı kabul etti. Numarada WhatsApp yoksa teslim hatası webhook'la gelir ve sistem SMS'e düşer."] : [],
+        yontem: w.yontem,
+      },
+    });
+  }
   const sonuc = await sendPdfToPatron(pdf, {
     tur: "toptan",
     orderId: "TEST",

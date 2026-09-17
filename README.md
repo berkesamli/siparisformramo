@@ -61,6 +61,7 @@ Eski Apps Script kodu `legacy-apps-script/` klasöründe korunmaktadır.
 | `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_ID`, `WHATSAPP_TO` | — | Meta WhatsApp Cloud API — tanımlıysa sipariş otomatik WhatsApp'a düşer; tanımlı değilse panelde tek tıkla **wa.me** linki üretilir |
 | `ANTHROPIC_API_KEY` | — | AI ürün asistanı için Claude API anahtarı |
 | `PATRON_WHATSAPP`, `WHATSAPP_TEMPLATE_SIPARIS`, `WHATSAPP_TEMPLATE_DIL` | — | Her siparişin fiş PDF'i WhatsApp Cloud API ile bu numara(lar)a **dosya olarak** gider; onaylı şablon ad(lar)ı (`siparis_fisi,siparis_fisi_v2`, sırayla denenir) ve dili (`tr`). Kurulum durumu ve test: `/panel/ayarlar` (sahipler) |
+| `WHATSAPP_TEMPLATE_MUSTERI`, `WHATSAPP_VERIFY_TOKEN`, `WHATSAPP_APP_SECRET` | — | Müşteriye fiş: sipariş formunda "müşteriye bildir" işaretliyse önce WhatsApp ile PDF (2 değişkenli şablon), Meta "teslim edilemedi" derse webhook (`/api/whatsapp/webhook`) SMS'e düşer. Doğrulama metni ve isteğe bağlı imza gizi |
 
 ## Kullanıcılar ve Roller
 

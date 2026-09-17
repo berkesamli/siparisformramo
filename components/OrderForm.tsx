@@ -626,11 +626,13 @@ export default function OrderForm({
           msg: `Sipariş ${initialOrder.orderId} güncellendi. Yeni toplam: ₺ ${fmt(data.net)}`,
         });
       } else {
-        const smsMsg = data.smsSent
-          ? "Müşteriye SMS gönderildi."
-          : data.smsInfo
-            ? `SMS gönderilmedi: ${data.smsInfo}`
-            : "";
+        const smsMsg = data.musteriWa
+          ? "Müşteriye WhatsApp ile fiş gönderildi (WhatsApp'ı yoksa SMS gidecek)."
+          : data.smsSent
+            ? "Müşteriye SMS gönderildi."
+            : data.smsInfo
+              ? `Bildirim gönderilmedi: ${data.smsInfo}`
+              : "";
         setResult({
           ok: true,
           msg: [
@@ -1456,7 +1458,7 @@ export default function OrderForm({
               onChange={(e) => setSendSms(e.target.checked)}
               style={{ width: "auto", margin: 0 }}
             />
-            Müşteriye &quot;siparişiniz alınmıştır&quot; SMS&apos;i gönder
+            Müşteriye sipariş bildirimi gönder (WhatsApp ile fiş PDF&apos;i, WhatsApp&apos;ı yoksa SMS)
             {!customerId && sendSms && (
               <span style={{ color: "var(--muted)", fontSize: 13 }}>
                 (müşteri defterden seçilirse gönderilir)

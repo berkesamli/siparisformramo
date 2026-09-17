@@ -293,51 +293,78 @@ export async function POST(req: Request) {
     }
   }
 
-  // Müşteriye sipariş onay SMS'i — form işaretliyse ve müşteri defterden
-  // seçilmişse. Telefonu yoksa veya SMS yapılandırılmadıysa sessizce atlanır;
-  // SMS hatası sipariş kaydını asla geri döndürmez.
+  // Müşteriye sipariş bildirimi — form işaretliyse ve müşteri defterden
+  // seçilmişse. Önce WhatsApp (fiş PDF'i, onaylı şablon); WhatsApp kurulu
+  // değilse ya da Meta anında reddederse SMS. Meta kabul edip sonradan
+  // "teslim edilemedi" derse (numarada WhatsApp yok) webhook SMS'e düşer.
+  // Hiçbir bildirim hatası sipariş kaydını geri döndürmez.
   let smsSent = false;
   let smsInfo = "";
+  let musteriWa = false;
   if (body.sendSms && saved.customerId) {
     try {
-      const { smsConfigured, sendSms } = await import("@/lib/sms");
-      if (smsConfigured()) {
-        const { getCustomer } = await import("@/lib/customers");
-        const c = await getCustomer(saved.customerId);
-        if (c?.phone) {
-          const { stripTurkish } = await import("@/lib/sms-format");
-          const mesaj = stripTurkish(
-            `Sayin musterimiz, ${order.orderId} numarali siparisiniz alinmistir. Tesekkur ederiz. Olga Cerceve`
-          );
-          const r = await sendSms([c.phone], mesaj);
-          smsSent = r.ok;
-          if (!r.ok) smsInfo = r.error || "SMS gönderilemedi.";
+      const { getCustomer } = await import("@/lib/customers");
+      const c = await getCustomer(saved.customerId);
+      if (!c?.phone) {
+        smsInfo = "Müşterinin kayıtlı telefonu yok.";
+      } else {
+        const { stripTurkish } = await import("@/lib/sms-format");
+        const mesaj = stripTurkish(
+          `Sayin musterimiz, ${order.orderId} numarali siparisiniz alinmistir. Tesekkur ederiz. Olga Cerceve`
+        );
+        let smsGerekli = true;
 
-          const { saveSmsRecord, newSmsId, istanbulDateKey: gun } = await import(
-            "@/lib/sms-log"
-          );
-          const t = new Date();
-          await saveSmsRecord({
-            id: newSmsId(t),
-            dateKey: gun(t),
-            createdAt: t.toISOString(),
-            sender: user.name,
-            message: mesaj,
-            recipients: r.sent,
-            segments: 1,
-            credits: r.sent.length,
-            ok: r.ok,
-            jobId: r.jobId,
-            error: r.error,
-            iysfilter: "0",
-          }).catch(() => {});
-        } else {
-          smsInfo = "Müşterinin kayıtlı telefonu yok.";
+        if (pdf) {
+          try {
+            const { musteriBildirimHazir, sendPdfToCustomer } = await import("@/lib/whatsapp-pdf");
+            if (musteriBildirimHazir()) {
+              const w = await sendPdfToCustomer(pdf, { telefon: c.phone, musteri: order.customer, orderId: order.orderId });
+              if (w.ok && w.wamid && w.to) {
+                musteriWa = true;
+                smsGerekli = false;
+                const { bekleyenKaydet } = await import("@/lib/wa-bekleyen");
+                await bekleyenKaydet({
+                  wamid: w.wamid, orderId: order.orderId, dateKey: saved.dateKey, tur: "toptan",
+                  telefon: w.to, musteri: order.customer, smsMetni: mesaj, createdAt: now.toISOString(),
+                }).catch((err) => console.error("WhatsApp bekleyen kaydı yazılamadı:", err));
+              } else {
+                console.warn("Müşteri WhatsApp reddedildi, SMS'e düşülüyor:", w.hata);
+              }
+            }
+          } catch (err) {
+            console.error("Müşteri WhatsApp gönderilemedi, SMS'e düşülüyor:", err);
+          }
+        }
+
+        if (smsGerekli) {
+          const { smsConfigured, sendSms } = await import("@/lib/sms");
+          if (smsConfigured()) {
+            const r = await sendSms([c.phone], mesaj);
+            smsSent = r.ok;
+            if (!r.ok) smsInfo = r.error || "SMS gönderilemedi.";
+
+            const { saveSmsRecord, newSmsId, istanbulDateKey: gun } = await import("@/lib/sms-log");
+            const t = new Date();
+            await saveSmsRecord({
+              id: newSmsId(t),
+              dateKey: gun(t),
+              createdAt: t.toISOString(),
+              sender: user.name,
+              message: mesaj,
+              recipients: r.sent,
+              segments: 1,
+              credits: r.sent.length,
+              ok: r.ok,
+              jobId: r.jobId,
+              error: r.error,
+              iysfilter: "0",
+            }).catch(() => {});
+          }
         }
       }
     } catch (err) {
-      console.error("Sipariş SMS'i gönderilemedi:", err);
-      smsInfo = "SMS gönderiminde hata oluştu.";
+      console.error("Müşteri bildirimi gönderilemedi:", err);
+      smsInfo = "Bildirim gönderiminde hata oluştu.";
     }
   }
 
@@ -352,6 +379,7 @@ export async function POST(req: Request) {
     waLink: waSent ? undefined : waLink(order),
     smsSent,
     smsInfo,
+    musteriWa,
     net,
   });
 }
