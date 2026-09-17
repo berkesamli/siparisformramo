@@ -13,6 +13,8 @@ export default function BildirimAyarlari() {
   const [hata, setHata] = useState("");
   const [gonderiyor, setGonderiyor] = useState(false);
   const [sonuc, setSonuc] = useState<Sonuc | null>(null);
+  // Patron denemesi: numara yazılırsa oraya, boşsa PATRON_WHATSAPP'a gider
+  const [patronTel, setPatronTel] = useState("");
   // Müşteri fişi denemesi — bir numara girilir, müşteri şablonuyla örnek fiş gider
   const [musteriTel, setMusteriTel] = useState("");
   const [musteriGonderiyor, setMusteriGonderiyor] = useState(false);
@@ -49,7 +51,11 @@ export default function BildirimAyarlari() {
     setGonderiyor(true);
     setSonuc(null);
     try {
-      const r = await fetch("/api/whatsapp/test", { method: "POST" });
+      const r = await fetch("/api/whatsapp/test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(patronTel.trim() ? { patronTelefon: patronTel.trim() } : {}),
+      });
       const d = await r.json();
       if (d.sonuc) setSonuc(d.sonuc);
       else setHata(d.error || "Test gönderilemedi.");
@@ -83,7 +89,15 @@ export default function BildirimAyarlari() {
             <span className="card-head-sub">Her sipariş kaydedildiğinde fiş PDF'i dosya olarak gider</span>
           </div>
           <span className="spacer" />
-          <button type="button" className="btn" onClick={test} disabled={!hazir || gonderiyor}>
+          <input
+            style={{ maxWidth: 220 }}
+            placeholder="Deneme numarası (boşsa patron)"
+            value={patronTel}
+            onChange={(e) => setPatronTel(e.target.value)}
+            inputMode="tel"
+            title="Boş bırakılırsa PATRON_WHATSAPP numaralarına gider"
+          />
+          <button type="button" className="btn" onClick={test} disabled={!durum?.api || gonderiyor || (!hazir && !patronTel.trim())}>
             <Icon name="arrow-up-right" size={16} /> {gonderiyor ? "Gönderiliyor…" : "Test fişi gönder"}
           </button>
         </div>

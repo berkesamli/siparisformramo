@@ -38,14 +38,16 @@ export async function GET() {
 
 // Örnek bir fiş PDF'i üretip gönderir — kurulumu sınamak için.
 //   gövde yok / {}                → patron numaralarına (PATRON_WHATSAPP)
+//   { patronTelefon: "05…" }      → o numaraya patron şablonuyla
 //   { musteriTelefon: "05…" }     → o numaraya müşteri şablonuyla
 export async function POST(req: Request) {
   const user = await getSessionUser();
   if (!user || user.role !== "staff" || !isOwner(user.username)) {
     return NextResponse.json({ ok: false, error: "Yetkisiz." }, { status: 401 });
   }
-  const body = (await req.json().catch(() => null)) as { musteriTelefon?: string } | null;
+  const body = (await req.json().catch(() => null)) as { musteriTelefon?: string; patronTelefon?: string } | null;
   const musteriTelefon = String(body?.musteriTelefon || "").trim();
+  const patronTelefon = String(body?.patronTelefon || "").trim();
   const simdi = new Date();
   const pdf = await generateOrderPdf({
     orderId: "TEST-" + simdi.toISOString().slice(11, 16).replace(":", ""),
@@ -75,13 +77,11 @@ export async function POST(req: Request) {
       },
     });
   }
-  const sonuc = await sendPdfToPatron(pdf, {
-    tur: "toptan",
-    orderId: "TEST",
-    musteri: "Deneme Müşteri",
-    tutar: 1421,
-    calisan: user.name,
-  });
+  const sonuc = await sendPdfToPatron(
+    pdf,
+    { tur: "toptan", orderId: "TEST", musteri: "Deneme Müşteri", tutar: 1421, calisan: user.name },
+    patronTelefon ? [patronTelefon] : undefined
+  );
   // Ekranda numaralar maskelenir (gidenler, notlar ve hatalar "numara: ..." ile başlar).
   const maskeleSatir = (s: string) => s.replace(/^(\d{11,15})(?=:)/, maskele);
   return NextResponse.json({
