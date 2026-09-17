@@ -10,6 +10,7 @@ export interface PdfOrder {
   dateStr: string;
   status?: string;
   employee: string;
+  employeeLabel?: string; // "Çalışan" yerine başlık (müşteri kopyasında "Sizinle ilgilenen")
   customer: string;
   note: string;
   discountPct: number;
@@ -42,11 +43,11 @@ const fmt = fmtTL;
 
 /**
  * Müşteriye giden kopya: sipariş notu (hazırlayanlara yazılan "acil", "peşin"
- * gibi iç notlar) ve iç durum bilgisi fişte görünmez. Ürünler, tutarlar ve
- * kur aynen kalır.
+ * gibi iç notlar), iç durum bilgisi ve dolar/euro kuru fişte görünmez;
+ * "Çalışan" başlığı "Sizinle ilgilenen" olur. Ürünler ve tutarlar aynen kalır.
  */
 export function musteriKopyasi(order: PdfOrder): PdfOrder {
-  return { ...order, note: "", status: undefined };
+  return { ...order, note: "", status: undefined, rate: undefined, euroRate: undefined, employeeLabel: "Sizinle ilgilenen" };
 }
 
 export function generateOrderPdf(order: PdfOrder): Promise<Buffer> {
@@ -146,7 +147,7 @@ export function generateOrderPdf(order: PdfOrder): Promise<Buffer> {
     };
 
     const leftRows: [string, string][] = [["Müşteri", order.customer || "-"]];
-    const rightRows: [string, string][] = [["Çalışan", order.employee]];
+    const rightRows: [string, string][] = [[order.employeeLabel || "Çalışan", order.employee]];
     if (order.status) rightRows.push(["Durum", order.status]);
     // Sipariş anında geçerli olan kur — fiyatların hangi kurla
     // hesaplandığı belgede kalsın diye.
