@@ -169,8 +169,8 @@ export default function BildirimAyarlari() {
         </div>
         <div className="grid cols-2">
           <div>
-            <label>Patrona fiş · <code>siparis_fisi_v2</code> · 4 değişken</label>
-            <pre style={{ whiteSpace: "pre-wrap", background: "var(--surface-2)", padding: 12, borderRadius: 10, fontSize: 13 }}>{`Merhaba, sipariş sisteminden yeni bir sipariş fişi geldi.
+            <label>Patrona fiş · <code>siparis_fisi_v3</code> · 4 değişken</label>
+            <pre style={{ whiteSpace: "pre-wrap", background: "var(--surface-2)", padding: 12, borderRadius: 10, fontSize: 13 }}>{`Özgür Bey, sipariş sisteminden yeni bir sipariş fişi geldi.
 
 Sipariş: {{1}}
 Müşteri: {{2}}
