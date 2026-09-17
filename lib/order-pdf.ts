@@ -11,6 +11,7 @@ export interface PdfOrder {
   status?: string;
   employee: string;
   employeeLabel?: string; // "Çalışan" yerine başlık (müşteri kopyasında "Sizinle ilgilenen")
+  musteriKopyasi?: boolean; // müşteriye giden kopya: %0 iskonto satırı basılmaz
   customer: string;
   note: string;
   discountPct: number;
@@ -47,7 +48,7 @@ const fmt = fmtTL;
  * "Çalışan" başlığı "Sizinle ilgilenen" olur. Ürünler ve tutarlar aynen kalır.
  */
 export function musteriKopyasi(order: PdfOrder): PdfOrder {
-  return { ...order, note: "", status: undefined, rate: undefined, euroRate: undefined, employeeLabel: "Sizinle ilgilenen" };
+  return { ...order, note: "", status: undefined, rate: undefined, euroRate: undefined, employeeLabel: "Sizinle ilgilenen", musteriKopyasi: true };
 }
 
 export function generateOrderPdf(order: PdfOrder): Promise<Buffer> {
@@ -226,9 +227,13 @@ export function generateOrderPdf(order: PdfOrder): Promise<Buffer> {
     y += 16;
     const tw = pageWidth * 0.46;
     const tx = M + pageWidth - tw;
+    // Müşteri kopyasında iskonto yoksa "%0" satırı basılmaz (indirim varsa görünür)
+    const iskontoVar = (Number(order.discountPct) || 0) > 0 || (Number(order.discount) || 0) > 0;
     const totals: [string, string, boolean][] = [
       ["Ara Toplam", `₺ ${fmt(order.gross)}`, false],
-      [`İskonto (%${order.discountPct})`, `₺ ${fmt(order.discount)}`, false],
+      ...(order.musteriKopyasi && !iskontoVar
+        ? []
+        : [[`İskonto (%${order.discountPct})`, `₺ ${fmt(order.discount)}`, false] as [string, string, boolean]]),
       ["KDV", order.vatApplied ? `%20 — ₺ ${fmt(order.vatAmount)}` : "Uygulanmadı", false],
       ["GENEL TOPLAM", `₺ ${fmt(order.net)}`, true],
     ];
