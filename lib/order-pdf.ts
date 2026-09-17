@@ -40,31 +40,6 @@ const M = 46; // sayfa marjı
 // miktar × birim fiyat = satır tutarı faturada birebir tutsun.
 const fmt = fmtTL;
 
-/** Kayıtlı siparişi PDF girdisine çevirir (fiş indirme ve yeniden gönderim aynı biçimi kullanır). */
-export function pdfOrderFromSaved(o: {
-  orderId: string; createdAt: string; status: string; employee: string; customer: string; note: string;
-  discountPct: number; vatApplied: boolean; rate?: number; euroRate?: number;
-  lines: PdfOrder["lines"]; gross: number; discount: number; vatAmount: number; net: number;
-}, statusLabel?: string): PdfOrder {
-  return {
-    orderId: o.orderId,
-    dateStr: new Date(o.createdAt).toLocaleString("tr-TR", { timeZone: "Europe/Istanbul" }),
-    status: statusLabel ?? o.status,
-    employee: o.employee,
-    customer: o.customer,
-    note: o.note,
-    discountPct: o.discountPct,
-    vatApplied: o.vatApplied,
-    rate: o.rate,
-    euroRate: o.euroRate,
-    lines: o.lines,
-    gross: o.gross,
-    discount: o.discount,
-    vatAmount: o.vatAmount,
-    net: o.net,
-  };
-}
-
 export function generateOrderPdf(order: PdfOrder): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     // font seçeneği ile başlatınca pdfkit standart (Helvetica) fontlarını hiç

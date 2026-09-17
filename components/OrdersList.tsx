@@ -39,12 +39,9 @@ export default function OrdersList({
   // Arşiv modu: yalnızca tamamlanmış siparişleri (durum + ödeme + kontrol)
   // listeler. Normal modda bu siparişler aktif listeden gizlenir.
   tamamlananlar = false,
-  // Patrona WhatsApp ile fiş gönderme düğmeleri — yalnızca sahipler (sayfa geçirir)
-  patronGonderim = false,
 }: {
   eldenSatis?: boolean;
   tamamlananlar?: boolean;
-  patronGonderim?: boolean;
 }) {
   const [filter, setFilter] = useState<{ range?: string; date?: string; q?: string }>({
     range: "today",
@@ -52,14 +49,6 @@ export default function OrdersList({
   const [orders, setOrders] = useState<SavedOrder[] | null>(null);
   const [error, setError] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  // Çalışan filtresi — yüklü listedeki çalışanlardan seçilir ("Murat'ın bugün aldıkları")
-  const [employeeFilter, setEmployeeFilter] = useState<string>("all");
-  // Patrona WhatsApp ile fiş gönderimi (tek sipariş ya da listedekilerin tümü)
-  const [waGonderiyor, setWaGonderiyor] = useState(false);
-  const [waSonuc, setWaSonuc] = useState<
-    { giden: number; toplam: number; sonuclar: { id: string; ok: boolean; yontem?: string; hata?: string }[] } | null
-  >(null);
-  const [waHata, setWaHata] = useState("");
   // Arama kutusu — yazılan metin, "Ara" ile filtreye taşınır (tüm geçmişte arar)
   const [aramaMetni, setAramaMetni] = useState("");
   // Mesai sonrası siparişler gözden kaçmasın: son 7 günün kontrol
@@ -220,7 +209,6 @@ export default function OrdersList({
       // Tamamlananlar arşivde, diğerleri aktif listede
       siparisTamamlandi(o) === tamamlananlar &&
       (statusFilter === "all" || o.status === statusFilter) &&
-      (employeeFilter === "all" || o.employee === employeeFilter) &&
       // Kontrol bekleyenler görünümünde iptaller listelenmez
       (!sadeceKontrolsuz || (!o.kontrol && o.status !== "iptal"))
   );
@@ -228,38 +216,6 @@ export default function OrdersList({
   const arsivlenen = tamamlananlar
     ? 0
     : (orders || []).filter((o) => siparisTamamlandi(o)).length;
-  // Çalışan seçenekleri: yüklü listedeki (filtre öncesi) çalışanlar
-  const calisanlar = Array.from(new Set((orders || []).map((o) => o.employee).filter(Boolean))).sort((a, b) =>
-    a.localeCompare(b, "tr")
-  );
-  const WA_EN_FAZLA = 30;
-
-  // Fiş(ler)i patrona WhatsApp ile gönder — sipariş kaydında olduğu gibi PDF dosyası gider
-  async function patronaGonder(list: SavedOrder[]) {
-    if (!list.length || waGonderiyor) return;
-    const ozet =
-      list.length === 1
-        ? `${list[0].orderId} (${list[0].customer || "—"}) fişi`
-        : `Listedeki ${list.length} sipariş fişi`;
-    if (!window.confirm(`${ozet} patrona WhatsApp ile PDF olarak gönderilecek. Devam edilsin mi?`)) return;
-    setWaGonderiyor(true);
-    setWaSonuc(null);
-    setWaHata("");
-    try {
-      const res = await fetch("/api/whatsapp/patron", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orders: list.map((o) => ({ d: o.dateKey, id: o.orderId })) }),
-      });
-      const d = await res.json().catch(() => null);
-      if (d && typeof d.toplam === "number") setWaSonuc(d);
-      else setWaHata(d?.error || "Gönderim başarısız.");
-    } catch {
-      setWaHata("Sunucuya ulaşılamadı.");
-    } finally {
-      setWaGonderiyor(false);
-    }
-  }
 
   return (
     <div className="card">
@@ -388,19 +344,6 @@ export default function OrdersList({
         {/* Durum filtresi + eylemler tek grup olarak sağa yaslanır; dar
             ekranda hep birlikte alt satıra iner (tek başına kalan kontrol olmaz). */}
         <div className="row" style={{ marginLeft: "auto" }}>
-          {calisanlar.length > 1 && (
-            <select
-              style={{ width: "auto", minWidth: 150, maxWidth: "100%" }}
-              value={employeeFilter}
-              onChange={(e) => setEmployeeFilter(e.target.value)}
-              title="Çalışana göre süz"
-            >
-              <option value="all">Tüm Çalışanlar</option>
-              {calisanlar.map((c) => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
-          )}
           <select
             // minWidth: en uzun seçenek + base.css'in 34px ok boşluğu; ok yazının üstüne binmesin
             style={{ width: "auto", minWidth: 172, maxWidth: "100%" }}
@@ -416,21 +359,6 @@ export default function OrdersList({
           <button className="btn small secondary" type="button" onClick={load}>
             <Icon name="refresh" size={14} /> Yenile
           </button>
-          {patronGonderim && (
-          <button
-            className="btn small secondary"
-            type="button"
-            disabled={waGonderiyor || visible.length === 0 || visible.length > WA_EN_FAZLA}
-            title={
-              visible.length > WA_EN_FAZLA
-                ? `Tek seferde en fazla ${WA_EN_FAZLA} fiş — tarihi ya da çalışanı daraltın`
-                : "Listedeki siparişlerin fişlerini patrona WhatsApp ile PDF olarak gönder"
-            }
-            onClick={() => patronaGonder(visible)}
-          >
-            <Icon name="message" size={14} /> {waGonderiyor ? "Gönderiliyor…" : `Patrona Gönder (${visible.length})`}
-          </button>
-          )}
           {!tamamlananlar && (
             <Link
               className="btn small secondary"
@@ -455,26 +383,6 @@ export default function OrdersList({
       </div>
 
       {error && <div className="notice err">{error}</div>}
-      {waHata && (
-        <div className="notice err" style={{ display: "flex", gap: 12, alignItems: "center" }}>
-          <span style={{ flex: 1 }}>WhatsApp: {waHata}</span>
-          <button className="btn small secondary" type="button" onClick={() => setWaHata("")}>Kapat</button>
-        </div>
-      )}
-      {waSonuc && (
-        <div className={`notice ${waSonuc.giden === waSonuc.toplam ? "ok" : waSonuc.giden > 0 ? "warn" : "err"}`}>
-          <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap" }}>
-            <span style={{ flex: 1 }}>
-              <b>{waSonuc.giden}/{waSonuc.toplam}</b> fiş patrona WhatsApp ile gönderildi
-              {waSonuc.sonuclar.some((r) => r.ok && r.yontem === "serbest") && " (serbest belge mesajı)"}.
-            </span>
-            <button className="btn small secondary" type="button" onClick={() => setWaSonuc(null)}>Kapat</button>
-          </div>
-          {waSonuc.sonuclar.filter((r) => !r.ok).map((r) => (
-            <div key={r.id} style={{ marginTop: 4, fontSize: 13 }}>{r.id}: {r.hata || "gönderilemedi"}</div>
-          ))}
-        </div>
-      )}
       {!orders && !error && <p className="text-2">Yükleniyor…</p>}
 
       {orders && (
@@ -600,18 +508,6 @@ export default function OrdersList({
                     >
                       <Icon name="download" size={14} /> PDF
                     </a>
-                    {patronGonderim && (
-                      <button
-                        type="button"
-                        className="btn small secondary icon"
-                        title="Fişi patrona WhatsApp ile PDF olarak gönder"
-                        aria-label="Fişi patrona WhatsApp ile gönder"
-                        disabled={waGonderiyor}
-                        onClick={() => patronaGonder([o])}
-                      >
-                        <Icon name="message" size={15} />
-                      </button>
-                    )}
                     <Link
                       className="btn small secondary"
                       href={`/panel/siparisler/detay?d=${o.dateKey}&id=${encodeURIComponent(o.orderId)}`}
