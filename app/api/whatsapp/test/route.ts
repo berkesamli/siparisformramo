@@ -72,8 +72,11 @@ export async function POST(req: Request) {
         ok: w.ok,
         gonderilen: w.ok && w.to ? [maskele(w.to)] : [],
         hatalar: w.hata ? [w.hata] : [],
-        notlar: w.ok ? ["Meta mesajı kabul etti. Numarada WhatsApp yoksa teslim hatası webhook'la gelir ve sistem SMS'e düşer."] : [],
+        notlar: w.ok
+          ? [...(w.not ? [w.not] : []), "Meta mesajı kabul etti. Numarada WhatsApp yoksa teslim hatası webhook'la gelir ve sistem SMS'e düşer."]
+          : [],
         yontem: w.yontem,
+        sablon: w.sablon,
       },
     });
   }

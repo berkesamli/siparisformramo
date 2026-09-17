@@ -32,6 +32,7 @@ export interface PatronGonderim {
   hatalar: string[];       // numara: hata
   notlar: string[];        // uyarılar (örn. şablon reddedildi, serbest mesajla gitti)
   yontem: "sablon" | "serbest" | "yok";
+  sablon?: string;         // fiilen kullanılan şablon adı (ekranda hangi sürümün gittiği görünsün)
 }
 
 export function whatsappConfigured(): boolean {
@@ -176,6 +177,7 @@ interface BelgeSonucu {
   ok: boolean;
   wamid?: string;
   yontem: "sablon" | "serbest";
+  sablon?: string;    // kullanılan şablon adı
   hata?: string;      // gitmediyse: sebep(ler)
   not?: string;       // gittiyse ama ilk şablonla değil / serbest ile: açıklama
   kod?: number;       // son Meta hata kodu
@@ -219,7 +221,7 @@ async function belgeGonder(
     const r = await mesajGonder(sablonMesaji(ad));
     if (r.ok) {
       return {
-        ok: true, wamid: r.wamid, yontem: "sablon",
+        ok: true, wamid: r.wamid, yontem: "sablon", sablon: ad,
         not: ad !== sablonlar[0] ? `"${ad}" şablonuyla gönderildi (öncekiler kabul edilmedi).` : undefined,
       };
     }
@@ -275,11 +277,12 @@ export async function sendPdfToPatron(
   const notlar: string[] = [];
   let sablonlaGitti = false;
   let serbestGitti = false;
+  let kullanilan: string | undefined;
   for (const to of alicilar) {
     const r = await belgeGonder(to, up.id, dosya, sablonlar, govde, ozet);
     if (r.ok) {
       gonderilen.push(to);
-      if (r.yontem === "sablon") sablonlaGitti = true; else serbestGitti = true;
+      if (r.yontem === "sablon") { sablonlaGitti = true; kullanilan = kullanilan || r.sablon; } else serbestGitti = true;
       if (r.not) notlar.push(`${to}: ${r.not}`);
     } else {
       hatalar.push(`${to}: ${r.hata}`);
@@ -287,7 +290,7 @@ export async function sendPdfToPatron(
   }
   const yontem: PatronGonderim["yontem"] =
     sablonlaGitti ? "sablon" : serbestGitti ? "serbest" : sablonlar.length ? "sablon" : "serbest";
-  return { ok: gonderilen.length > 0, gonderilen, hatalar, notlar, yontem };
+  return { ok: gonderilen.length > 0, gonderilen, hatalar, notlar, yontem, sablon: kullanilan };
 }
 
 export interface MusteriFis {
@@ -301,6 +304,8 @@ export interface MusteriGonderim {
   to?: string;        // normalize edilmiş numara
   wamid?: string;     // Meta mesaj kimliği — teslim durumu webhook'la bu kimlikle gelir
   yontem: "sablon" | "serbest" | "yok";
+  sablon?: string;    // kullanılan şablon adı
+  not?: string;       // ilk şablon dışında biriyle / serbest gittiyse açıklama
   hata?: string;
   kod?: number;
 }
@@ -326,6 +331,6 @@ export async function sendPdfToCustomer(pdf: Buffer, bilgi: MusteriFis): Promise
     `Sayın ${param(bilgi.musteri, 60)}, ${bilgi.orderId} numaralı siparişiniz alınmıştır. Ayrıntılar ekteki PDF'te. Olga Çerçeve`
   );
   return r.ok
-    ? { ok: true, to, wamid: r.wamid, yontem: r.yontem }
+    ? { ok: true, to, wamid: r.wamid, yontem: r.yontem, sablon: r.sablon, not: r.not }
     : { ok: false, to, yontem: r.yontem, hata: r.hata, kod: r.kod };
 }
