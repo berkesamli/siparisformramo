@@ -318,7 +318,10 @@ export async function POST(req: Request) {
           try {
             const { musteriBildirimHazir, sendPdfToCustomer } = await import("@/lib/whatsapp-pdf");
             if (musteriBildirimHazir()) {
-              const w = await sendPdfToCustomer(pdf, { telefon: c.phone, musteri: order.customer, orderId: order.orderId });
+              // Müşteriye iç not ve durum olmadan ayrı bir kopya gider
+              const { generateOrderPdf, musteriKopyasi } = await import("@/lib/order-pdf");
+              const musteriPdf = await generateOrderPdf(musteriKopyasi(order));
+              const w = await sendPdfToCustomer(musteriPdf, { telefon: c.phone, musteri: order.customer, orderId: order.orderId });
               if (w.ok && w.wamid && w.to) {
                 musteriWa = true;
                 smsGerekli = false;

@@ -1383,8 +1383,8 @@ export default function OrderForm({
             </select>
           </div>
           <div>
-            <label>Not</label>
-            <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Sipariş notu" />
+            <label>Not <span style={{ color: "var(--muted)", fontWeight: 400, textTransform: "none", letterSpacing: "normal" }}>(iç kullanım — müşteriye giden fişte görünmez)</span></label>
+            <input value={note} onChange={(e) => setNote(e.target.value)} placeholder="Hazırlayanlar için not: acil, peşin ödeme…" />
           </div>
         </div>
 
