@@ -69,7 +69,7 @@ export default function BildirimAyarlari() {
           <ul style={{ listStyle: "none" }}>
             <Satir ok={durum.api} baslik="WhatsApp Cloud API" aciklama={durum.api ? "WHATSAPP_TOKEN ve WHATSAPP_PHONE_ID tanımlı." : "Vercel ortam değişkenlerinde WHATSAPP_TOKEN ve WHATSAPP_PHONE_ID eksik."} />
             <Satir ok={durum.alicilar.length > 0} baslik="Alıcı numaralar (PATRON_WHATSAPP)" aciklama={durum.alicilar.length ? durum.alicilar.join(", ") : "Örn. PATRON_WHATSAPP=05325099442 — birden çok numara virgülle."} />
-            <Satir ok={!!durum.sablon} baslik="Onaylı şablon (WHATSAPP_TEMPLATE_SIPARIS)" aciklama={durum.sablon ? `${durum.sablon} · dil: ${durum.dil}` : "Şablon tanımlı değil: mesaj yalnızca alıcı son 24 saatte işletmeye yazdıysa gider. Kalıcı çözüm için Meta'da belge başlıklı şablonu onaylatıp adını girin."} />
+            <Satir ok={!!durum.sablon} baslik="Onaylı şablon (WHATSAPP_TEMPLATE_SIPARIS)" aciklama={durum.sablon ? `${durum.sablon} · dil: ${durum.dil} · birden çok ad varsa sırayla denenir` : "Şablon tanımlı değil: mesaj yalnızca alıcı son 24 saatte işletmeye yazdıysa gider. Kalıcı çözüm için Meta'da belge başlıklı şablonu onaylatıp adını girin."} />
           </ul>
         )}
         {sonuc && (
