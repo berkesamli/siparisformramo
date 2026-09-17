@@ -239,10 +239,20 @@ async function belgeGonder(
  * Fiş PDF'ini bütün patron numaralarına gönderir. Sipariş kaydını asla
  * engellemez: hata olursa sonuç nesnesinde döner, çağıran loglar.
  */
-export async function sendPdfToPatron(pdf: Buffer, bilgi: FisBildirim): Promise<PatronGonderim> {
-  const alicilar = patronNumaralari();
+export async function sendPdfToPatron(
+  pdf: Buffer,
+  bilgi: FisBildirim,
+  // Verilirse PATRON_WHATSAPP yerine bu numaralara gider (ayarlar sayfasındaki deneme için)
+  alicilarOverride?: string[]
+): Promise<PatronGonderim> {
+  const alicilar = alicilarOverride
+    ? [...new Set(alicilarOverride.map(normalizeWaNumber).filter((n): n is string => !!n))]
+    : patronNumaralari();
   if (!whatsappConfigured() || !alicilar.length) {
-    return { ok: false, gonderilen: [], hatalar: ["WhatsApp Cloud API veya PATRON_WHATSAPP tanımlı değil."], notlar: [], yontem: "yok" };
+    return {
+      ok: false, gonderilen: [], notlar: [], yontem: "yok",
+      hatalar: [alicilarOverride ? "Geçerli bir numara girilmedi." : "WhatsApp Cloud API veya PATRON_WHATSAPP tanımlı değil."],
+    };
   }
   const dosya = `${bilgi.orderId}.pdf`;
   const up = await uploadWhatsappPdf(pdf, dosya);

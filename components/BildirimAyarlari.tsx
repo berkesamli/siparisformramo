@@ -13,6 +13,8 @@ export default function BildirimAyarlari() {
   const [hata, setHata] = useState("");
   const [gonderiyor, setGonderiyor] = useState(false);
   const [sonuc, setSonuc] = useState<Sonuc | null>(null);
+  // Patron denemesi: numara yazılırsa oraya, boşsa PATRON_WHATSAPP'a gider
+  const [patronTel, setPatronTel] = useState("");
   // Müşteri fişi denemesi — bir numara girilir, müşteri şablonuyla örnek fiş gider
   const [musteriTel, setMusteriTel] = useState("");
   const [musteriGonderiyor, setMusteriGonderiyor] = useState(false);
@@ -49,7 +51,11 @@ export default function BildirimAyarlari() {
     setGonderiyor(true);
     setSonuc(null);
     try {
-      const r = await fetch("/api/whatsapp/test", { method: "POST" });
+      const r = await fetch("/api/whatsapp/test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(patronTel.trim() ? { patronTelefon: patronTel.trim() } : {}),
+      });
       const d = await r.json();
       if (d.sonuc) setSonuc(d.sonuc);
       else setHata(d.error || "Test gönderilemedi.");
@@ -83,7 +89,15 @@ export default function BildirimAyarlari() {
             <span className="card-head-sub">Her sipariş kaydedildiğinde fiş PDF'i dosya olarak gider</span>
           </div>
           <span className="spacer" />
-          <button type="button" className="btn" onClick={test} disabled={!hazir || gonderiyor}>
+          <input
+            style={{ maxWidth: 220 }}
+            placeholder="Deneme numarası (boşsa patron)"
+            value={patronTel}
+            onChange={(e) => setPatronTel(e.target.value)}
+            inputMode="tel"
+            title="Boş bırakılırsa PATRON_WHATSAPP numaralarına gider"
+          />
+          <button type="button" className="btn" onClick={test} disabled={!durum?.api || gonderiyor || (!hazir && !patronTel.trim())}>
             <Icon name="arrow-up-right" size={16} /> {gonderiyor ? "Gönderiliyor…" : "Test fişi gönder"}
           </button>
         </div>
@@ -167,10 +181,10 @@ Fişin tamamı ekteki PDF dosyasındadır. İyi çalışmalar.`}</pre>
             <p className="muted" style={{ fontSize: 12.5, marginTop: 8 }}>Alt bilgi: Olga Çerçeve sipariş sistemi · Örnekler: Toptan OLG-2026-275 · Ayşe Özyürek · 4.267,08 · Alaattin Yıldız</p>
           </div>
           <div>
-            <label>Müşteriye fiş · <code>musteri_siparis_fisi</code> · 2 değişken</label>
+            <label>Müşteriye fiş · <code>musteri_siparis_fisi_v2</code> · 2 değişken</label>
             <pre style={{ whiteSpace: "pre-wrap", background: "var(--surface-2)", padding: 12, borderRadius: 10, fontSize: 13 }}>{`Sayın {{1}}, {{2}} numaralı siparişiniz alınmıştır. Siparişinizin ayrıntılarını ekteki PDF dosyasında görebilirsiniz. Bizi tercih ettiğiniz için teşekkür ederiz.
 
-Sorularınız için 0850 305 75 45 numaralı hattımızı arayabilirsiniz.`}</pre>
+www.olgacerceve.com`}</pre>
             <p className="muted" style={{ fontSize: 12.5, marginTop: 8 }}>Alt bilgi: Olga Çerçeve · Örnekler: Ayşe Özyürek · OLG-2026-275</p>
           </div>
         </div>
