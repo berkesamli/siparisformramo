@@ -11,7 +11,8 @@
 // Ortam değişkenleri:
 //   WHATSAPP_TOKEN, WHATSAPP_PHONE_ID   — mevcut Cloud API bağlantısı
 //   PATRON_WHATSAPP                     — alıcı numara(lar), virgülle: 05325099442,0532...
-//   WHATSAPP_TEMPLATE_SIPARIS           — onaylı şablon adı (örn. siparis_fisi)
+//   WHATSAPP_TEMPLATE_SIPARIS           — onaylı şablon ad(lar)ı, virgülle: siparis_fisi,siparis_fisi_v2
+//                                         (sırayla denenir; ilk kabul edilen kullanılır)
 //   WHATSAPP_TEMPLATE_DIL               — şablon dili (varsayılan tr)
 
 const GRAPH = "https://graph.facebook.com/v20.0";
@@ -58,8 +59,18 @@ export function patronNumaralari(): string[] {
   return [...out];
 }
 
+/** Sırayla denenecek şablon adları (virgülle ayrılmış, boşlar atılır). */
+export function sablonAdlari(): string[] {
+  const out: string[] = [];
+  for (const p of (process.env.WHATSAPP_TEMPLATE_SIPARIS || "").split(/[,;]+/)) {
+    const ad = p.trim();
+    if (ad && !out.includes(ad)) out.push(ad);
+  }
+  return out;
+}
+/** Ekranda gösterim için: "siparis_fisi, siparis_fisi_v2" ya da "". */
 export function sablonAdi(): string {
-  return (process.env.WHATSAPP_TEMPLATE_SIPARIS || "").trim();
+  return sablonAdlari().join(", ");
 }
 export function sablonDili(): string {
   return (process.env.WHATSAPP_TEMPLATE_DIL || "tr").trim();
@@ -155,15 +166,15 @@ export async function sendPdfToPatron(pdf: Buffer, bilgi: FisBildirim): Promise<
     return { ok: false, gonderilen: [], hatalar: [`PDF yüklenemedi: ${up.hata}`], notlar: [], yontem: "yok" };
   }
 
-  const sablon = sablonAdi();
+  const sablonlar = sablonAdlari();
   const turEtiket = bilgi.tur === "toptan" ? "Toptan" : "Perakende";
   const ozet = `${turEtiket} sipariş ${bilgi.orderId} · ${param(bilgi.musteri, 60)} · ₺${fmtTL(bilgi.tutar)} · ${param(bilgi.calisan, 40)}`;
 
-  const sablonMesaji = (to: string) => ({
+  const sablonMesaji = (to: string, ad: string) => ({
     to,
     type: "template",
     template: {
-      name: sablon,
+      name: ad,
       language: { code: sablonDili() },
       components: [
         { type: "header", parameters: [{ type: "document", document: { id: up.id, filename: dosya } }] },
@@ -191,26 +202,40 @@ export async function sendPdfToPatron(pdf: Buffer, bilgi: FisBildirim): Promise<
   let sablonlaGitti = false;
   let serbestGitti = false;
   for (const to of alicilar) {
-    if (!sablon) {
+    if (!sablonlar.length) {
       const r = await mesajGonder(serbestMesaj(to));
       if (r.ok) { gonderilen.push(to); serbestGitti = true; }
       else hatalar.push(`${to}: ${r.hata}`);
       continue;
     }
-    const r = await mesajGonder(sablonMesaji(to));
-    if (r.ok) { gonderilen.push(to); sablonlaGitti = true; continue; }
-    if (!(r.kod && SABLON_HATALARI.has(r.kod))) { hatalar.push(`${to}: ${r.hata}`); continue; }
-    // Sorun şablonda (onaysız/yok/uyumsuz): 24 saat penceresi açıksa serbest belge gider.
+    // Şablonlar sırayla: ilk kabul edilen gönderir. Şablon kaynaklı hata
+    // (yok/onaysız/uyumsuz) → sıradakine geç; başka hata → dur, raporla.
+    const sablonHatalari: string[] = [];
+    let gitti = false;
+    let sablonSorunu = true;
+    for (const ad of sablonlar) {
+      const r = await mesajGonder(sablonMesaji(to, ad));
+      if (r.ok) {
+        gitti = true;
+        if (ad !== sablonlar[0]) notlar.push(`${to}: "${ad}" şablonuyla gönderildi (öncekiler kabul edilmedi).`);
+        break;
+      }
+      sablonHatalari.push(`${ad}: ${r.hata}`);
+      if (!(r.kod && SABLON_HATALARI.has(r.kod))) { sablonSorunu = false; break; }
+    }
+    if (gitti) { gonderilen.push(to); sablonlaGitti = true; continue; }
+    if (!sablonSorunu) { hatalar.push(`${to}: ${sablonHatalari.join(" · ")}`); continue; }
+    // Sorun şablonlarda: 24 saat penceresi açıksa serbest belge gider.
     const r2 = await mesajGonder(serbestMesaj(to));
     if (r2.ok) {
       gonderilen.push(to);
       serbestGitti = true;
-      notlar.push(`${to}: şablon kabul edilmedi (${r.hata}); serbest belge mesajıyla gönderildi.`);
+      notlar.push(`${to}: şablon kabul edilmedi (${sablonHatalari.join(" · ")}); serbest belge mesajıyla gönderildi.`);
     } else {
-      hatalar.push(`${to}: şablon: ${r.hata} · serbest belge: ${r2.hata}`);
+      hatalar.push(`${to}: şablon: ${sablonHatalari.join(" · ")} · serbest belge: ${r2.hata}`);
     }
   }
   const yontem: PatronGonderim["yontem"] =
-    sablonlaGitti ? "sablon" : serbestGitti ? "serbest" : sablon ? "sablon" : "serbest";
+    sablonlaGitti ? "sablon" : serbestGitti ? "serbest" : sablonlar.length ? "sablon" : "serbest";
   return { ok: gonderilen.length > 0, gonderilen, hatalar, notlar, yontem };
 }
