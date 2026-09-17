@@ -10,7 +10,7 @@ import {
   musteriSablonAdlari,
   sendPdfToCustomer,
 } from "@/lib/whatsapp-pdf";
-import { generateOrderPdf } from "@/lib/order-pdf";
+import { generateOrderPdf, musteriKopyasi } from "@/lib/order-pdf";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -49,7 +49,7 @@ export async function POST(req: Request) {
   const musteriTelefon = String(body?.musteriTelefon || "").trim();
   const patronTelefon = String(body?.patronTelefon || "").trim();
   const simdi = new Date();
-  const pdf = await generateOrderPdf({
+  const ornek = {
     orderId: "TEST-" + simdi.toISOString().slice(11, 16).replace(":", ""),
     dateStr: simdi.toLocaleString("tr-TR", { timeZone: "Europe/Istanbul" }),
     status: "Test",
@@ -63,9 +63,11 @@ export async function POST(req: Request) {
     discount: 0,
     vatAmount: 0,
     net: 1421,
-  });
+  };
+  const pdf = await generateOrderPdf(ornek);
   if (musteriTelefon) {
-    const w = await sendPdfToCustomer(pdf, { telefon: musteriTelefon, musteri: "Deneme Müşteri", orderId: "TEST" });
+    const musteriPdf = await generateOrderPdf(musteriKopyasi(ornek));
+    const w = await sendPdfToCustomer(musteriPdf, { telefon: musteriTelefon, musteri: "Deneme Müşteri", orderId: "TEST" });
     return NextResponse.json({
       ok: w.ok,
       sonuc: {

@@ -40,6 +40,15 @@ const M = 46; // sayfa marjı
 // miktar × birim fiyat = satır tutarı faturada birebir tutsun.
 const fmt = fmtTL;
 
+/**
+ * Müşteriye giden kopya: sipariş notu (hazırlayanlara yazılan "acil", "peşin"
+ * gibi iç notlar) ve iç durum bilgisi fişte görünmez. Ürünler, tutarlar ve
+ * kur aynen kalır.
+ */
+export function musteriKopyasi(order: PdfOrder): PdfOrder {
+  return { ...order, note: "", status: undefined };
+}
+
 export function generateOrderPdf(order: PdfOrder): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     // font seçeneği ile başlatınca pdfkit standart (Helvetica) fontlarını hiç
