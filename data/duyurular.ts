@@ -30,6 +30,16 @@ export interface Duyuru {
 
 export const DUYURULAR: Duyuru[] = [
   {
+    id: "whatsapp-fis-2026-09",
+    baslik: "Yeni: Sipariş fişleri WhatsApp'a gidiyor",
+    metin:
+      "Artık alınan her sipariş, PDF fiş olarak Özgür Bey'in WhatsApp'ına otomatik gidiyor. Formda 'Müşteriye sipariş bildirimi gönder' işaretliyse müşteriye de fişi WhatsApp'tan gönderiyoruz; WhatsApp'ı olmayan müşteriye SMS gidiyor. Müşteriye giden fişte 'Not' alanı görünmez, hazırlayanlar için notlarınızı ('acil', 'peşin ödeme' gibi) rahatça yazabilirsiniz.",
+    baslangic: "2026-09-18",
+    bitis: "2026-10-18",
+    roller: ["staff"],
+    ikon: "message",
+  },
+  {
     id: "satislarim-2026-09",
     baslik: "Yeni: Satışlarım ekranı",
     metin:
