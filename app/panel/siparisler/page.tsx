@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getSessionUser } from "@/lib/auth";
 import OrdersList from "@/components/OrdersList";
-import { finansAktif } from "@/data/users";
+import { finansAktif, isOwner } from "@/data/users";
 import PageHeader from "@/components/PageHeader";
 import Icon from "@/components/shell/Icon";
 
@@ -25,7 +25,7 @@ export default async function OrdersPage() {
           </Link>
         }
       />
-      <OrdersList eldenSatis={finansAktif()} />
+      <OrdersList eldenSatis={finansAktif()} patronGonderim={isOwner(user.username)} />
     </main>
   );
 }

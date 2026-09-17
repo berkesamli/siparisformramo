@@ -24,7 +24,12 @@ const STATUS_COLORS: Record<RetailStatus, string> = {
   "İptal": "var(--error)",
 };
 
-export default function RetailOrdersList() {
+export default function RetailOrdersList({
+  // Patrona WhatsApp ile fiş gönderme düğmesi — yalnızca sahipler (sayfa geçirir)
+  patronGonderim = false,
+}: {
+  patronGonderim?: boolean;
+} = {}) {
   const [range, setRange] = useState<"today" | "week" | "date">("today");
   const [date, setDate] = useState("");
   const [query, setQuery] = useState("");
@@ -32,6 +37,25 @@ export default function RetailOrdersList() {
   const [loading, setLoading] = useState(true);
   const [blob, setBlob] = useState(true);
   const [open, setOpen] = useState<string | null>(null);
+  // Patrona WhatsApp ile fiş gönderimi — sipariş başına durum metni
+  const [waDurum, setWaDurum] = useState<Record<string, string>>({});
+
+  async function patronaGonder(o: SavedRetailOrder) {
+    if (!window.confirm(`${o.orderId} (${o.customerName}) fişi patrona WhatsApp ile PDF olarak gönderilecek. Devam edilsin mi?`)) return;
+    setWaDurum((d) => ({ ...d, [o.orderId]: "Gönderiliyor…" }));
+    try {
+      const res = await fetch("/api/whatsapp/patron", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orders: [{ d: o.dateKey, id: o.orderId }] }),
+      });
+      const j = await res.json().catch(() => null);
+      const r = j?.sonuclar?.[0];
+      setWaDurum((d) => ({ ...d, [o.orderId]: r?.ok ? "Patrona gönderildi ✓" : `Gönderilemedi: ${r?.hata || j?.error || "bilinmeyen hata"}` }));
+    } catch {
+      setWaDurum((d) => ({ ...d, [o.orderId]: "Gönderilemedi: sunucuya ulaşılamadı" }));
+    }
+  }
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -202,6 +226,22 @@ export default function RetailOrdersList() {
               >
                 <Icon name="download" size={14} /> PDF
               </a>
+              {patronGonderim && (
+                <button
+                  type="button"
+                  className="btn small secondary"
+                  title="Fişi patrona WhatsApp ile PDF olarak gönder"
+                  disabled={waDurum[o.orderId] === "Gönderiliyor…"}
+                  onClick={() => patronaGonder(o)}
+                >
+                  <Icon name="message" size={14} /> Patrona
+                </button>
+              )}
+              {patronGonderim && waDurum[o.orderId] && (
+                <span className="text-2" style={{ fontSize: 12.5, color: waDurum[o.orderId].startsWith("Gönderilemedi") ? "var(--error)" : "var(--success)" }}>
+                  {waDurum[o.orderId]}
+                </span>
+              )}
               <a
                 className="btn small secondary"
                 href={`/panel/perakende/siparisler/detay?d=${o.dateKey}&id=${encodeURIComponent(o.orderId)}`}

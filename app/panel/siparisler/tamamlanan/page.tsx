@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getSessionUser } from "@/lib/auth";
 import OrdersList from "@/components/OrdersList";
+import { isOwner } from "@/data/users";
 import PageHeader from "@/components/PageHeader";
 import Icon from "@/components/shell/Icon";
 
@@ -29,7 +30,7 @@ export default async function TamamlananSiparislerPage() {
           </Link>
         }
       />
-      <OrdersList tamamlananlar />
+      <OrdersList tamamlananlar patronGonderim={isOwner(user.username)} />
     </main>
   );
 }
