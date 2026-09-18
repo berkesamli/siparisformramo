@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { isOwner } from "@/data/users";
-import { mikroAyar, mikroConfigured, baglantiTesti, cariOzet, sifreBicimiAdi, mikroAyarUyarilari } from "@/lib/mikro";
+import { mikroAyar, mikroConfigured, baglantiTesti, cariOzet, hareketOrnegi, sifreBicimiAdi, mikroAyarUyarilari } from "@/lib/mikro";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -40,8 +40,9 @@ export async function POST(req: Request) {
     dene?: { kullanici?: string; sifre?: string; firma?: string; yil?: string };
   } | null;
   if (body?.islem === "cari") {
-    const r = await cariOzet(String(body.cariKod || "").slice(0, 40));
-    return NextResponse.json(r);
+    const kod = String(body.cariKod || "").slice(0, 40);
+    const [r, ornek] = await Promise.all([cariOzet(kod), hareketOrnegi(kod)]);
+    return NextResponse.json({ ...r, ornekHareket: ornek.ok ? ornek.satirlar : ornek.hata });
   }
   const d = body?.dene;
   const override = d && (d.kullanici || d.sifre || d.firma || d.yil)
