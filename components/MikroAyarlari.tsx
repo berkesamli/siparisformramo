@@ -34,6 +34,9 @@ export default function MikroAyarlari() {
   const [sorguluyor, setSorguluyor] = useState(false);
   const [ozet, setOzet] = useState<CariOzet | null>(null);
   const [ozetHata, setOzetHata] = useState("");
+  // Farklı bilgilerle deneme (Vercel'e kaydedilmez; yalnızca o istekte kullanılır)
+  const [dene, setDene] = useState({ kullanici: "", sifre: "", firma: "", yil: "" });
+  const [deneAcik, setDeneAcik] = useState(false);
 
   useEffect(() => {
     fetch("/api/mikro/test")
@@ -42,10 +45,11 @@ export default function MikroAyarlari() {
       .catch(() => setHata("Sunucuya ulaşılamadı."));
   }, []);
 
-  async function baglantiDene() {
+  async function baglantiDene(farkli = false) {
     setDeniyor(true); setCariler(null); setTestHata(""); setTestRaw("");
     try {
-      const r = await fetch("/api/mikro/test", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ islem: "baglanti" }) });
+      const govde = farkli ? { islem: "baglanti", dene } : { islem: "baglanti" };
+      const r = await fetch("/api/mikro/test", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(govde) });
       const d = (await r.json()) as TestSonuc;
       if (d.ham) setTestRaw((d.sifreBicimi ? `Şifre biçimi: ${d.sifreBicimi}\n` : "") + (d.sutunlar?.length ? `Sütunlar: ${d.sutunlar.join(", ")}\n` : "") + d.ham);
       if (d.ok) setCariler(d.cariler || []);
@@ -87,7 +91,7 @@ export default function MikroAyarlari() {
           <span className="card-head-sub">Ankara sunucusundaki Mikro Jump 17 API&apos;si · yalnızca okuma (cari bakiye, vade)</span>
         </div>
         <span className="spacer" />
-        <button type="button" className="btn" onClick={baglantiDene} disabled={!durum?.kurulu || deniyor}>
+        <button type="button" className="btn" onClick={() => baglantiDene(false)} disabled={!durum?.kurulu || deniyor}>
           <Icon name="refresh" size={16} /> {deniyor ? "Deneniyor…" : "Bağlantıyı dene"}
         </button>
       </div>
@@ -120,6 +124,20 @@ export default function MikroAyarlari() {
           <pre style={{ whiteSpace: "pre-wrap", wordBreak: "break-all", fontSize: 12, background: "var(--surface-2)", padding: 10, borderRadius: 8, marginTop: 6 }}>{testRaw}</pre>
         </details>
       )}
+
+      <details open={deneAcik} onToggle={(e) => setDeneAcik((e.target as HTMLDetailsElement).open)} style={{ marginTop: 12 }}>
+        <summary className="muted" style={{ cursor: "pointer", fontSize: 13 }}>Farklı kullanıcı / şifre / veri tabanı ile dene (Vercel&apos;e kaydedilmez)</summary>
+        <div className="row" style={{ marginTop: 8, gap: 8, flexWrap: "wrap" }}>
+          <input style={{ maxWidth: 150 }} placeholder="Kullanıcı (örn. SRV)" value={dene.kullanici} onChange={(e) => setDene({ ...dene, kullanici: e.target.value })} autoComplete="off" />
+          <input style={{ maxWidth: 150 }} type="password" placeholder="Şifre" value={dene.sifre} onChange={(e) => setDene({ ...dene, sifre: e.target.value })} autoComplete="new-password" />
+          <input style={{ maxWidth: 170 }} placeholder="Veri tabanı (001 / MikroDB_V17_001)" value={dene.firma} onChange={(e) => setDene({ ...dene, firma: e.target.value })} autoComplete="off" />
+          <input style={{ maxWidth: 90 }} placeholder="Yıl" value={dene.yil} onChange={(e) => setDene({ ...dene, yil: e.target.value })} autoComplete="off" />
+          <button type="button" className="btn secondary" onClick={() => baglantiDene(true)} disabled={!durum?.url || deniyor}>
+            {deniyor ? "Deneniyor…" : "Bu bilgilerle dene"}
+          </button>
+        </div>
+        <p className="muted" style={{ fontSize: 12, marginTop: 6 }}>Boş bırakılan alanlar Vercel&apos;deki değerle doldurulur. Tutan bilgiyi sonra Vercel&apos;e girip Redeploy edersin.</p>
+      </details>
 
       <div className="row" style={{ marginTop: 16, gap: 8 }}>
         <input
