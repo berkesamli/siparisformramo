@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { isOwner } from "@/data/users";
-import { mikroAyar, mikroConfigured, baglantiTesti, cariOzet } from "@/lib/mikro";
+import { mikroAyar, mikroConfigured, baglantiTesti, cariOzet, sifreBicimiAdi } from "@/lib/mikro";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -38,5 +38,5 @@ export async function POST(req: Request) {
     return NextResponse.json(r);
   }
   const r = await baglantiTesti();
-  return NextResponse.json(r);
+  return NextResponse.json({ ...r, sifreBicimi: sifreBicimiAdi() });
 }

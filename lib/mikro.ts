@@ -50,10 +50,36 @@ export function istanbulGun(offsetGun = 0): string {
   return d.toLocaleDateString("en-CA", { timeZone: "Europe/Istanbul" }); // en-CA → YYYY-MM-DD
 }
 
-export function mikroKimlik(offsetGun = 0): Record<string, string> {
+const md5 = (s: string) => createHash("md5").update(s, "utf8").digest("hex");
+
+/**
+ * Şifre alanı biçimleri. Belgede "YYYY-MM-DD <şifre> → MD5" yazar; sahada
+ * sürüme göre farklı biçimler görüldüğünden "Şifre Hatalı" gelirse sıradaki
+ * denenir ve tutan biçim süreç ömrünce hatırlanır.
+ */
+const SIFRE_BICIMLERI: { ad: string; uret: (sifre: string, gun: string) => string }[] = [
+  { ad: "md5(gün boşluk şifre)", uret: (p, g) => md5(`${g} ${p}`) },
+  { ad: "md5(dün boşluk şifre)", uret: (p, g) => md5(`${istanbulGun(-1)} ${p}`) },
+  { ad: "md5(gün+şifre)", uret: (p, g) => md5(`${g}${p}`) },
+  { ad: "md5(şifre)", uret: (p) => md5(p) },
+  { ad: "düz şifre", uret: (p) => p },
+  { ad: "MD5 büyük harf", uret: (p, g) => md5(`${g} ${p}`).toUpperCase() },
+];
+// Denenecek kimlik varyantları: şifre biçimi × kullanıcı kodu (yazıldığı gibi / BÜYÜK HARF).
+// Mikro kullanıcı kodları çoğunlukla büyük harflidir ("SRV").
+const VARYANT_SAYISI = SIFRE_BICIMLERI.length * 2;
+let tutanBicim = 0;
+
+export function mikroKimlik(varyant = tutanBicim): Record<string, string> {
   const a = mikroAyar();
-  const sifre = createHash("md5").update(`${istanbulGun(offsetGun)} ${a.sifre}`, "utf8").digest("hex");
-  return { ApiKey: a.apiKey, CalismaYili: a.yil, FirmaKodu: a.firma, KullaniciKodu: a.kullanici, Sifre: sifre };
+  const b = SIFRE_BICIMLERI[varyant % SIFRE_BICIMLERI.length] || SIFRE_BICIMLERI[0];
+  const kullanici = varyant >= SIFRE_BICIMLERI.length ? a.kullanici.toLocaleUpperCase("tr-TR") : a.kullanici;
+  return { ApiKey: a.apiKey, CalismaYili: a.yil, FirmaKodu: a.firma, KullaniciKodu: kullanici, Sifre: b.uret(a.sifre, istanbulGun()) };
+}
+
+export function sifreBicimiAdi(): string {
+  const b = SIFRE_BICIMLERI[tutanBicim % SIFRE_BICIMLERI.length]?.ad || "?";
+  return tutanBicim >= SIFRE_BICIMLERI.length ? `${b} · kullanıcı BÜYÜK HARF` : b;
 }
 
 export interface MikroYanit<T = unknown> {
@@ -66,8 +92,8 @@ export interface MikroYanit<T = unknown> {
 
 const ZAMAN_ASIMI_MS = 15000;
 
-/** Ham metot çağrısı: POST {url}/Api/APIMethods/{metot}. Kimlik hatasında dün tarihiyle bir kez daha dener. */
-async function mikroPost<T = unknown>(metot: string, govde: Record<string, unknown>, offsetGun = 0): Promise<MikroYanit<T>> {
+/** Ham metot çağrısı: POST {url}/Api/APIMethods/{metot}. "Şifre Hatalı"da sıradaki şifre biçimiyle yeniden dener. */
+async function mikroPost<T = unknown>(metot: string, govde: Record<string, unknown>, bicim = tutanBicim): Promise<MikroYanit<T>> {
   if (!mikroConfigured()) {
     return { ok: false, status: 0, hata: "Mikro API ayarları eksik (MIKRO_API_URL, MIKRO_API_KEY, MIKRO_FIRMA_KODU, MIKRO_KULLANICI, MIKRO_SIFRE)." };
   }
@@ -79,7 +105,7 @@ async function mikroPost<T = unknown>(metot: string, govde: Record<string, unkno
     res = await fetch(`${a.url}/Api/APIMethods/${metot}`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify({ ...govde, Mikro: mikroKimlik(offsetGun) }),
+      body: JSON.stringify({ ...govde, Mikro: mikroKimlik(bicim) }),
       signal: ctrl.signal,
       cache: "no-store",
     });
@@ -98,17 +124,40 @@ async function mikroPost<T = unknown>(metot: string, govde: Record<string, unkno
   let data: unknown = undefined;
   try { data = JSON.parse(text); } catch { /* ham metin */ }
 
-  const hataMetni = mikroHataMetni(data) || (!res.ok ? `HTTP ${res.status}` : "");
+  // Zarf: {"result":[{"StatusCode":200,"Data":…,"ErrorMessage":null,"IsError":false}]}
+  const zarf = zarfCoz(data);
+  let hataMetni = zarf.hata || mikroHataMetni(zarf.icerik) || (!res.ok ? `HTTP ${res.status}` : "");
   if (hataMetni) {
-    // Gece yarısı civarı sunucu günü ile bizim gün ayrışabilir: kimlik hatasında dünle bir kez daha dene
-    if (offsetGun === 0 && /ifre|kimlik|yetki|api ?key|kullan/i.test(hataMetni)) {
-      const tekrar = await mikroPost<T>(metot, govde, -1);
-      if (tekrar.ok) return tekrar;
+    // Şifre biçimi tutmadıysa sıradakini dene (yalnızca ilk turda ve şifre hatasında)
+    if (bicim === tutanBicim && /ifre|password/i.test(hataMetni)) {
+      for (let i = 0; i < VARYANT_SAYISI; i++) {
+        if (i === bicim) continue;
+        const tekrar = await mikroPost<T>(metot, govde, i);
+        if (tekrar.ok) { tutanBicim = i; console.log(`Mikro: kimlik varyantı '${sifreBicimiAdi()}' tuttu.`); return tekrar; }
+        if (!/ifre|password/i.test(tekrar.hata || "")) { hataMetni = tekrar.hata || hataMetni; break; }
+      }
     }
-    return { ok: false, status: res.status, data: data as T, raw: data === undefined ? text.slice(0, 500) : undefined, hata: hataMetni };
+    return { ok: false, status: zarf.kod || res.status, data: (zarf.icerik ?? data) as T, raw: data === undefined ? text.slice(0, 500) : undefined, hata: hataMetni };
   }
   if (data === undefined) return { ok: false, status: res.status, raw: text.slice(0, 500), hata: "Mikro JSON yerine metin döndürdü." };
-  return { ok: true, status: res.status, data: data as T };
+  return { ok: true, status: res.status, data: (zarf.icerik ?? data) as T };
+}
+
+/** Mikro Desktop API zarfını açar; zarf yoksa veriyi olduğu gibi döndürür. */
+function zarfCoz(data: unknown): { icerik: unknown; hata?: string; kod?: number } {
+  if (!data || typeof data !== "object" || Array.isArray(data)) return { icerik: data };
+  const o = data as Record<string, unknown>;
+  const dizi = Array.isArray(o.result) ? o.result : Array.isArray(o.Result) ? o.Result : null;
+  const z = dizi && dizi.length ? (dizi[0] as Record<string, unknown>) : null;
+  if (!z || typeof z !== "object" || !("IsError" in z || "StatusCode" in z || "Data" in z)) return { icerik: data };
+  const kod = typeof z.StatusCode === "number" ? z.StatusCode : undefined;
+  if (z.IsError === true || (kod && kod >= 400)) {
+    const msg = typeof z.ErrorMessage === "string" && z.ErrorMessage.trim() ? z.ErrorMessage.trim() : `Mikro hata kodu ${kod ?? "?"}`;
+    return { icerik: z.Data, hata: msg, kod };
+  }
+  let icerik: unknown = z.Data;
+  if (typeof icerik === "string") { try { icerik = JSON.parse(icerik); } catch { /* düz metin */ } }
+  return { icerik, kod };
 }
 
 function mikroHataMetni(data: unknown): string {

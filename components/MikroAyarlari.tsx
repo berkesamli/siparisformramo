@@ -15,7 +15,7 @@ interface Durum {
   sifre: boolean;
 }
 interface CariSatir { cari_kod: string; unvan: string }
-interface TestSonuc { ok: boolean; cariler?: CariSatir[]; hata?: string; error?: string; ham?: string; sutunlar?: string[] }
+interface TestSonuc { ok: boolean; cariler?: CariSatir[]; hata?: string; error?: string; ham?: string; sutunlar?: string[]; sifreBicimi?: string }
 interface CariOzet {
   cariKod: string; unvan: string; borc: number; alacak: number; bakiye: number; vadesiGecen: number; sonHareket: string | null;
 }
@@ -47,7 +47,7 @@ export default function MikroAyarlari() {
     try {
       const r = await fetch("/api/mikro/test", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ islem: "baglanti" }) });
       const d = (await r.json()) as TestSonuc;
-      if (d.ham) setTestRaw((d.sutunlar?.length ? `Sütunlar: ${d.sutunlar.join(", ")}\n` : "") + d.ham);
+      if (d.ham) setTestRaw((d.sifreBicimi ? `Şifre biçimi: ${d.sifreBicimi}\n` : "") + (d.sutunlar?.length ? `Sütunlar: ${d.sutunlar.join(", ")}\n` : "") + d.ham);
       if (d.ok) setCariler(d.cariler || []);
       else setTestHata(d.hata || d.error || "Bağlantı başarısız.");
     } catch { setTestHata("Sunucuya ulaşılamadı."); }
