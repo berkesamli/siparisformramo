@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { readOrderIndex, STATUS_LABELS, PAYMENT_LABELS, type OrderIndexEntry } from "@/lib/orders";
 import { readRetailIndex, type RetailIndexEntry } from "@/lib/retail-orders";
-import { listCustomers, customerTitle } from "@/lib/customers";
+import { listCustomers, customerTitle, bolgeler, musteriBolgesi } from "@/lib/customers";
 import { listRetailCustomers } from "@/lib/retail-customers";
 import { getStockData } from "@/lib/stock-store";
 import { searchStock, toBoy } from "@/lib/stock-search";
@@ -148,7 +148,7 @@ export async function GET(req: NextRequest) {
         hits.push({
           kind: "customer",
           title: ad,
-          sub: [c.city, c.phone, c.branch === "istanbul" ? "İstanbul şubesi" : "Ankara şubesi"].filter(Boolean).join(" · "),
+          sub: [c.city, c.phone, `${bolgeler()[musteriBolgesi(c)].label} müşterisi`].filter(Boolean).join(" · "),
           href: `/musteriler/kart?id=${encodeURIComponent(c.id)}`,
           meta: c.iskontoPct ? `%${c.iskontoPct} isk.` : undefined,
           metaKind: "brand",

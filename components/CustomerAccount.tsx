@@ -10,7 +10,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Icon from "@/components/shell/Icon";
-import { customerTitle, type Customer } from "@/lib/customers";
+import { customerTitle, musteriBolgesi, bolgeler as varsayilanBolgeler, type Bolge, type BolgeInfo, type Customer } from "@/lib/customers";
 import type { CariEntry } from "@/app/api/musteriler/cari/route";
 import { TAHSILAT_YONTEM_LABELS, type Tahsilat } from "@/lib/tahsilat";
 import TahsilatModal from "./TahsilatModal";
@@ -54,6 +54,7 @@ export default function CustomerAccount({ id, finans = false }: { id: string; fi
   const [modalOpen, setModalOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [msg, setMsg] = useState("");
+  const [bolgeTanim, setBolgeTanim] = useState<Record<Bolge, BolgeInfo>>(() => varsayilanBolgeler());
 
   const load = useCallback(() => {
     fetch(`/api/musteriler/cari?id=${encodeURIComponent(id)}`)
@@ -66,6 +67,7 @@ export default function CustomerAccount({ id, finans = false }: { id: string; fi
           setEntries(d.entries || []);
           setMovements(d.movements || []);
           setSummary(d.summary);
+          if (d.bolgeler) setBolgeTanim(d.bolgeler);
           setErr("");
         }
       })
@@ -112,20 +114,25 @@ export default function CustomerAccount({ id, finans = false }: { id: string; fi
   const baslik = customer.company || kisi || customerTitle(customer);
   const adres = [customer.addr1, customer.addr2, [customer.district, customer.city].filter(Boolean).join(" / "), customer.postalCode].filter(Boolean).join(", ");
   const wa = waNumara(customer.phone);
+  const bolge = musteriBolgesi(customer);
+  const bolgeBilgi = bolgeTanim[bolge];
 
   return (
     <div>
       {/* ---- Başlık: avatar, ad, iletişim çipleri, hızlı işlemler ---- */}
       <div className="ck-head">
-        <span className={`ck-avatar ${customer.branch === "istanbul" ? "istanbul" : ""}`} aria-hidden>{initials(baslik)}</span>
+        <span className={`ck-avatar ${bolge}`} aria-hidden>{initials(baslik)}</span>
         <div className="ck-main">
           <span className="ck-kicker">Müşteri Kartı</span>
           <h1 className="ck-name">
             {baslik}
-            <span className={`lbl-branch ${customer.branch}`}>{customer.branch === "istanbul" ? "İSTANBUL" : "ANKARA"}</span>
+            <span className={`bolge ${bolge}`} title={customer.bolge ? "Bölge elle seçildi" : "Bölge şehirden türetildi"}>{bolgeBilgi.kisa}</span>
             {customer.iskontoPct ? <span className="badge brand">%{customer.iskontoPct} bayi iskontosu</span> : null}
           </h1>
-          {customer.company && kisi && <div className="ck-person">Yetkili: {kisi}</div>}
+          <div className="ck-person">
+            {customer.company && kisi && <>Yetkili: {kisi} · </>}
+            {bolgeBilgi.label} müşterisi · gönderici şube {customer.branch === "istanbul" ? "İstanbul" : "Ankara"}
+          </div>
           <div className="ck-contacts">
             {customer.phone ? (
               <>

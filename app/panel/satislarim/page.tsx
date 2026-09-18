@@ -18,7 +18,7 @@ export default async function SatislarimPage() {
         icon="trending-up"
         kicker="Kişisel"
         title="Satışlarım"
-        subtitle="Yalnızca senin adına girilen siparişler — toptan ve perakende birlikte, iptaller hariç."
+        subtitle="Senin adına girilen siparişler — toptan ve perakende birlikte, iptaller hariç. Bir bölgenin sorumlusuysan bölgendeki müşterilerin tüm satışları da ayrıca gösterilir."
       />
       <MySales employeeName={user.name} />
     </main>

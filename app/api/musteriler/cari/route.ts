@@ -9,7 +9,7 @@ import {
   type OrderIndexEntry,
 } from "@/lib/orders";
 import { listAllRetailOrders, type SavedRetailOrder } from "@/lib/retail-orders";
-import { getCustomer, customerTitle, normalizeCity } from "@/lib/customers";
+import { getCustomer, customerTitle, normalizeCity, bolgeler } from "@/lib/customers";
 import { listAllTahsilat, type Tahsilat } from "@/lib/tahsilat";
 import { getAcilisBakiye } from "@/lib/acilis-bakiye";
 
@@ -159,5 +159,5 @@ export async function GET(req: NextRequest) {
     lastOrderAt: entries[0]?.createdAt || null,
   };
 
-  return NextResponse.json({ customer, entries, movements, summary });
+  return NextResponse.json({ customer, entries, movements, summary, bolgeler: bolgeler() });
 }
