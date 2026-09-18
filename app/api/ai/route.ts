@@ -11,6 +11,8 @@ import {
   computeRetailCosts,
 } from "@/data/perakende";
 import { getDailyRates, istanbulDateKey, listAllOrders, orderBalance } from "@/lib/orders";
+import { mikroConfigured, cariOzet } from "@/lib/mikro";
+import { finansAktif } from "@/data/users";
 import { retailFramePrice } from "@/lib/retail-orders";
 import { listCustomers, customerTitle } from "@/lib/customers";
 import { getStockData } from "@/lib/stock-store";
@@ -175,7 +177,7 @@ const TOOL_SIPARIS: Anthropic.Tool = {
 const TOOL_MUSTERI: Anthropic.Tool = {
   name: "musteri_ara",
   description:
-    "Müşteri defterinde arama yapar. Firma/kişi adı, telefon veya şehirle arayabilir. Cari bakiye ve sipariş özeti de döner.",
+    "Müşteri defterinde arama yapar. Firma/kişi adı, telefon veya şehirle arayabilir. Sipariş özeti ve, müşteri Mikro cari kartıyla eşleştirilmişse, Mikro'daki resmi bakiye (mikroBakiyeTL: pozitif = müşteri borçlu) ve vadesi geçen tutar döner.",
   input_schema: {
     type: "object",
     properties: {
@@ -356,13 +358,24 @@ async function runTool(name: string, input: any): Promise<string> {
       if (!hits.length) {
         return JSON.stringify({ bulunamadi: true, not: "Müşteri defterinde eşleşme yok.", toplamKayit: customers.length });
       }
-      return JSON.stringify({
-        bulunan: hits.length,
-        musteriler: hits.map((c) => {
+      // Resmi bakiye Mikro'dan (önbellekli); en fazla ilk 5 eşleşme için sorulur
+      const mikroVar = mikroConfigured();
+      const musteriler = await Promise.all(
+        hits.map(async (c, i) => {
           const mine = orders.filter(
             (o) => o.customerId === c.id || trNorm(o.customer) === trNorm(customerTitle(c))
           );
           const bakiye = mine.reduce((s, o) => s + orderBalance(o), 0);
+          let mikro: Record<string, unknown> = {};
+          if (!mikroVar) mikro = { mikroBakiye: "Mikro bağlantısı ayarlı değil" };
+          else if (!c.mikroCariKod) mikro = { mikroBakiye: "Bu müşteri Mikro cari kartıyla eşleştirilmemiş (cari kartından eşleştirilebilir)" };
+          else if (i >= 5) mikro = { mikroBakiye: "Çok sonuç var; müşteri adını daraltın" };
+          else {
+            const r = await cariOzet(c.mikroCariKod);
+            mikro = r.ok && r.ozet
+              ? { mikroCariKod: c.mikroCariKod, mikroBakiyeTL: Math.round(r.ozet.bakiye), mikroVadesiGecenTL: r.ozet.vadeVar ? Math.round(r.ozet.vadesiGecen) : undefined, mikroSonHareket: r.ozet.sonHareket || undefined }
+              : { mikroCariKod: c.mikroCariKod, mikroBakiye: `okunamadı: ${r.hata || "?"}` };
+          }
           return {
             ad: customerTitle(c),
             telefon: c.phone || undefined,
@@ -370,11 +383,14 @@ async function runTool(name: string, input: any): Promise<string> {
             sube: c.branch,
             siparisAdedi: mine.length,
             sonSiparis: mine[0] ? `${mine[0].orderId} · ${mine[0].dateKey}` : undefined,
-            acikBakiyeTL: Math.round(bakiye),
+            ...mikro,
+            // Sistemin kendi hesapladığı bakiye yalnızca finans modülü açıkken (tahsilatlar burada işleniyorsa)
+            ...(finansAktif() ? { sistemAcikBakiyeTL: Math.round(bakiye) } : {}),
             not: c.note || undefined,
           };
-        }),
-      });
+        })
+      );
+      return JSON.stringify({ bulunan: hits.length, musteriler });
     }
 
     default:

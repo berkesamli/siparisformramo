@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
-import { isFinance } from "@/data/users";
+import { isFinance, finansAktif } from "@/data/users";
 import Reports from "@/components/Reports";
 import PageHeader from "@/components/PageHeader";
 
@@ -20,7 +20,8 @@ export default async function RaporlarPage() {
         subtitle="Ciro, tahsilat, müşteri ve ürün kırılımları — toptan ve perakende birlikte."
         icon="bar-chart"
       />
-      <Reports />
+      {/* Tahsilat/açık bakiye kutuları: tahsilatlar bu sistemde işlenmiyorsa (FINANS_AKTIF kapalı) gizlenir */}
+      <Reports finans={finansAktif()} />
     </main>
   );
 }

@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
+import { finansAktif } from "@/data/users";
 import CustomerAccount from "@/components/CustomerAccount";
 
 export const dynamic = "force-dynamic";
@@ -18,7 +19,9 @@ export default async function MusteriCariPage({
 
   return (
     <main className="container" style={{ maxWidth: 1100 }}>
-      <CustomerAccount id={id} />
+      {/* Tahsilatlar bu sistemde işlenmediği sürece bakiye yalnızca Mikro'dan
+          gösterilir; iç tahsilat/bakiye kutuları finans modülüyle (FINANS_AKTIF=1) açılır. */}
+      <CustomerAccount id={id} finans={finansAktif()} />
     </main>
   );
 }
