@@ -109,11 +109,11 @@ export default function CustomerPicker({
           )}
           <a
             className="cp-foot"
-            href="/etiket"
+            href="/musteriler"
             style={{ display: "flex", alignItems: "center", gap: 6 }}
           >
             <Icon name="users" size={14} />
-            Müşteri defterini aç
+            Müşteriler sayfasını aç
           </a>
         </div>
       )}

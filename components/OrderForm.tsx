@@ -299,14 +299,24 @@ export interface KopyaOrder {
   rows?: Partial<Row>[];
 }
 
+/** Müşteri kartındaki "Yeni Sipariş" ile gelen ön seçim (/panel?musteri=C123). */
+export interface InitialCustomer {
+  id: string;
+  title: string;
+  branch?: "ankara" | "istanbul";
+  iskontoPct?: number;
+}
+
 export default function OrderForm({
   employeeName,
   initialOrder,
   kopyaOrder,
+  initialCustomer,
 }: {
   employeeName: string;
   initialOrder?: InitialOrder;
   kopyaOrder?: KopyaOrder;
+  initialCustomer?: InitialCustomer;
 }) {
   // Fiyat listesi (çerçeve + teknik) oturumla sunucudan gelir
   const katalog = useKatalog();
@@ -336,14 +346,14 @@ export default function OrderForm({
     return [emptyRow()];
   });
   const [customer, setCustomer] = useState(
-    initialOrder?.customer ?? kopyaOrder?.customer ?? ""
+    initialOrder?.customer ?? kopyaOrder?.customer ?? initialCustomer?.title ?? ""
   );
   // Müşteri defterinden seçildiyse kaydı sipariş kaydına da bağlarız (cari takip)
-  const [customerId, setCustomerId] = useState(kopyaOrder?.customerId ?? "");
+  const [customerId, setCustomerId] = useState(kopyaOrder?.customerId ?? initialCustomer?.id ?? "");
   // Siparişin şubesi — müşteri defterden seçilince kartındaki şube önerilir,
   // personel gerekirse değiştirir (iki şubede de çalışılabiliyor).
   const [branch, setBranch] = useState<"ankara" | "istanbul">(
-    kopyaOrder?.branch === "istanbul" ? "istanbul" : "ankara"
+    (kopyaOrder?.branch ?? initialCustomer?.branch) === "istanbul" ? "istanbul" : "ankara"
   );
   // Sipariş onay SMS'i — varsayılan açık; müşteri defterden seçilmediyse veya
   // telefonu yoksa sunucu sessizce atlar. Düzenleme modunda gönderilmez.
@@ -414,7 +424,9 @@ export default function OrderForm({
       ? String(initialOrder.discountPct)
       : kopyaOrder?.discountPct
         ? String(kopyaOrder.discountPct)
-        : ""
+        : initialCustomer?.iskontoPct
+          ? String(initialCustomer.iskontoPct)
+          : ""
   );
   // Yeni siparişte KDV varsayılan olarak açık (faturalı satış çoğunlukta);
   // düzenleme ve kopyada siparişin kendi değeri korunur. Gerekirse kapatılır.

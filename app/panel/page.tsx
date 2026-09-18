@@ -2,7 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
 import { getOrder } from "@/lib/orders";
-import OrderForm, { type KopyaOrder } from "@/components/OrderForm";
+import OrderForm, { type KopyaOrder, type InitialCustomer } from "@/components/OrderForm";
+import { getCustomer, customerTitle } from "@/lib/customers";
 import AiChat from "@/components/AiChat";
 import PageHeader from "@/components/PageHeader";
 import Icon from "@/components/shell/Icon";
@@ -12,7 +13,7 @@ export const dynamic = "force-dynamic";
 export default async function PanelPage({
   searchParams,
 }: {
-  searchParams?: { kopya?: string; d?: string };
+  searchParams?: { kopya?: string; d?: string; musteri?: string };
 }) {
   const user = await getSessionUser();
   if (!user) redirect("/giris?next=/panel");
@@ -38,6 +39,14 @@ export default async function PanelPage({
     }
   }
 
+  // Müşteri kartındaki "Yeni Sipariş": /panel?musteri=C123 → müşteri seçili açılır
+  let onMusteri: InitialCustomer | undefined;
+  const musteriId = searchParams?.musteri || "";
+  if (/^[A-Za-z0-9]{2,40}$/.test(musteriId)) {
+    const c = await getCustomer(musteriId);
+    if (c) onMusteri = { id: c.id, title: customerTitle(c), branch: c.branch, iskontoPct: c.iskontoPct };
+  }
+
   return (
     <main className="container">
       <PageHeader
@@ -52,7 +61,7 @@ export default async function PanelPage({
           </Link>
         }
       />
-      <OrderForm employeeName={user.name} kopyaOrder={kopya} />
+      <OrderForm employeeName={user.name} kopyaOrder={kopya} initialCustomer={onMusteri} />
       <AiChat />
     </main>
   );
