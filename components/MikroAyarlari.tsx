@@ -36,6 +36,7 @@ export default function MikroAyarlari() {
   const [sorguluyor, setSorguluyor] = useState(false);
   const [ozet, setOzet] = useState<CariOzet | null>(null);
   const [ozetHata, setOzetHata] = useState("");
+  const [ornekHareket, setOrnekHareket] = useState("");
   // Farklı bilgilerle deneme (Vercel'e kaydedilmez; yalnızca o istekte kullanılır)
   const [dene, setDene] = useState({ kullanici: "", sifre: "", firma: "", yil: "" });
   const [deneAcik, setDeneAcik] = useState(false);
@@ -66,6 +67,7 @@ export default function MikroAyarlari() {
     try {
       const r = await fetch("/api/mikro/test", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ islem: "cari", cariKod: cariKod.trim() }) });
       const d = await r.json();
+      setOrnekHareket(d.ornekHareket ? JSON.stringify(d.ornekHareket, null, 1).slice(0, 1500) : "");
       if (d.ok && d.ozet) setOzet(d.ozet);
       else setOzetHata(d.hata || d.error || "Sorgu başarısız.");
     } catch { setOzetHata("Sunucuya ulaşılamadı."); }
@@ -171,6 +173,12 @@ export default function MikroAyarlari() {
             <div>Son hareket: {ozet.sonHareket || "—"}</div>
           </div>
         </div>
+      )}
+      {ornekHareket && (
+        <details style={{ marginTop: 8 }}>
+          <summary className="muted" style={{ cursor: "pointer", fontSize: 13 }}>Son 3 hareket satırı (sütun tiplerini görmek için)</summary>
+          <pre style={{ whiteSpace: "pre-wrap", wordBreak: "break-all", fontSize: 12, background: "var(--surface-2)", padding: 10, borderRadius: 8, marginTop: 6 }}>{ornekHareket}</pre>
+        </details>
       )}
       <p className="muted" style={{ fontSize: 12.5, marginTop: 12 }}>
         Bu kart yalnızca okuma yapar; Mikro&apos;ya hiçbir kayıt yazılmaz. Bağlantı doğrulanınca müşteri kartı ve sipariş formuna bakiye uyarısı eklenecek.
