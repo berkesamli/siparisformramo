@@ -415,8 +415,10 @@ export default function OrderForm({
         ? String(kopyaOrder.discountPct)
         : ""
   );
+  // Yeni siparişte KDV varsayılan olarak açık (faturalı satış çoğunlukta);
+  // düzenleme ve kopyada siparişin kendi değeri korunur. Gerekirse kapatılır.
   const [vat, setVat] = useState(
-    initialOrder?.vatApplied ?? kopyaOrder?.vatApplied ?? false
+    initialOrder?.vatApplied ?? kopyaOrder?.vatApplied ?? true
   );
   const [sending, setSending] = useState(false);
   const [ratesAuto, setRatesAuto] = useState(false);
@@ -652,7 +654,7 @@ export default function OrderForm({
         setCustomer("");
         setNote("");
         setDiscountPct("");
-        setVat(false);
+        setVat(true);
       }
     } catch {
       setResult({ ok: false, msg: "Sunucu hatası." });
@@ -1378,8 +1380,8 @@ export default function OrderForm({
               value={vat ? "1" : "0"}
               onChange={(e) => setVat(e.target.value === "1")}
             >
-              <option value="0">KDV Yok</option>
               <option value="1">KDV %20</option>
+              <option value="0">KDV Yok</option>
             </select>
           </div>
           <div>
