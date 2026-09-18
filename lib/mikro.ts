@@ -65,9 +65,15 @@ const SIFRE_BICIMLERI: { ad: string; uret: (sifre: string, gun: string) => strin
   { ad: "düz şifre", uret: (p) => p },
   { ad: "MD5 büyük harf", uret: (p, g) => md5(`${g} ${p}`).toUpperCase() },
 ];
-// Denenecek kimlik varyantları: şifre biçimi × kullanıcı kodu (yazıldığı gibi / BÜYÜK HARF).
-// Mikro kullanıcı kodları çoğunlukla büyük harflidir ("SRV").
-const VARYANT_SAYISI = SIFRE_BICIMLERI.length * 2;
+// Kullanıcı kodu biçimleri. Mikro kullanıcı kodları çoğunlukla büyük harflidir ("SRV", "ISTANBUL").
+// "istanbul" ASCII kuralla "ISTANBUL", Türkçe kuralla "İSTANBUL" olur; ikisi de denenir.
+const KULLANICI_BICIMLERI: { ad: string; uret: (k: string) => string }[] = [
+  { ad: "", uret: (k) => k },
+  { ad: "kullanıcı BÜYÜK HARF (ASCII)", uret: (k) => k.toUpperCase() },
+  { ad: "kullanıcı BÜYÜK HARF (Türkçe)", uret: (k) => k.toLocaleUpperCase("tr-TR") },
+];
+// Denenecek kimlik varyantları: şifre biçimi × kullanıcı kodu biçimi.
+const VARYANT_SAYISI = SIFRE_BICIMLERI.length * KULLANICI_BICIMLERI.length;
 let tutanBicim = 0;
 
 /** Ayarlar kartındaki "farklı bilgilerle dene" için tek istekte geçerli kimlik; hiçbir yere yazılmaz. */
@@ -85,16 +91,21 @@ function etkinAyar(o?: KimlikOverride): MikroAyar {
   };
 }
 
-export function mikroKimlik(varyant = tutanBicim, o?: KimlikOverride): Record<string, string> {
-  const a = etkinAyar(o);
-  const b = SIFRE_BICIMLERI[varyant % SIFRE_BICIMLERI.length] || SIFRE_BICIMLERI[0];
-  const kullanici = varyant >= SIFRE_BICIMLERI.length ? a.kullanici.toLocaleUpperCase("tr-TR") : a.kullanici;
-  return { ApiKey: a.apiKey, CalismaYili: a.yil, FirmaKodu: a.firma, KullaniciKodu: kullanici, Sifre: b.uret(a.sifre, istanbulGun()) };
+function varyantBicimleri(varyant: number) {
+  const s = SIFRE_BICIMLERI[varyant % SIFRE_BICIMLERI.length] || SIFRE_BICIMLERI[0];
+  const k = KULLANICI_BICIMLERI[Math.floor(varyant / SIFRE_BICIMLERI.length) % KULLANICI_BICIMLERI.length] || KULLANICI_BICIMLERI[0];
+  return { s, k };
 }
 
-export function sifreBicimiAdi(): string {
-  const b = SIFRE_BICIMLERI[tutanBicim % SIFRE_BICIMLERI.length]?.ad || "?";
-  return tutanBicim >= SIFRE_BICIMLERI.length ? `${b} · kullanıcı BÜYÜK HARF` : b;
+export function mikroKimlik(varyant = tutanBicim, o?: KimlikOverride): Record<string, string> {
+  const a = etkinAyar(o);
+  const { s, k } = varyantBicimleri(varyant);
+  return { ApiKey: a.apiKey, CalismaYili: a.yil, FirmaKodu: a.firma, KullaniciKodu: k.uret(a.kullanici), Sifre: s.uret(a.sifre, istanbulGun()) };
+}
+
+export function sifreBicimiAdi(varyant = tutanBicim): string {
+  const { s, k } = varyantBicimleri(varyant);
+  return k.ad ? `${s.ad} · ${k.ad}` : s.ad;
 }
 
 export interface MikroYanit<T = unknown> {
@@ -145,8 +156,13 @@ async function mikroPost<T = unknown>(metot: string, govde: Record<string, unkno
   if (hataMetni) {
     // Şifre biçimi tutmadıysa sıradakini dene (yalnızca ilk turda ve şifre hatasında)
     if (bicim === tutanBicim && /ifre|password/i.test(hataMetni)) {
+      // Aynı kimliği (örn. zaten büyük harfli kullanıcı kodu) ikinci kez denemeye gerek yok
+      const denenen = new Set<string>([JSON.stringify(mikroKimlik(bicim, o))]);
       for (let i = 0; i < VARYANT_SAYISI; i++) {
         if (i === bicim) continue;
+        const anahtar = JSON.stringify(mikroKimlik(i, o));
+        if (denenen.has(anahtar)) continue;
+        denenen.add(anahtar);
         const tekrar = await mikroPost<T>(metot, govde, i, o);
         if (tekrar.ok) { if (!o) { tutanBicim = i; console.log(`Mikro: kimlik varyantı '${sifreBicimiAdi()}' tuttu.`); } return tekrar; }
         if (!/ifre|password/i.test(tekrar.hata || "")) { hataMetni = tekrar.hata || hataMetni; break; }
