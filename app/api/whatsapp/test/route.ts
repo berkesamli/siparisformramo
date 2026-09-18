@@ -3,7 +3,7 @@ import { getSessionUser } from "@/lib/auth";
 import { isOwner } from "@/data/users";
 import {
   whatsappConfigured,
-  patronNumaralari,
+  patronAlicilar,
   sablonAdi,
   sablonDili,
   sendPdfToPatron,
@@ -27,7 +27,7 @@ export async function GET() {
   return NextResponse.json({
     ok: true,
     api: whatsappConfigured(),
-    alicilar: patronNumaralari().map(maskele),
+    alicilar: patronAlicilar().map((a) => `${a.ad} · ${maskele(a.to)}`),
     sablon: sablonAdi() || null,
     dil: sablonDili(),
     musteriSablon: musteriSablonAdlari().join(", ") || null,

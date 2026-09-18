@@ -10,7 +10,8 @@
 //
 // Ortam değişkenleri:
 //   WHATSAPP_TOKEN, WHATSAPP_PHONE_ID   — mevcut Cloud API bağlantısı
-//   PATRON_WHATSAPP                     — alıcı numara(lar), virgülle: 05325099442,0532...
+//   PATRON_WHATSAPP                     — alıcılar, virgülle; isteğe bağlı hitap adı iki nokta ile:
+//                                         05325099442:Özgür Bey,05336610287:Gültekin Bey  (ad yoksa "Yetkili")
 //   WHATSAPP_TEMPLATE_SIPARIS           — onaylı şablon ad(lar)ı, virgülle: siparis_fisi,siparis_fisi_v2
 //                                         (sırayla denenir; ilk kabul edilen kullanılır)
 //   WHATSAPP_TEMPLATE_DIL               — şablon dili (varsayılan tr)
@@ -50,15 +51,33 @@ export function normalizeWaNumber(raw: string): string | null {
   return d;
 }
 
-export function patronNumaralari(): string[] {
-  const raw = process.env.PATRON_WHATSAPP || "";
-  const out = new Set<string>();
-  // Yalnızca virgül/noktalı virgül ayırır; numara içindeki boşluklar normalize edilir
-  for (const p of raw.split(/[,;]+/)) {
-    const n = normalizeWaNumber(p);
-    if (n) out.add(n);
+export interface PatronAlici { to: string; ad: string }
+
+const VARSAYILAN_HITAP = "Yetkili";
+
+/**
+ * "05325099442:Özgür Bey, 0533 661 02 87:Gültekin Bey" → alıcı listesi.
+ * Yalnızca virgül/noktalı virgül ayırır; ad iki nokta (ya da =) sonrasıdır,
+ * verilmezse "Yetkili". Aynı numara bir kez alınır.
+ */
+export function patronAlicilarAyristir(raw: string): PatronAlici[] {
+  const out: PatronAlici[] = [];
+  for (const p of String(raw || "").split(/[,;]+/)) {
+    const [numara, ...rest] = p.split(/[:=]/);
+    const to = normalizeWaNumber(numara);
+    if (!to || out.some((a) => a.to === to)) continue;
+    const ad = rest.join(":").replace(/\s+/g, " ").trim();
+    out.push({ to, ad: ad || VARSAYILAN_HITAP });
   }
-  return [...out];
+  return out;
+}
+
+export function patronAlicilar(): PatronAlici[] {
+  return patronAlicilarAyristir(process.env.PATRON_WHATSAPP || "");
+}
+
+export function patronNumaralari(): string[] {
+  return patronAlicilar().map((a) => a.to);
 }
 
 /** Sırayla denenecek şablon adları (virgülle ayrılmış, boşlar atılır). */
@@ -194,9 +213,11 @@ async function belgeGonder(
   dosya: string,
   sablonlar: string[],
   govde: string[],
-  serbestAciklama: string
+  serbestAciklama: string,
+  // Şablon değişken sayısı uyuşmazsa (132000) aynı şablon bu gövdeyle bir kez daha denenir
+  govdeAlternatif?: string[]
 ): Promise<BelgeSonucu> {
-  const sablonMesaji = (ad: string) => ({
+  const sablonMesaji = (ad: string, parametreler: string[]) => ({
     to,
     type: "template",
     template: {
@@ -204,7 +225,7 @@ async function belgeGonder(
       language: { code: sablonDili() },
       components: [
         { type: "header", parameters: [{ type: "document", document: { id: medyaId, filename: dosya } }] },
-        { type: "body", parameters: govde.map((text) => ({ type: "text", text })) },
+        { type: "body", parameters: parametreler.map((text) => ({ type: "text", text })) },
       ],
     },
   });
@@ -218,12 +239,18 @@ async function belgeGonder(
   let sablonSorunu = true;
   let sonKod: number | undefined;
   for (const ad of sablonlar) {
-    const r = await mesajGonder(sablonMesaji(ad));
+    let r = await mesajGonder(sablonMesaji(ad, govde));
+    let altIle = false;
+    if (!r.ok && r.kod === 132000 && govdeAlternatif) {
+      r = await mesajGonder(sablonMesaji(ad, govdeAlternatif));
+      altIle = true;
+    }
     if (r.ok) {
-      return {
-        ok: true, wamid: r.wamid, yontem: "sablon", sablon: ad,
-        not: ad !== sablonlar[0] ? `"${ad}" şablonuyla gönderildi (öncekiler kabul edilmedi).` : undefined,
-      };
+      const notlar = [
+        ad !== sablonlar[0] ? `"${ad}" şablonuyla gönderildi (öncekiler kabul edilmedi).` : "",
+        altIle ? `"${ad}" şablonu hitap değişkeni almıyor; hitapsız gönderildi.` : "",
+      ].filter(Boolean);
+      return { ok: true, wamid: r.wamid, yontem: "sablon", sablon: ad, not: notlar.join(" ") || undefined };
     }
     sablonHatalari.push(`${ad}: ${r.hata}`);
     sonKod = r.kod;
@@ -244,12 +271,11 @@ async function belgeGonder(
 export async function sendPdfToPatron(
   pdf: Buffer,
   bilgi: FisBildirim,
-  // Verilirse PATRON_WHATSAPP yerine bu numaralara gider (ayarlar sayfasındaki deneme için)
+  // Verilirse PATRON_WHATSAPP yerine bu alıcılara gider (ayarlar sayfasındaki deneme için);
+  // her öğe "numara" ya da "numara:Ad" biçiminde olabilir
   alicilarOverride?: string[]
 ): Promise<PatronGonderim> {
-  const alicilar = alicilarOverride
-    ? [...new Set(alicilarOverride.map(normalizeWaNumber).filter((n): n is string => !!n))]
-    : patronNumaralari();
+  const alicilar = alicilarOverride ? patronAlicilarAyristir(alicilarOverride.join(",")) : patronAlicilar();
   if (!whatsappConfigured() || !alicilar.length) {
     return {
       ok: false, gonderilen: [], notlar: [], yontem: "yok",
@@ -265,7 +291,9 @@ export async function sendPdfToPatron(
   const sablonlar = sablonAdlari();
   const turEtiket = bilgi.tur === "toptan" ? "Toptan" : "Perakende";
   const ozet = `${turEtiket} sipariş ${bilgi.orderId} · ${param(bilgi.musteri, 60)} · ₺${fmtTL(bilgi.tutar)} · ${param(bilgi.calisan, 40)}`;
-  const govde = [
+  // Şablon gövdesi: hitaplı sürüm (Sayın {{1}}, … 5 değişken); eski 4 değişkenli
+  // şablonlar için hitapsız gövde yedek olarak verilir.
+  const govde4 = [
     param(`${turEtiket} ${bilgi.orderId}`),
     param(bilgi.musteri, 60),
     fmtTL(bilgi.tutar),
@@ -278,8 +306,8 @@ export async function sendPdfToPatron(
   let sablonlaGitti = false;
   let serbestGitti = false;
   let kullanilan: string | undefined;
-  for (const to of alicilar) {
-    const r = await belgeGonder(to, up.id, dosya, sablonlar, govde, ozet);
+  for (const { to, ad } of alicilar) {
+    const r = await belgeGonder(to, up.id, dosya, sablonlar, [param(ad, 40), ...govde4], ozet, govde4);
     if (r.ok) {
       gonderilen.push(to);
       if (r.yontem === "sablon") { sablonlaGitti = true; kullanilan = kullanilan || r.sablon; } else serbestGitti = true;
