@@ -271,6 +271,23 @@ export function hamOzet(v: unknown, n = 1500): string {
 
 /** Tek tırnaklı SQL sabiti için kaçış; kod alanları kısa ve satırsız. */
 const sqlStr = (s: string) => s.replace(/'/g, "''").replace(/[\r\n\t]/g, " ").slice(0, 40);
+/** LIKE deseni için ek kaçış: joker karakterler ([ % _) düz metin sayılır. */
+const likeStr = (s: string) => sqlStr(s).replace(/[[%_]/g, (c) => `[${c}]`);
+
+// Kısa süreli bellek içi önbellek (sunucusuz örnek başına): aynı cari birkaç
+// saniye arayla tekrar sorulduğunda Mikro'ya gidilmez.
+const ONBELLEK_MS = 60_000;
+const onbellek = new Map<string, { t: number; v: unknown }>();
+function onbellekAl<T>(k: string): T | undefined {
+  const c = onbellek.get(k);
+  if (c && Date.now() - c.t < ONBELLEK_MS) return c.v as T;
+  if (c) onbellek.delete(k);
+  return undefined;
+}
+function onbellekKoy(k: string, v: unknown) {
+  if (onbellek.size > 500) onbellek.clear();
+  onbellek.set(k, { t: Date.now(), v });
+}
 
 // ---------- Sabit sorgular ----------
 
@@ -298,6 +315,36 @@ export interface CariOzet {
   bakiye: number;          // borç − alacak (pozitif: müşteri borçlu)
   vadesiGecen: number;     // yaklaşık: vadesi geçmiş borç − toplam alacak (0'dan küçük olamaz)
   sonHareket: string | null;
+  vadeVar: boolean;        // false: vade sütunları okunamadı, yalnızca bakiye güvenilir
+}
+
+export interface CariKart { cariKod: string; unvan: string; unvan2?: string }
+
+/**
+ * Cari kartlarda ad / kod araması (en fazla 15 sonuç). Yazılan her kelime
+ * ünvanda ya da kodda geçmeli; Türkçe ve ASCII büyük/küçük biçimler birlikte
+ * denenir ("istanbul" → İSTANBUL ve ISTANBUL). Sorgu bu dosyada sabittir,
+ * kelimeler kaçışlanarak LIKE desenine girer.
+ */
+export async function cariAra(sorgu: string): Promise<{ ok: boolean; cariler: CariKart[]; hata?: string }> {
+  const kelimeler = sorgu.replace(/\s+/g, " ").trim().slice(0, 60).split(" ").filter((k) => k.length >= 2).slice(0, 4);
+  if (!kelimeler.length) return { ok: false, cariler: [], hata: "En az iki harf yazın." };
+  const anahtar = `ara:${kelimeler.join(" ").toLocaleLowerCase("tr-TR")}`;
+  const hazir = onbellekAl<CariKart[]>(anahtar);
+  if (hazir) return { ok: true, cariler: hazir };
+  const kosul = kelimeler
+    .map((k) => {
+      const bicimler = Array.from(new Set([k, k.toLocaleUpperCase("tr-TR"), k.toUpperCase(), k.toLocaleLowerCase("tr-TR")]));
+      return "(" + bicimler.map((b) => `cari_unvan1 LIKE '%${likeStr(b)}%' OR cari_unvan2 LIKE '%${likeStr(b)}%' OR cari_kod LIKE '${likeStr(b)}%'`).join(" OR ") + ")";
+    })
+    .join(" AND ");
+  const r = await sabitSorgu(`SELECT TOP 15 cari_kod, cari_unvan1, cari_unvan2 FROM CARI_HESAPLAR WHERE ${kosul} ORDER BY cari_unvan1`);
+  if (!r.ok) return { ok: false, cariler: [], hata: r.hata };
+  const cariler = r.rows
+    .map((x) => ({ cariKod: String(x.cari_kod ?? "").trim(), unvan: String(x.cari_unvan1 ?? "").trim(), unvan2: String(x.cari_unvan2 ?? "").trim() || undefined }))
+    .filter((x) => x.cariKod);
+  onbellekKoy(anahtar, cariler);
+  return { ok: true, cariler };
 }
 
 const num = (v: unknown) => (typeof v === "number" ? v : Number(String(v ?? "").replace(",", ".")) || 0);
@@ -310,15 +357,26 @@ const num = (v: unknown) => (typeof v === "number" ? v : Number(String(v ?? "").
 export async function cariOzet(cariKod: string): Promise<{ ok: boolean; ozet?: CariOzet; hata?: string }> {
   const kod = sqlStr(cariKod.trim());
   if (!kod) return { ok: false, hata: "Cari kodu boş." };
-  const sql =
-    `SELECT c.cari_kod AS cari_kod, c.cari_unvan1 AS unvan, ` +
-    `ISNULL(SUM(CASE WHEN h.cha_tip = 0 THEN h.cha_meblag ELSE 0 END), 0) AS borc, ` +
-    `ISNULL(SUM(CASE WHEN h.cha_tip = 1 THEN h.cha_meblag ELSE 0 END), 0) AS alacak, ` +
-    `ISNULL(SUM(CASE WHEN h.cha_tip = 0 AND h.cha_vade < GETDATE() THEN h.cha_meblag ELSE 0 END), 0) AS vadesi_gecen_borc, ` +
-    `MAX(h.cha_tarihi) AS son_hareket ` +
+  const anahtar = `ozet:${kod}`;
+  const hazir = onbellekAl<CariOzet>(anahtar);
+  if (hazir) return { ok: true, ozet: hazir };
+  const govde =
     `FROM CARI_HESAPLAR c LEFT JOIN CARI_HESAP_HAREKETLERI h ON h.cha_kod = c.cari_kod ` +
     `WHERE c.cari_kod = '${kod}' GROUP BY c.cari_kod, c.cari_unvan1`;
-  const r = await sabitSorgu(sql);
+  const borcAlacak =
+    `SELECT c.cari_kod AS cari_kod, c.cari_unvan1 AS unvan, ` +
+    `ISNULL(SUM(CASE WHEN h.cha_tip = 0 THEN h.cha_meblag ELSE 0 END), 0) AS borc, ` +
+    `ISNULL(SUM(CASE WHEN h.cha_tip = 1 THEN h.cha_meblag ELSE 0 END), 0) AS alacak`;
+  const tam = `${borcAlacak}, ` +
+    `ISNULL(SUM(CASE WHEN h.cha_tip = 0 AND h.cha_vade < GETDATE() THEN h.cha_meblag ELSE 0 END), 0) AS vadesi_gecen_borc, ` +
+    `MAX(h.cha_tarihi) AS son_hareket ${govde}`;
+  let r = await sabitSorgu(tam);
+  let vadeVar = true;
+  // Vade/tarih sütun adları bu sürümde farklıysa yalnızca borç/alacak okunur
+  if (!r.ok && /column|sütun|invalid|geçersiz/i.test(r.hata || "")) {
+    r = await sabitSorgu(`${borcAlacak} ${govde}`);
+    vadeVar = false;
+  }
   if (!r.ok) return { ok: false, hata: r.hata };
   const row = r.rows[0];
   if (!row) return { ok: false, hata: `Mikro'da '${cariKod}' kodlu cari bulunamadı.` };
@@ -326,16 +384,16 @@ export async function cariOzet(cariKod: string): Promise<{ ok: boolean; ozet?: C
     return { ok: false, hata: `Yanıt beklenen sütunları taşımıyor. Gelen: ${hamOzet(r.raw, 800)}` };
   }
   const borc = num(row.borc), alacak = num(row.alacak);
-  const vg = num(row.vadesi_gecen_borc) - alacak;
-  return {
-    ok: true,
-    ozet: {
-      cariKod: String(row.cari_kod ?? cariKod),
-      unvan: String(row.unvan ?? ""),
-      borc, alacak,
-      bakiye: Math.round((borc - alacak) * 100) / 100,
-      vadesiGecen: Math.max(0, Math.round(vg * 100) / 100),
-      sonHareket: row.son_hareket ? String(row.son_hareket).slice(0, 10) : null,
-    },
+  const vg = vadeVar ? num(row.vadesi_gecen_borc) - alacak : 0;
+  const ozet: CariOzet = {
+    cariKod: String(row.cari_kod ?? cariKod),
+    unvan: String(row.unvan ?? ""),
+    borc, alacak,
+    bakiye: Math.round((borc - alacak) * 100) / 100,
+    vadesiGecen: Math.max(0, Math.round(vg * 100) / 100),
+    sonHareket: vadeVar && row.son_hareket ? String(row.son_hareket).slice(0, 10) : null,
+    vadeVar,
   };
+  onbellekKoy(anahtar, ozet);
+  return { ok: true, ozet };
 }
