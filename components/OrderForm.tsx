@@ -64,7 +64,7 @@ const emptyRow = (): Row => ({
   id: rowSeq++,
   kind: "frame",
   code: "",
-  unit: "metre",
+  unit: "koli", // çerçeve profili çoğunlukla koliyle satılır; ilk seçenek koli
   qty: "",
   usd: "",
   fx: "usd",
@@ -914,9 +914,9 @@ export default function OrderForm({
                           update(row.id, { unit: e.target.value as Row["unit"] })
                         }
                       >
-                        <option value="metre">Metre</option>
-                        <option value="boy">Boy</option>
                         <option value="koli">Koli</option>
+                        <option value="boy">Boy</option>
+                        <option value="metre">Metre</option>
                       </select>
                     </div>
                     <div>
