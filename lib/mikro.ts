@@ -65,21 +65,47 @@ const SIFRE_BICIMLERI: { ad: string; uret: (sifre: string, gun: string) => strin
   { ad: "düz şifre", uret: (p) => p },
   { ad: "MD5 büyük harf", uret: (p, g) => md5(`${g} ${p}`).toUpperCase() },
 ];
-// Denenecek kimlik varyantları: şifre biçimi × kullanıcı kodu (yazıldığı gibi / BÜYÜK HARF).
-// Mikro kullanıcı kodları çoğunlukla büyük harflidir ("SRV").
-const VARYANT_SAYISI = SIFRE_BICIMLERI.length * 2;
+// Kullanıcı kodu biçimleri. Mikro kullanıcı kodları çoğunlukla büyük harflidir ("SRV", "ISTANBUL").
+// "istanbul" ASCII kuralla "ISTANBUL", Türkçe kuralla "İSTANBUL" olur; ikisi de denenir.
+const KULLANICI_BICIMLERI: { ad: string; uret: (k: string) => string }[] = [
+  { ad: "", uret: (k) => k },
+  { ad: "kullanıcı BÜYÜK HARF (ASCII)", uret: (k) => k.toUpperCase() },
+  { ad: "kullanıcı BÜYÜK HARF (Türkçe)", uret: (k) => k.toLocaleUpperCase("tr-TR") },
+];
+// Denenecek kimlik varyantları: şifre biçimi × kullanıcı kodu biçimi.
+const VARYANT_SAYISI = SIFRE_BICIMLERI.length * KULLANICI_BICIMLERI.length;
 let tutanBicim = 0;
 
-export function mikroKimlik(varyant = tutanBicim): Record<string, string> {
+/** Ayarlar kartındaki "farklı bilgilerle dene" için tek istekte geçerli kimlik; hiçbir yere yazılmaz. */
+export interface KimlikOverride { kullanici?: string; sifre?: string; firma?: string; yil?: string }
+
+function etkinAyar(o?: KimlikOverride): MikroAyar {
   const a = mikroAyar();
-  const b = SIFRE_BICIMLERI[varyant % SIFRE_BICIMLERI.length] || SIFRE_BICIMLERI[0];
-  const kullanici = varyant >= SIFRE_BICIMLERI.length ? a.kullanici.toLocaleUpperCase("tr-TR") : a.kullanici;
-  return { ApiKey: a.apiKey, CalismaYili: a.yil, FirmaKodu: a.firma, KullaniciKodu: kullanici, Sifre: b.uret(a.sifre, istanbulGun()) };
+  if (!o) return a;
+  return {
+    ...a,
+    kullanici: (o.kullanici || "").trim() || a.kullanici,
+    sifre: o.sifre !== undefined && o.sifre !== "" ? o.sifre : a.sifre,
+    firma: (o.firma || "").trim() || a.firma,
+    yil: (o.yil || "").trim() || a.yil,
+  };
 }
 
-export function sifreBicimiAdi(): string {
-  const b = SIFRE_BICIMLERI[tutanBicim % SIFRE_BICIMLERI.length]?.ad || "?";
-  return tutanBicim >= SIFRE_BICIMLERI.length ? `${b} · kullanıcı BÜYÜK HARF` : b;
+function varyantBicimleri(varyant: number) {
+  const s = SIFRE_BICIMLERI[varyant % SIFRE_BICIMLERI.length] || SIFRE_BICIMLERI[0];
+  const k = KULLANICI_BICIMLERI[Math.floor(varyant / SIFRE_BICIMLERI.length) % KULLANICI_BICIMLERI.length] || KULLANICI_BICIMLERI[0];
+  return { s, k };
+}
+
+export function mikroKimlik(varyant = tutanBicim, o?: KimlikOverride): Record<string, string> {
+  const a = etkinAyar(o);
+  const { s, k } = varyantBicimleri(varyant);
+  return { ApiKey: a.apiKey, CalismaYili: a.yil, FirmaKodu: a.firma, KullaniciKodu: k.uret(a.kullanici), Sifre: s.uret(a.sifre, istanbulGun()) };
+}
+
+export function sifreBicimiAdi(varyant = tutanBicim): string {
+  const { s, k } = varyantBicimleri(varyant);
+  return k.ad ? `${s.ad} · ${k.ad}` : s.ad;
 }
 
 export interface MikroYanit<T = unknown> {
@@ -93,7 +119,7 @@ export interface MikroYanit<T = unknown> {
 const ZAMAN_ASIMI_MS = 15000;
 
 /** Ham metot çağrısı: POST {url}/Api/APIMethods/{metot}. "Şifre Hatalı"da sıradaki şifre biçimiyle yeniden dener. */
-async function mikroPost<T = unknown>(metot: string, govde: Record<string, unknown>, bicim = tutanBicim): Promise<MikroYanit<T>> {
+async function mikroPost<T = unknown>(metot: string, govde: Record<string, unknown>, bicim = tutanBicim, o?: KimlikOverride): Promise<MikroYanit<T>> {
   if (!mikroConfigured()) {
     return { ok: false, status: 0, hata: "Mikro API ayarları eksik (MIKRO_API_URL, MIKRO_API_KEY, MIKRO_FIRMA_KODU, MIKRO_KULLANICI, MIKRO_SIFRE)." };
   }
@@ -105,7 +131,7 @@ async function mikroPost<T = unknown>(metot: string, govde: Record<string, unkno
     res = await fetch(`${a.url}/Api/APIMethods/${metot}`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify({ ...govde, Mikro: mikroKimlik(bicim) }),
+      body: JSON.stringify({ ...govde, Mikro: mikroKimlik(bicim, o) }),
       signal: ctrl.signal,
       cache: "no-store",
     });
@@ -130,10 +156,15 @@ async function mikroPost<T = unknown>(metot: string, govde: Record<string, unkno
   if (hataMetni) {
     // Şifre biçimi tutmadıysa sıradakini dene (yalnızca ilk turda ve şifre hatasında)
     if (bicim === tutanBicim && /ifre|password/i.test(hataMetni)) {
+      // Aynı kimliği (örn. zaten büyük harfli kullanıcı kodu) ikinci kez denemeye gerek yok
+      const denenen = new Set<string>([JSON.stringify(mikroKimlik(bicim, o))]);
       for (let i = 0; i < VARYANT_SAYISI; i++) {
         if (i === bicim) continue;
-        const tekrar = await mikroPost<T>(metot, govde, i);
-        if (tekrar.ok) { tutanBicim = i; console.log(`Mikro: kimlik varyantı '${sifreBicimiAdi()}' tuttu.`); return tekrar; }
+        const anahtar = JSON.stringify(mikroKimlik(i, o));
+        if (denenen.has(anahtar)) continue;
+        denenen.add(anahtar);
+        const tekrar = await mikroPost<T>(metot, govde, i, o);
+        if (tekrar.ok) { if (!o) { tutanBicim = i; console.log(`Mikro: kimlik varyantı '${sifreBicimiAdi()}' tuttu.`); } return tekrar; }
         if (!/ifre|password/i.test(tekrar.hata || "")) { hataMetni = tekrar.hata || hataMetni; break; }
       }
     }
@@ -197,8 +228,8 @@ interface SqlSonuc {
 }
 
 /** Modül içi: yalnızca bu dosyada yazılı sabit SELECT sorguları için. */
-async function sabitSorgu(sql: string): Promise<SqlSonuc> {
-  const r = await mikroPost("SqlVeriOkuV2", { SQLSorgu: sql });
+async function sabitSorgu(sql: string, o?: KimlikOverride): Promise<SqlSonuc> {
+  const r = await mikroPost("SqlVeriOkuV2", { SQLSorgu: sql }, tutanBicim, o);
   if (!r.ok) return { ok: false, rows: [], hata: r.hata, raw: r.data ?? r.raw };
   const rows = satirlariAl(r.data);
   if (!rows) return { ok: false, rows: [], hata: "Yanıtta satır listesi bulunamadı.", raw: r.data };
@@ -218,8 +249,8 @@ const sqlStr = (s: string) => s.replace(/'/g, "''").replace(/[\r\n\t]/g, " ").sl
 export interface CariSatir { cari_kod: string; unvan: string }
 
 /** Bağlantı denemesi: ilk 5 cari kart. */
-export async function baglantiTesti(): Promise<{ ok: boolean; cariler: CariSatir[]; hata?: string; ham?: string; sutunlar?: string[] }> {
-  const r = await sabitSorgu("SELECT TOP 5 cari_kod, cari_unvan1 FROM CARI_HESAPLAR ORDER BY cari_kod");
+export async function baglantiTesti(o?: KimlikOverride): Promise<{ ok: boolean; cariler: CariSatir[]; hata?: string; ham?: string; sutunlar?: string[] }> {
+  const r = await sabitSorgu("SELECT TOP 5 cari_kod, cari_unvan1 FROM CARI_HESAPLAR ORDER BY cari_kod", o);
   if (!r.ok) return { ok: false, cariler: [], hata: r.hata, ham: hamOzet(r.raw) };
   const ilk = r.rows[0];
   return {
