@@ -14,7 +14,7 @@ import { getDailyRates, istanbulDateKey, listAllOrders, orderBalance } from "@/l
 import { mikroConfigured, cariOzet } from "@/lib/mikro";
 import { finansAktif } from "@/data/users";
 import { retailFramePrice } from "@/lib/retail-orders";
-import { listCustomers, customerTitle } from "@/lib/customers";
+import { listCustomers, customerTitle, bolgeler, musteriBolgesi } from "@/lib/customers";
 import { getStockData } from "@/lib/stock-store";
 import { searchStock, toBoy, BOY_LENGTH } from "@/lib/stock-search";
 
@@ -381,6 +381,7 @@ async function runTool(name: string, input: any): Promise<string> {
             telefon: c.phone || undefined,
             sehir: [c.district, c.city].filter(Boolean).join(" / ") || undefined,
             sube: c.branch,
+            bolge: `${bolgeler()[musteriBolgesi(c)].label} (ilgilenen: ${bolgeler()[musteriBolgesi(c)].sorumlu})`,
             siparisAdedi: mine.length,
             sonSiparis: mine[0] ? `${mine[0].orderId} · ${mine[0].dateKey}` : undefined,
             ...mikro,

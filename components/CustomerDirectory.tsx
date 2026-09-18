@@ -8,20 +8,21 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Icon from "@/components/shell/Icon";
 import CustomerForm from "@/components/CustomerForm";
-import { customerTitle, normalizeCity, type Customer } from "@/lib/customers";
+import { customerTitle, normalizeCity, musteriBolgesi, bolgeler as varsayilanBolgeler, BOLGE_SIRASI, type Bolge, type BolgeInfo, type Customer } from "@/lib/customers";
 import { eslesir } from "@/lib/search-norm";
 import { initials } from "@/components/shell/nav-config";
 
 const SAYFA = 40;
 
-export default function CustomerDirectory() {
+export default function CustomerDirectory({ initialBolge = "" }: { initialBolge?: "" | Bolge }) {
   const router = useRouter();
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);
   const [blobOk, setBlobOk] = useState(true);
   const [query, setQuery] = useState("");
   const [city, setCity] = useState("");
-  const [branch, setBranch] = useState<"" | "ankara" | "istanbul">("");
+  const [bolge, setBolge] = useState<"" | Bolge>(initialBolge);
+  const [bolgeTanim, setBolgeTanim] = useState<Record<Bolge, BolgeInfo>>(() => varsayilanBolgeler());
   const [mikro, setMikro] = useState<"" | "bagli" | "bagsiz">("");
   const [sort, setSort] = useState<"ad" | "yeni">("ad");
   const [limit, setLimit] = useState(SAYFA);
@@ -33,7 +34,11 @@ export default function CustomerDirectory() {
     try {
       const res = await fetch("/api/musteriler");
       const d = await res.json();
-      if (res.ok) { setCustomers(d.customers || []); setBlobOk(d.blob !== false); }
+      if (res.ok) {
+        setCustomers(d.customers || []);
+        setBlobOk(d.blob !== false);
+        if (d.bolgeler) setBolgeTanim(d.bolgeler);
+      }
     } finally {
       setLoading(false);
     }
@@ -51,18 +56,17 @@ export default function CustomerDirectory() {
     });
     return [...m.entries()].sort((a, b) => b[1].n - a[1].n || a[1].label.localeCompare(b[1].label, "tr"));
   }, [customers]);
-  const sayac = useMemo(() => ({
-    toplam: customers.length,
-    ankara: customers.filter((c) => c.branch !== "istanbul").length,
-    istanbul: customers.filter((c) => c.branch === "istanbul").length,
-    mikro: customers.filter((c) => c.mikroCariKod).length,
-  }), [customers]);
+  const sayac = useMemo(() => {
+    const b: Record<Bolge, number> = { ankara: 0, istanbul: 0, tasra: 0 };
+    customers.forEach((c) => { b[musteriBolgesi(c)]++; });
+    return { toplam: customers.length, bolge: b, mikro: customers.filter((c) => c.mikroCariKod).length };
+  }, [customers]);
 
   const filtered = useMemo(() => {
     const q = query.trim();
     const list = customers.filter((c) => {
       if (city && normalizeCity(c.city) !== city) return false;
-      if (branch && (c.branch === "istanbul" ? "istanbul" : "ankara") !== branch) return false;
+      if (bolge && musteriBolgesi(c) !== bolge) return false;
       if (mikro === "bagli" && !c.mikroCariKod) return false;
       if (mikro === "bagsiz" && c.mikroCariKod) return false;
       if (!q) return true;
@@ -70,11 +74,11 @@ export default function CustomerDirectory() {
     });
     if (sort === "yeni") list.sort((a, b) => (b.updatedAt || "").localeCompare(a.updatedAt || ""));
     return list;
-  }, [customers, query, city, branch, mikro, sort]);
+  }, [customers, query, city, bolge, mikro, sort]);
 
-  useEffect(() => { setLimit(SAYFA); }, [query, city, branch, mikro, sort]);
+  useEffect(() => { setLimit(SAYFA); }, [query, city, bolge, mikro, sort]);
 
-  const filtreVar = Boolean(query || city || branch || mikro);
+  const filtreVar = Boolean(query || city || bolge || mikro);
   const kartAc = (c: Customer) => router.push(`/musteriler/kart?id=${encodeURIComponent(c.id)}`);
 
   function onSaved(c: Customer) {
@@ -116,17 +120,16 @@ export default function CustomerDirectory() {
         </button>
       </div>
 
-      {/* Özet sayaçları — tıklayınca filtre */}
+      {/* Bölge sayaçları — tıklayınca filtre; altında bölgeyle ilgilenen satışçı */}
       <div className="cd-stats">
-        <button type="button" className={`cd-stat ${!branch && !mikro ? "sel" : ""}`} onClick={() => { setBranch(""); setMikro(""); }}>
+        <button type="button" className={`cd-stat tum ${!bolge && !mikro ? "sel" : ""}`} onClick={() => { setBolge(""); setMikro(""); }}>
           <b>{sayac.toplam}</b><span>Tüm müşteriler</span>
         </button>
-        <button type="button" className={`cd-stat ${branch === "ankara" ? "sel" : ""}`} onClick={() => setBranch(branch === "ankara" ? "" : "ankara")}>
-          <b>{sayac.ankara}</b><span>Ankara şubesi</span>
-        </button>
-        <button type="button" className={`cd-stat ${branch === "istanbul" ? "sel" : ""}`} onClick={() => setBranch(branch === "istanbul" ? "" : "istanbul")}>
-          <b>{sayac.istanbul}</b><span>İstanbul şubesi</span>
-        </button>
+        {BOLGE_SIRASI.map((b) => (
+          <button key={b} type="button" className={`cd-stat ${bolge === b ? "sel" : ""}`} onClick={() => setBolge(bolge === b ? "" : b)} title={`${bolgeTanim[b].label} müşterileri`}>
+            <b>{sayac.bolge[b]}</b><span>{bolgeTanim[b].label} müşterileri</span>
+          </button>
+        ))}
         <button type="button" className={`cd-stat ${mikro === "bagli" ? "sel" : ""}`} onClick={() => setMikro(mikro === "bagli" ? "" : "bagli")} title="Mikro cari kartıyla eşleştirilmiş müşteriler">
           <b>{sayac.mikro}</b><span>Mikro&apos;ya bağlı</span>
         </button>
@@ -165,7 +168,7 @@ export default function CustomerDirectory() {
             {customers.length === 0 ? "“Yeni Müşteri” ile ilk kaydı ekleyin." : "Arama kelimesini kısaltın ya da filtreleri kaldırın."}
             {filtreVar && (
               <div style={{ marginTop: 12 }}>
-                <button type="button" className="btn secondary small" onClick={() => { setQuery(""); setCity(""); setBranch(""); setMikro(""); }}>Filtreleri temizle</button>
+                <button type="button" className="btn secondary small" onClick={() => { setQuery(""); setCity(""); setBolge(""); setMikro(""); }}>Filtreleri temizle</button>
               </div>
             )}
           </div>
@@ -180,6 +183,7 @@ export default function CustomerDirectory() {
               const ad = customerTitle(c);
               const kisi = `${c.firstName || ""} ${c.lastName || ""}`.trim();
               const konum = [c.district, c.city].filter(Boolean).join(" / ");
+              const b = musteriBolgesi(c);
               return (
                 <div
                   key={c.id}
@@ -189,7 +193,7 @@ export default function CustomerDirectory() {
                   onClick={() => kartAc(c)}
                   onKeyDown={(e) => { if (e.key === "Enter") kartAc(c); }}
                 >
-                  <span className={`cd-avatar ${c.branch === "istanbul" ? "istanbul" : ""}`} aria-hidden>{initials(c.company || kisi || ad)}</span>
+                  <span className={`cd-avatar ${b}`} aria-hidden>{initials(c.company || kisi || ad)}</span>
                   <div className="cd-main">
                     <div className="cd-name">{c.company || kisi || ad}</div>
                     <div className="cd-sub">
@@ -203,7 +207,7 @@ export default function CustomerDirectory() {
                     <small>{c.email || konum || " "}</small>
                   </div>
                   <div className="cd-tags">
-                    <span className={`lbl-branch ${c.branch}`}>{c.branch === "istanbul" ? "İST" : "ANK"}</span>
+                    <span className={`bolge ${b}`} title={`${bolgeTanim[b].label} müşterisi`}>{bolgeTanim[b].kisa}</span>
                     {c.mikroCariKod && <span className="badge ok" title={`Mikro: ${c.mikroUnvan || c.mikroCariKod}`}><Icon name="briefcase" size={12} /> Mikro</span>}
                     {c.iskontoPct ? <span className="badge brand">%{c.iskontoPct} isk.</span> : null}
                   </div>

@@ -293,6 +293,79 @@ export default function MySales({ employeeName }: { employeeName: string }) {
       </div>
 
       <div className={`dash-grid ${dim ? "loading-dim" : ""}`}>
+        {/* Bölge satışları — sorumlusu olduğu bölgedeki müşterilerin tüm siparişleri */}
+        {d.bolge && (() => {
+          const b = d.bolge;
+          const bFark = b.secili.ciro - b.oncekiAy.ciro;
+          const bDelta = b.oncekiAy.ciro > 0
+            ? `${bFark >= 0 ? "+" : "−"}%${Math.round((Math.abs(bFark) / b.oncekiAy.ciro) * 100)} önceki aya göre`
+            : b.secili.ciro > 0 ? "önceki ay veri yok" : "";
+          const benimPay = b.secili.ciro > 0 ? Math.round((b.benimCiro / b.secili.ciro) * 100) : 0;
+          return (
+            <section className="card span-12">
+              <div className="card-head">
+                <span className="card-head-icon"><Icon name="map-pin" size={18} /></span>
+                <div>
+                  <h2>{b.label} Bölgesi Satışları</h2>
+                  <span className="card-head-sub">Bölgendeki müşterilerin tüm siparişleri, kim almış olursa olsun · {d.ayLabel}</span>
+                </div>
+              </div>
+              <div className="rg-grid">
+                <div className={`rg-tile ${b.id}`}>
+                  <div className="rg-head"><span className="rg-label">{d.ayLabel}</span><span className="rg-pay">{nf(b.secili.adet)} sipariş</span></div>
+                  <div className="rg-val">{tl(b.secili.ciro)}</div>
+                  <div className="rg-bar"><i style={{ width: "100%" }} /></div>
+                  <div className="rg-sub">{tl(b.secili.toptanCiro)} toptan · {tl(b.secili.perakendeCiro)} perakende</div>
+                  {bDelta && <div className={`rg-delta ${bFark > 0 ? "up" : bFark < 0 ? "down" : ""}`}>{bDelta}</div>}
+                </div>
+                <div className={`rg-tile ${b.id}`}>
+                  <div className="rg-head"><span className="rg-label">Senin aldıkların</span><span className="rg-pay">%{benimPay}</span></div>
+                  <div className="rg-val">{tl(b.benimCiro)}</div>
+                  <div className="rg-bar"><i style={{ width: `${benimPay}%` }} /></div>
+                  <div className="rg-sub">bölge siparişlerinden senin adına girilenler</div>
+                </div>
+                <div className="rg-tile kayitsiz">
+                  <div className="rg-head"><span className="rg-label">Başkalarının aldığı</span><span className="rg-pay">%{100 - benimPay}</span></div>
+                  <div className="rg-val">{tl(b.baskalariCiro)}</div>
+                  <div className="rg-bar"><i style={{ width: `${100 - benimPay}%` }} /></div>
+                  <div className="rg-sub">bölgendeki müşteriden başka çalışanın aldığı</div>
+                </div>
+                <div className={`rg-tile ${b.id}`}>
+                  <div className="rg-head"><span className="rg-label">Son 7 gün</span><span className="rg-pay">{nf(b.hafta.adet)} sipariş</span></div>
+                  <div className="rg-val">{tl(b.hafta.ciro)}</div>
+                  <div className="rg-bar"><i style={{ width: `${b.secili.ciro > 0 ? Math.min(100, Math.round((b.hafta.ciro / b.secili.ciro) * 100)) : 0}%` }} /></div>
+                  <div className="rg-sub">bugün {tl(b.bugun.ciro)} · {nf(b.bugun.adet)} sipariş</div>
+                </div>
+              </div>
+              <div className="rg-months">
+                {b.aylar.map((a) => (
+                  <button key={a.ay} type="button" className={`rg-month ${a.ay === d.ay ? "sel" : ""}`} onClick={() => setAy(a.ay === (buAy?.ay || "") ? "" : a.ay)} title={`${a.label}: ${nf(a.adet)} sipariş`}>
+                    <span>{a.kisa}</span><b>{tl(a.ciro)}</b>
+                  </button>
+                ))}
+              </div>
+              {b.sonSiparisler.length > 0 && (
+                <div className="table-wrap" style={{ marginTop: 12 }}>
+                  <table>
+                    <thead><tr><th>Sipariş</th><th>Müşteri</th><th>Alan</th><th>Tarih</th><th className="num">Tutar</th></tr></thead>
+                    <tbody>
+                      {b.sonSiparisler.slice(0, 10).map((o) => (
+                        <tr key={`${o.tur}-${o.orderId}`}>
+                          <td style={{ whiteSpace: "nowrap" }}><Link href={o.href} style={{ fontWeight: 700, color: "var(--brand)" }}>{o.orderId}</Link></td>
+                          <td style={{ maxWidth: 240, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }} title={o.musteri}>{o.musteri}</td>
+                          <td style={{ whiteSpace: "nowrap", fontSize: 12.5 }}>{o.alan || "—"}</td>
+                          <td style={{ whiteSpace: "nowrap" }}>{o.dateKey.split("-").reverse().join(".")}</td>
+                          <td className="num" style={{ whiteSpace: "nowrap", fontWeight: 600 }}>{tl(o.tutar)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
+          );
+        })()}
+
         {/* Aylık ciro */}
         <section className="card span-7">
           <div className="card-head mc-head">

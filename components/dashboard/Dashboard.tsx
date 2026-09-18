@@ -9,6 +9,7 @@ import Link from "next/link";
 import Icon from "@/components/shell/Icon";
 import type { StaffDashboard } from "@/lib/dashboard";
 import StatTile from "./StatTile";
+import RegionSales from "./RegionSales";
 import OrderFlowChart from "./OrderFlowChart";
 import StatusDonut from "./StatusDonut";
 import { RecentWholesale, RecentRetail } from "./RecentOrders";
@@ -147,6 +148,8 @@ export default function Dashboard({
       </div>
 
       <div className="dash-grid">
+        {/* Bölge cirosu — finans yetkisi (sahip): Ankara / İstanbul / Taşra / kayıtsız */}
+        {(d.bolge || (finance && loading && !data)) && <RegionSales data={d.bolge} loading={loading && !data} />}
         <section className="card span-8">
           <div className="card-head">
             <span className="card-head-icon"><Icon name="bar-chart" size={18} /></span>

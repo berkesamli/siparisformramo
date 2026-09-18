@@ -7,6 +7,7 @@ import {
   saveCustomer,
   deleteCustomer,
   sanitizeCustomer,
+  bolgeler,
 } from "@/lib/customers";
 
 export const runtime = "nodejs";
@@ -19,7 +20,7 @@ export async function GET() {
     return NextResponse.json({ error: "Yetkisiz" }, { status: 401 });
   }
   const customers = await listCustomers();
-  return NextResponse.json({ customers, blob: blobConfigured() });
+  return NextResponse.json({ customers, blob: blobConfigured(), bolgeler: bolgeler() });
 }
 
 export async function POST(req: NextRequest) {

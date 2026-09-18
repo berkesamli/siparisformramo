@@ -7,18 +7,19 @@
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import Icon from "@/components/shell/Icon";
-import { BRANCHES, type Customer } from "@/lib/customers";
+import { BRANCHES, BOLGE_SIRASI, bolgeler, musteriBolgesi, type Bolge, type Customer } from "@/lib/customers";
 
 interface FormState {
   company: string; firstName: string; lastName: string; phone: string; email: string;
   addr1: string; addr2: string; city: string; district: string; postalCode: string; country: string;
   branch: "ankara" | "istanbul"; iskontoPct: string; note: string;
+  bolge: "" | Bolge; // "" = şehirden otomatik
 }
 
 const BOS: FormState = {
   company: "", firstName: "", lastName: "", phone: "", email: "",
   addr1: "", addr2: "", city: "", district: "", postalCode: "", country: "Türkiye",
-  branch: "ankara", iskontoPct: "", note: "",
+  branch: "ankara", iskontoPct: "", note: "", bolge: "",
 };
 
 function fromCustomer(c: Customer): FormState {
@@ -30,8 +31,11 @@ function fromCustomer(c: Customer): FormState {
     branch: c.branch === "istanbul" ? "istanbul" : "ankara",
     iskontoPct: c.iskontoPct ? String(c.iskontoPct) : "",
     note: c.note || "",
+    bolge: c.bolge || "",
   };
 }
+
+const BOLGE_TANIM = bolgeler();
 
 export default function CustomerForm({
   initial,
@@ -145,6 +149,15 @@ export default function CustomerForm({
             </div>
 
             <div className="cf-sec">Satış</div>
+            <div>
+              <label>Satış Bölgesi</label>
+              <select value={form.bolge} onChange={set("bolge")} title="Boş bırakılırsa şehre göre belirlenir: Ankara / İstanbul / diğer şehirler Taşra">
+                <option value="">Otomatik — {BOLGE_TANIM[musteriBolgesi({ city: form.city, branch: form.branch })].label}</option>
+                {BOLGE_SIRASI.map((b) => (
+                  <option key={b} value={b}>{BOLGE_TANIM[b].label}</option>
+                ))}
+              </select>
+            </div>
             <div>
               <label>Gönderici Şube</label>
               <select value={form.branch} onChange={set("branch")}>

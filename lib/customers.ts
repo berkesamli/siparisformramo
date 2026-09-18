@@ -26,11 +26,61 @@ export interface Customer {
   // eşleştirilir; bakiye/vade bilgisi bu koda göre canlı okunur.
   mikroCariKod?: string;
   mikroUnvan?: string;
+  // Satış bölgesi (Ankara / İstanbul / Taşra). Boşsa şehirden türetilir
+  // (musteriBolgesi); her bölgenin ilgilenen satışçısı bolgeler()'de.
+  bolge?: Bolge;
   createdAt: string;
   updatedAt: string;
 }
 
 export type Branch = "ankara" | "istanbul";
+
+// ---- Satış bölgeleri ----
+export type Bolge = "ankara" | "istanbul" | "tasra";
+export interface BolgeInfo {
+  id: Bolge;
+  label: string;   // Ankara / İstanbul / Taşra
+  kisa: string;    // rozet
+  sorumlu: string; // bölgeyle ilgilenen satışçı
+}
+export const BOLGE_SIRASI: Bolge[] = ["ankara", "istanbul", "tasra"];
+const VARSAYILAN_BOLGELER: Record<Bolge, BolgeInfo> = {
+  ankara: { id: "ankara", label: "Ankara", kisa: "ANKARA", sorumlu: "Ramazan Kaypan" },
+  istanbul: { id: "istanbul", label: "İstanbul", kisa: "İSTANBUL", sorumlu: "Alaattin Yıldız" },
+  tasra: { id: "tasra", label: "Taşra", kisa: "TAŞRA", sorumlu: "Murat Gündüz" },
+};
+
+/**
+ * Bölge tanımları. Sorumlu adları Vercel'de değiştirilebilir:
+ * BOLGE_SORUMLULARI="ankara=Ramazan Kaypan;istanbul=Alaattin Yıldız;tasra=Murat Gündüz"
+ * (sunucuda okunur; istemciye /api/musteriler yanıtıyla gider).
+ */
+export function bolgeler(): Record<Bolge, BolgeInfo> {
+  const out: Record<Bolge, BolgeInfo> = {
+    ankara: { ...VARSAYILAN_BOLGELER.ankara },
+    istanbul: { ...VARSAYILAN_BOLGELER.istanbul },
+    tasra: { ...VARSAYILAN_BOLGELER.tasra },
+  };
+  const raw = typeof process !== "undefined" ? process.env?.BOLGE_SORUMLULARI || "" : "";
+  raw.split(/[;,\n]/).forEach((parca) => {
+    const [k, v] = parca.split("=").map((x) => (x || "").trim());
+    const id = k.toLocaleLowerCase("tr-TR").replace("ş", "s") as Bolge;
+    if (v && out[id]) out[id].sorumlu = v;
+  });
+  return out;
+}
+
+/** Müşterinin bölgesi: elle seçilmişse o, yoksa şehirden (Ankara / İstanbul / diğer = Taşra), şehir de yoksa şubeden. */
+export function musteriBolgesi(c: Pick<Customer, "bolge" | "city" | "branch">): Bolge {
+  if (c.bolge === "ankara" || c.bolge === "istanbul" || c.bolge === "tasra") return c.bolge;
+  const sehir = normalizeCity(c.city);
+  if (sehir) {
+    if (sehir === "ankara") return "ankara";
+    if (sehir === "istanbul") return "istanbul";
+    return "tasra";
+  }
+  return c.branch === "istanbul" ? "istanbul" : "ankara";
+}
 
 export interface BranchInfo {
   id: Branch;
@@ -111,6 +161,10 @@ export function sanitizeCustomer(raw: any, existing?: Customer): Customer {
     // boş gönderilirse bağlantı kaldırılır.
     mikroCariKod: raw?.mikroCariKod === undefined ? existing?.mikroCariKod : s(raw.mikroCariKod, 40) || undefined,
     mikroUnvan: raw?.mikroUnvan === undefined ? existing?.mikroUnvan : s(raw.mikroUnvan, 120) || undefined,
+    // Bölge: formdan gelmezse mevcut değer korunur; "" → otomatik (şehirden)
+    bolge: raw?.bolge === undefined
+      ? existing?.bolge
+      : raw.bolge === "ankara" || raw.bolge === "istanbul" || raw.bolge === "tasra" ? raw.bolge : undefined,
     createdAt: existing?.createdAt || now,
     updatedAt: now,
   };

@@ -1,7 +1,12 @@
 // Çalışanın KENDİ satışları — yalnızca oturumdaki kullanıcının adıyla girilmiş
 // siparişler (toptan `net`, perakende `total`; iptaller hariç — raporlarla aynı
 // tanım). Aylık indekslerden hesaplanır; sipariş dosyaları tek tek okunmaz.
-// Başka çalışanların rakamları bu modülden ASLA dönmez.
+// Başka çalışanların kişisel rakamları bu modülden dönmez.
+//
+// Bölge satışları: kullanıcı bir bölgenin sorumlusuysa (BOLGE_SORUMLULARI /
+// lib/customers bolgeler()), o bölgedeki müşterilerin TÜM siparişleri ayrıca
+// "bölge satışları" olarak döner — siparişi kim almış olursa olsun; alan
+// çalışanın adı sipariş satırında görünür.
 
 import {
   readOrderIndex,
@@ -17,6 +22,8 @@ import { readRetailIndexOrRebuild, type RetailIndexEntry } from "./retail-orders
 import { normalizeUsername } from "@/data/users";
 import { memo } from "./server-cache";
 import type { SeriGun } from "./dashboard";
+import { bolgeCozucu, kullanicininBolgesi } from "./bolge-atama";
+import { bolgeler, type Bolge } from "./customers";
 
 const AY_KISA = ["Oca", "Şub", "Mar", "Nis", "May", "Haz", "Tem", "Ağu", "Eyl", "Eki", "Kas", "Ara"];
 const AY_UZUN = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"];
@@ -49,6 +56,21 @@ export interface KisiselSiparis {
   status: string;      // Türkçe etiket
   statusKind: "warn" | "info" | "ok" | "err" | "";
   href: string;
+  alan?: string;       // siparişi alan çalışan (bölge listesinde)
+}
+
+/** Bölge sorumlusunun bölgesindeki tüm satışlar. */
+export interface BolgeSatis {
+  id: Bolge;
+  label: string;
+  bugun: DonemOzet;
+  hafta: DonemOzet;
+  secili: DonemOzet;
+  oncekiAy: DonemOzet;
+  benimCiro: number;      // seçili ayda bu çalışanın kendi aldığı bölge siparişleri
+  baskalariCiro: number;  // seçili ayda başkalarının aldığı
+  aylar: AyOzet[];
+  sonSiparisler: KisiselSiparis[];
 }
 
 export interface KisiselOzet {
@@ -65,6 +87,7 @@ export interface KisiselOzet {
   enIyiGun: { date: string; label: string; ciro: number } | null; // seçili ay
   seri14: SeriGun[];          // son 14 gün, yalnızca bu çalışan
   sonSiparisler: KisiselSiparis[]; // seçili aydaki son 30 sipariş
+  bolge?: BolgeSatis | null;       // bölge sorumlusuysa bölgesinin satışları
   blob: boolean;
   hesaplandi: string;
 }
@@ -120,7 +143,7 @@ async function indeksler(): Promise<{ t: OrderIndexEntry[]; p: RetailIndexEntry[
   return { t, p };
 }
 
-export async function computePersonalSales(employeeName: string, aySecim?: string): Promise<KisiselOzet> {
+export async function computePersonalSales(employeeName: string, aySecim?: string, username?: string): Promise<KisiselOzet> {
   const today = istanbulDateKey();
   const aylar = ayKeyleri(today, AY_SAYISI);
   const ay = aySecim && aylar.includes(aySecim) ? aySecim : today.slice(0, 7);
@@ -168,22 +191,38 @@ export async function computePersonalSales(employeeName: string, aySecim?: strin
     };
   });
 
-  const sonSiparisler: KisiselSiparis[] = [
-    ...tAy.map((o): KisiselSiparis => ({
-      tur: "toptan", orderId: o.orderId, dateKey: o.dateKey, createdAt: o.createdAt,
-      musteri: o.customer || "—", tutar: Number(o.net) || 0,
-      status: STATUS_LABELS[o.status], statusKind: TOPTAN_KIND[o.status] || "",
-      href: `/panel/siparisler/detay?d=${o.dateKey}&id=${encodeURIComponent(o.orderId)}`,
-    })),
-    ...pAy.map((o): KisiselSiparis => ({
-      tur: "perakende", orderId: o.orderId, dateKey: o.dateKey, createdAt: o.createdAt,
-      musteri: o.customerName || "—", tutar: Number(o.total) || 0,
-      status: o.status, statusKind: PERAKENDE_KIND[o.status] || "",
-      href: `/panel/perakende/siparisler/detay?d=${o.dateKey}&id=${encodeURIComponent(o.orderId)}`,
-    })),
-  ]
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-    .slice(0, 30);
+  const sonSiparisler = siparisListesi(tAy, pAy);
+
+  // Bölge satışları (sorumluysa): bölgedeki müşterilerin tüm siparişleri
+  let bolge: BolgeSatis | null = null;
+  const bolgeId = kullanicininBolgesi(employeeName, username);
+  if (bolgeId) {
+    const coz = await bolgeCozucu().catch(() => null);
+    if (coz) {
+      const tB = tHepsi.filter((o) => o.status !== "iptal" && coz(o) === bolgeId);
+      const pB = pHepsi.filter((o) => o.status !== "İptal" && coz({ customerId: o.customerId, customerName: o.customerName }) === bolgeId);
+      const tBAy = tB.filter((o) => o.dateKey.startsWith(ay));
+      const pBAy = pB.filter((o) => o.dateKey.startsWith(ay));
+      const seciliB = topla(tBAy, pBAy);
+      const benimCiro = topla(tBAy.filter((o) => benim(o.employee)), pBAy.filter((o) => benim(o.employee))).ciro;
+      bolge = {
+        id: bolgeId,
+        label: bolgeler()[bolgeId].label,
+        bugun: topla(tB.filter((o) => o.dateKey === today), pB.filter((o) => o.dateKey === today)),
+        hafta: topla(tB.filter((o) => set7.has(o.dateKey)), pB.filter((o) => set7.has(o.dateKey))),
+        secili: seciliB,
+        oncekiAy: topla(tB.filter((o) => o.dateKey.startsWith(oncekiAyKey)), pB.filter((o) => o.dateKey.startsWith(oncekiAyKey))),
+        benimCiro,
+        baskalariCiro: r2(seciliB.ciro - benimCiro),
+        aylar: aylar.map((a) => ({
+          ay: a,
+          ...ayEtiket(a),
+          ...topla(tB.filter((o) => o.dateKey.startsWith(a)), pB.filter((o) => o.dateKey.startsWith(a))),
+        })),
+        sonSiparisler: siparisListesi(tBAy, pBAy),
+      };
+    }
+  }
 
   return {
     employee: employeeName,
@@ -199,7 +238,30 @@ export async function computePersonalSales(employeeName: string, aySecim?: strin
     enIyiGun,
     seri14,
     sonSiparisler,
+    bolge,
     blob: blobConfigured(),
     hesaplandi: new Date().toISOString(),
   };
+}
+
+/** Seçili ayın siparişleri, yeniden eskiye, en fazla 30 (alan çalışan adıyla). */
+function siparisListesi(tAy: OrderIndexEntry[], pAy: RetailIndexEntry[]): KisiselSiparis[] {
+  return [
+    ...tAy.map((o): KisiselSiparis => ({
+      tur: "toptan", orderId: o.orderId, dateKey: o.dateKey, createdAt: o.createdAt,
+      musteri: o.customer || "—", tutar: Number(o.net) || 0,
+      status: STATUS_LABELS[o.status], statusKind: TOPTAN_KIND[o.status] || "",
+      href: `/panel/siparisler/detay?d=${o.dateKey}&id=${encodeURIComponent(o.orderId)}`,
+      alan: o.employee || undefined,
+    })),
+    ...pAy.map((o): KisiselSiparis => ({
+      tur: "perakende", orderId: o.orderId, dateKey: o.dateKey, createdAt: o.createdAt,
+      musteri: o.customerName || "—", tutar: Number(o.total) || 0,
+      status: o.status, statusKind: PERAKENDE_KIND[o.status] || "",
+      href: `/panel/perakende/siparisler/detay?d=${o.dateKey}&id=${encodeURIComponent(o.orderId)}`,
+      alan: o.employee || undefined,
+    })),
+  ]
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    .slice(0, 30);
 }

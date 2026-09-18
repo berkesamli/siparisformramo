@@ -17,6 +17,7 @@ import { readRetailIndexOrRebuild, type RetailIndexEntry } from "./retail-orders
 import { getStockData } from "./stock-store";
 import { listCekSenet } from "./ceksenet";
 import { memo } from "./server-cache";
+import { bolgeCozucu, BOLGE_KOVALARI, kovaEtiketi, type BolgeKovasi } from "./bolge-atama";
 import { FRAME_PROFILES } from "@/data/catalog";
 import { TECHNICAL_PRODUCTS } from "@/data/technical";
 import type { RetailStatus } from "@/data/perakende";
@@ -58,6 +59,18 @@ export interface Uyari {
   href: string;
 }
 
+/** Bir bölgenin bu ayki cirosu (müşteri kartındaki bölgeye göre). */
+export interface BolgeCiro {
+  id: BolgeKovasi;
+  label: string;
+  ciro: number;
+  adet: number;
+  toptanCiro: number;
+  perakendeCiro: number;
+  oncekiCiro: number; // önceki ayın tamamı (kıyas)
+  pay: number;        // 0–1, bu ayın toplamındaki payı
+}
+
 export interface StaffDashboard {
   role: "staff";
   blob: boolean;
@@ -78,6 +91,8 @@ export interface StaffDashboard {
   stok: { updatedAt: string; kalem: number; kaynak: string } | null;
   kur: DailyRates | null;
   cek?: { yaklasanAdet: number; yaklasanToplam: number; gecmisAdet: number };
+  // Bölge cirosu (Ankara / İstanbul / Taşra / kayıtsız) — yalnızca finans yetkisi
+  bolge?: { ay: string; ayLabel: string; toplam: number; kalemler: BolgeCiro[]; musteriSayisi: number };
   hesaplandi: string;
 }
 
@@ -90,6 +105,7 @@ export interface CustomerDashboard {
 }
 
 const AY_KISA = ["Oca", "Şub", "Mar", "Nis", "May", "Haz", "Tem", "Ağu", "Eyl", "Eki", "Kas", "Ara"];
+const AY_UZUN = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran", "Temmuz", "Ağustos", "Eylül", "Ekim", "Kasım", "Aralık"];
 const GUN_KISA = ["Paz", "Pzt", "Sal", "Çar", "Per", "Cum", "Cmt"];
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
@@ -262,6 +278,35 @@ export async function computeStaffDashboard(flags: DashFlags): Promise<StaffDash
     });
   }
 
+  // Bölge cirosu: bu ay + önceki ay (indeks 2 ay okur); müşteri kartı olmayan siparişler "kayıtsız"
+  let bolge: StaffDashboard["bolge"];
+  if (flags.finance) {
+    const coz = await bolgeCozucu().catch(() => null);
+    if (coz) {
+      const [yy, mm] = ay.split("-").map(Number);
+      const onceki = new Date(Date.UTC(yy, mm - 2, 1));
+      const oncekiAy = `${onceki.getUTCFullYear()}-${String(onceki.getUTCMonth() + 1).padStart(2, "0")}`;
+      const acc = new Map<BolgeKovasi, BolgeCiro>();
+      for (const k of BOLGE_KOVALARI) acc.set(k, { id: k, label: kovaEtiketi(k), ciro: 0, adet: 0, toptanCiro: 0, perakendeCiro: 0, oncekiCiro: 0, pay: 0 });
+      for (const o of tAktif) {
+        const k = acc.get(coz(o))!;
+        if (o.dateKey.startsWith(ay)) { k.toptanCiro += Number(o.net) || 0; k.adet++; }
+        else if (o.dateKey.startsWith(oncekiAy)) k.oncekiCiro += Number(o.net) || 0;
+      }
+      for (const o of pAktif) {
+        const k = acc.get(coz({ customerId: o.customerId, customerName: o.customerName }))!;
+        if (o.dateKey.startsWith(ay)) { k.perakendeCiro += Number(o.total) || 0; k.adet++; }
+        else if (o.dateKey.startsWith(oncekiAy)) k.oncekiCiro += Number(o.total) || 0;
+      }
+      const kalemler = BOLGE_KOVALARI.map((k) => acc.get(k)!);
+      let toplam = 0;
+      for (const k of kalemler) { k.toptanCiro = r2(k.toptanCiro); k.perakendeCiro = r2(k.perakendeCiro); k.ciro = r2(k.toptanCiro + k.perakendeCiro); k.oncekiCiro = r2(k.oncekiCiro); toplam += k.ciro; }
+      toplam = r2(toplam);
+      for (const k of kalemler) k.pay = toplam > 0 ? k.ciro / toplam : 0;
+      bolge = { ay, ayLabel: `${AY_UZUN[mm - 1]} ${yy}`, toplam, kalemler, musteriSayisi: coz.musteriSayisi };
+    }
+  }
+
   const lite: LiteStats = {
     bugun: bugunToptan + bugunPerakende,
     bugunToptan,
@@ -295,6 +340,7 @@ export async function computeStaffDashboard(flags: DashFlags): Promise<StaffDash
     stok,
     kur,
     cek,
+    bolge,
     hesaplandi: new Date().toISOString(),
   };
 }
