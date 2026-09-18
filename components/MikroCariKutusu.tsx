@@ -9,8 +9,7 @@ import { useCallback, useEffect, useState } from "react";
 import Icon from "@/components/shell/Icon";
 
 interface Ozet {
-  cariKod: string; unvan: string; borc: number; alacak: number; bakiye: number;
-  vadesiGecen: number; sonHareket: string | null; vadeVar?: boolean;
+  cariKod: string; unvan: string; borc: number; alacak: number; bakiye: number; sonHareket: string | null;
 }
 interface Durum {
   ok: boolean; kurulu?: boolean; bagli?: boolean; cariKod?: string; unvan?: string;
@@ -146,11 +145,10 @@ export default function MikroCariKutusu({
     if (yukleniyor && !durum) return <div className="muted" style={{ fontSize: 12.5, marginTop: 6 }}>Mikro bakiyesi alınıyor…</div>;
     if (!durum) return null;
     if (durum.bagli && ozet) {
-      const sinif = ozet.vadesiGecen > 0 ? "err" : ozet.bakiye > 0 ? "warn" : "ok";
+      const sinif = ozet.bakiye > 0 ? "warn" : "ok";
       return (
         <div className={`notice ${sinif}`} style={{ marginTop: 8, fontSize: 13, display: "flex", flexWrap: "wrap", gap: "4px 12px", alignItems: "center" }}>
           <span><strong>Mikro bakiye:</strong> ₺{fmt(ozet.bakiye)} <span className="muted">({bakiyeAciklama(ozet.bakiye)})</span></span>
-          {ozet.vadeVar !== false && ozet.vadesiGecen > 0 && <span><strong>Vadesi geçen:</strong> ₺{fmt(ozet.vadesiGecen)}</span>}
           {ozet.sonHareket && <span className="muted">Son hareket {ozet.sonHareket.split("-").reverse().join(".")}</span>}
           <span className="muted" style={{ fontSize: 12 }}>{durum.unvan || ozet.unvan} · {durum.cariKod}</span>
         </div>
@@ -206,12 +204,6 @@ export default function MikroCariKutusu({
             <strong style={{ color: ozet.bakiye > 0 ? "var(--error)" : "var(--success)" }}>₺{fmt(ozet.bakiye)}</strong>
             <span className="muted" style={{ fontSize: 12 }}>{bakiyeAciklama(ozet.bakiye)}</span>
           </div>
-          <div className={`cari-card ${ozet.vadesiGecen > 0 ? "borc" : ""}`}>
-            <span>Vadesi Geçen (yaklaşık)</span>
-            <strong style={{ color: ozet.vadesiGecen > 0 ? "var(--error)" : "inherit" }}>
-              {ozet.vadeVar === false ? "—" : `₺${fmt(ozet.vadesiGecen)}`}
-            </strong>
-          </div>
           <div className="cari-card">
             <span>Toplam Borç</span>
             <strong>₺{fmt(ozet.borc)}</strong>
@@ -247,8 +239,8 @@ export default function MikroCariKutusu({
       {aramaAcik && aramaKutusu}
 
       <p className="muted" style={{ fontSize: 12.5, marginTop: 10 }}>
-        Bakiye Mikro&apos;dan canlı okunur (birkaç dakika önbellekte kalabilir); buradan Mikro&apos;ya kayıt yazılmaz.
-        Pozitif bakiye müşterinin borcu demektir; tahsilatı buna göre isteyin.
+        Bakiye Mikro&apos;dan canlı okunur (bir dakika önbellekte kalabilir); buradan Mikro&apos;ya kayıt yazılmaz.
+        Pozitif bakiye müşterinin borcu demektir; kuruşu kuruşuna Mikro ekstresi esastır.
       </p>
     </div>
   );
