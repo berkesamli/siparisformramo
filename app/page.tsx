@@ -69,7 +69,8 @@ export default async function HomePage() {
     { title: "Kataloglar", sub: "PDF · dergi görünümü", href: "/kataloglar", icon: "book", img: cardImage("kataloglar") },
   ];
   const chips: { label: string; href: string; icon: "users" | "message" | "upload" | "tag" | "book" | "dollar" | "bar-chart" }[] = [
-    { label: "Müşteriler & Etiket", href: "/etiket", icon: "users" },
+    { label: "Müşteriler", href: "/musteriler", icon: "users" },
+    { label: "Kargo Etiketi", href: "/etiket", icon: "tag" },
     { label: "SMS Gönder", href: "/panel/sms", icon: "message" },
     { label: "Stok Yükle", href: "/panel/stok", icon: "upload" },
     { label: "Fiyat Listesi", href: "/portal/fiyat-listesi", icon: "tag" },

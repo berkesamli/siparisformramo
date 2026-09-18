@@ -5,7 +5,9 @@ import PageHeader from "@/components/PageHeader";
 
 export const dynamic = "force-dynamic";
 
-export default async function EtiketPage() {
+// Kargo etiketi: kayıtlı müşteriyi seç, 150×100 mm etiketi PDF olarak yazdır.
+// Müşteri ekleme/düzenleme ana yeri /musteriler; burada hızlı düzenleme var.
+export default async function EtiketPage({ searchParams }: { searchParams: { id?: string } }) {
   const user = await getSessionUser();
   if (!user) redirect("/giris?next=/etiket");
   if (user.role !== "staff") redirect("/portal");
@@ -13,11 +15,11 @@ export default async function EtiketPage() {
   return (
     <main className="container" style={{ maxWidth: 1280 }}>
       <PageHeader
-        title="Müşteriler & Kargo Etiketi"
-        subtitle="Müşteri bilgilerini kaydedin, şehre göre listeleyin ve 150×100 mm kargo etiketi yazdırın. Kayıtlı müşteriler sipariş formlarında da seçilebilir."
-        icon="users"
+        title="Kargo Etiketi"
+        subtitle="Müşteriyi seçin, gönderici şubeyi belirleyin ve 150 × 100 mm etiketi PDF olarak yazdırın."
+        icon="tag"
       />
-      <LabelManager />
+      <LabelManager preselectId={searchParams.id || ""} />
     </main>
   );
 }

@@ -40,6 +40,8 @@ export function navGroups(f: NavFlags): NavGroup[] {
   ];
   if (staff) {
     genel.push({ href: "/panel/satislarim", label: "Satışlarım", icon: "trending-up", keywords: ["cirom", "satışlarım", "kişisel ciro", "performans"] });
+    // Müşteri defteri: kart (sipariş geçmişi + Mikro bakiyesi) buradan açılır
+    genel.push({ href: "/musteriler", label: "Müşteriler", icon: "users", short: "Müşteriler", keywords: ["müşteri", "bayi", "cari", "müşteri defteri", "müşteri kartı", "bakiye"] });
   }
   genel.push(
     { href: "/kataloglar", label: "Kataloglar", icon: "book", short: "Katalog", keywords: ["pdf", "dergi", "profil kataloğu", "teknik malzeme"] },
@@ -68,7 +70,7 @@ export function navGroups(f: NavFlags): NavGroup[] {
     groups.push({
       title: "Müşteri & İletişim",
       items: [
-        { href: "/etiket", label: "Müşteriler & Etiket", icon: "users", keywords: ["müşteri", "kargo etiketi", "bayi", "cari"] },
+        { href: "/etiket", label: "Kargo Etiketi", icon: "tag", keywords: ["etiket", "kargo etiketi", "150x100", "yazdır", "pdf"] },
         { href: "/panel/sms", label: "SMS Gönder", icon: "message", keywords: ["sms", "mesaj", "netgsm"] },
       ],
     });
@@ -118,7 +120,8 @@ const EXTRA_TITLES: Record<string, string> = {
   "/panel/siparisler/detay": "Sipariş Detayı",
   "/panel/siparisler/duzenle": "Sipariş Düzenle",
   "/panel/perakende/siparisler/detay": "Perakende Sipariş Detayı",
-  "/musteri": "Müşteri Cari Hesabı",
+  "/musteriler/kart": "Müşteri Kartı",
+  "/musteri": "Müşteri Kartı",
   "/giris": "Giriş",
 };
 

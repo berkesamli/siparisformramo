@@ -149,7 +149,7 @@ export async function GET(req: NextRequest) {
           kind: "customer",
           title: ad,
           sub: [c.city, c.phone, c.branch === "istanbul" ? "İstanbul şubesi" : "Ankara şubesi"].filter(Boolean).join(" · "),
-          href: `/musteri?id=${encodeURIComponent(c.id)}`,
+          href: `/musteriler/kart?id=${encodeURIComponent(c.id)}`,
           meta: c.iskontoPct ? `%${c.iskontoPct} isk.` : undefined,
           metaKind: "brand",
         });

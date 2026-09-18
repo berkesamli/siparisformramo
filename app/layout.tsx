@@ -9,6 +9,7 @@ import "./styles/orders.css";
 import "./styles/reports.css";
 import "./styles/modals.css";
 import "./styles/dashboard.css";
+import "./styles/customers.css";
 import { getSessionUser } from "@/lib/auth";
 import { isOwner, isFinance, finansAktif, isMaliyet, isKurYetkili } from "@/data/users";
 import AppShell from "@/components/shell/AppShell";
