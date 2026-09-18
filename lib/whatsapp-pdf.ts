@@ -62,11 +62,19 @@ const VARSAYILAN_HITAP = "Yetkili";
  */
 export function patronAlicilarAyristir(raw: string): PatronAlici[] {
   const out: PatronAlici[] = [];
-  for (const p of String(raw || "").split(/[,;]+/)) {
-    const [numara, ...rest] = p.split(/[:=]/);
-    const to = normalizeWaNumber(numara);
+  for (const parca of String(raw || "").split(/[,;\n]+/)) {
+    const p = parca.trim();
+    if (!p) continue;
+    // Numara, parçanın neresinde olursa olsun bulunur ("0532…:Özgür Bey", "Özgür Bey 0532…",
+    // "+90 532 509 94 42 Özgür Bey"); geri kalan metin hitaptır.
+    const adaylar = p.match(/\+?\d[\d\s().-]{7,}\d/g) || [];
+    const numaraHam = adaylar.reduce(
+      (a, b) => (b.replace(/\D/g, "").length > a.replace(/\D/g, "").length ? b : a),
+      ""
+    );
+    const to = normalizeWaNumber(numaraHam);
     if (!to || out.some((a) => a.to === to)) continue;
-    const ad = rest.join(":").replace(/\s+/g, " ").trim();
+    const ad = p.replace(numaraHam, " ").replace(/[:=]/g, " ").replace(/\s+/g, " ").trim();
     out.push({ to, ad: ad || VARSAYILAN_HITAP });
   }
   return out;
