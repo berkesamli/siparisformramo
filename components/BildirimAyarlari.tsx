@@ -91,7 +91,7 @@ export default function BildirimAyarlari() {
           <span className="spacer" />
           <input
             style={{ maxWidth: 220 }}
-            placeholder="Deneme numarası (boşsa patron)"
+            placeholder="Deneme: 05xx… ya da 05xx…:Ad Bey"
             value={patronTel}
             onChange={(e) => setPatronTel(e.target.value)}
             inputMode="tel"
@@ -106,7 +106,7 @@ export default function BildirimAyarlari() {
         {durum && (
           <ul style={{ listStyle: "none" }}>
             <Satir ok={durum.api} baslik="WhatsApp Cloud API" aciklama={durum.api ? "WHATSAPP_TOKEN ve WHATSAPP_PHONE_ID tanımlı." : "Vercel ortam değişkenlerinde WHATSAPP_TOKEN ve WHATSAPP_PHONE_ID eksik."} />
-            <Satir ok={durum.alicilar.length > 0} baslik="Alıcı numaralar (PATRON_WHATSAPP)" aciklama={durum.alicilar.length ? durum.alicilar.join(", ") : "Örn. PATRON_WHATSAPP=05325099442 — birden çok numara virgülle."} />
+            <Satir ok={durum.alicilar.length > 0} baslik="Alıcı numaralar (PATRON_WHATSAPP)" aciklama={durum.alicilar.length ? durum.alicilar.join(", ") : "Örn. PATRON_WHATSAPP=05325099442:Özgür Bey,05336610287:Gültekin Bey — numara ve hitap, virgülle."} />
             <Satir ok={!!durum.sablon} baslik="Onaylı şablon (WHATSAPP_TEMPLATE_SIPARIS)" aciklama={durum.sablon ? `${durum.sablon} · dil: ${durum.dil} · birden çok ad varsa sırayla denenir` : "Şablon tanımlı değil: mesaj yalnızca alıcı son 24 saatte işletmeye yazdıysa gider. Kalıcı çözüm için Meta'da belge başlıklı şablonu onaylatıp adını girin."} />
           </ul>
         )}
@@ -169,16 +169,16 @@ export default function BildirimAyarlari() {
         </div>
         <div className="grid cols-2">
           <div>
-            <label>Patrona fiş · <code>siparis_fisi_v3</code> · 4 değişken</label>
-            <pre style={{ whiteSpace: "pre-wrap", background: "var(--surface-2)", padding: 12, borderRadius: 10, fontSize: 13 }}>{`Özgür Bey, sipariş sisteminden yeni bir sipariş fişi geldi.
+            <label>Patrona fiş · <code>siparis_fisi_v4</code> · 5 değişken</label>
+            <pre style={{ whiteSpace: "pre-wrap", background: "var(--surface-2)", padding: 12, borderRadius: 10, fontSize: 13 }}>{`Sayın {{1}}, sipariş sisteminden yeni bir sipariş fişi geldi.
 
-Sipariş: {{1}}
-Müşteri: {{2}}
-Toplam tutar: ₺{{3}}
-Siparişi alan: {{4}}
+Sipariş: {{2}}
+Müşteri: {{3}}
+Toplam tutar: ₺{{4}}
+Siparişi alan: {{5}}
 
 Fişin tamamı ekteki PDF dosyasındadır. İyi çalışmalar.`}</pre>
-            <p className="muted" style={{ fontSize: 12.5, marginTop: 8 }}>Alt bilgi: Olga Çerçeve sipariş sistemi · Örnekler: Toptan OLG-2026-275 · Ayşe Özyürek · 4.267,08 · Alaattin Yıldız</p>
+            <p className="muted" style={{ fontSize: 12.5, marginTop: 8 }}>Alt bilgi: Olga Çerçeve sipariş sistemi · {"{{1}}"} hitap PATRON_WHATSAPP&apos;taki addır (Özgür Bey, Gültekin Bey) · Örnekler: Özgür Bey · Toptan OLG-2026-275 · Ayşe Özyürek · 4.267,08 · Alaattin Yıldız</p>
           </div>
           <div>
             <label>Müşteriye fiş · <code>musteri_siparis_fisi_v2</code> · 2 değişken</label>
