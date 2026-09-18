@@ -60,7 +60,8 @@ const KPI_NUM = { fontSize: "clamp(15px, 4.4vw, 21px)" } as const;
 const WRAP = { margin: 0, padding: 0 } as const;
 const NOWRAP = { whiteSpace: "nowrap" } as const;
 
-export default function Reports() {
+// finans: FINANS_AKTIF açıkken sistemin kendi tahsilat/bakiye kutuları da gösterilir.
+export default function Reports({ finans = false }: { finans?: boolean }) {
   const [ay, setAy] = useState(""); // "" = tüm zamanlar
   const [sube, setSube] = useState("");
   const [data, setData] = useState<Data | null>(null);
@@ -140,16 +141,20 @@ export default function Reports() {
               <span>Sipariş Sayısı</span>
               <strong style={KPI_NUM}>{data.summary.orderCount}</strong>
             </div>
-            <div className="cari-card">
-              <span>Tahsil Edilen</span>
-              <strong style={{ ...KPI_NUM, color: "var(--success)" }}>₺{fmt(data.summary.tahsilat)}</strong>
-            </div>
-            <div className={`cari-card ${data.summary.bakiye > 0 ? "borc" : ""}`}>
-              <span>Açık Bakiye</span>
-              <strong style={{ ...KPI_NUM, color: data.summary.bakiye > 0 ? "var(--error)" : "var(--success)" }}>
-                ₺{fmt(data.summary.bakiye)}
-              </strong>
-            </div>
+            {finans && (
+              <div className="cari-card">
+                <span>Tahsil Edilen</span>
+                <strong style={{ ...KPI_NUM, color: "var(--success)" }}>₺{fmt(data.summary.tahsilat)}</strong>
+              </div>
+            )}
+            {finans && (
+              <div className={`cari-card ${data.summary.bakiye > 0 ? "borc" : ""}`}>
+                <span>Açık Bakiye</span>
+                <strong style={{ ...KPI_NUM, color: data.summary.bakiye > 0 ? "var(--error)" : "var(--success)" }}>
+                  ₺{fmt(data.summary.bakiye)}
+                </strong>
+              </div>
+            )}
             <div className="cari-card">
               <span>Ortalama Sipariş</span>
               <strong style={KPI_NUM}>₺{fmt(data.summary.ortalamaSepet)}</strong>
@@ -158,23 +163,27 @@ export default function Reports() {
 
           {/* Kasa bazlı satır — gerçek tahsilat/gider kayıtlarından */}
           <div className="cari-cards" style={KPI_GRID}>
-            <div className="cari-card">
-              <span>Kasa Tahsilatı</span>
-              <strong style={{ ...KPI_NUM, color: "var(--success)" }}>₺{fmt(data.summary.gercekTahsilat || 0)}</strong>
-              <span style={{ fontSize: 11.5 }}>tahsilat kayıtlarından</span>
-            </div>
-            <div className="cari-card">
-              <span>Giderler</span>
-              <strong style={{ ...KPI_NUM, color: "var(--error)" }}>₺{fmt(data.summary.giderToplam || 0)}</strong>
-              {!ay && <span style={{ fontSize: 11.5 }}>son 12 ay</span>}
-            </div>
-            <div className={`cari-card ${(data.summary.kasaKar || 0) < 0 ? "borc" : ""}`}>
-              <span>Kasa Kârı</span>
-              <strong style={{ ...KPI_NUM, color: (data.summary.kasaKar || 0) >= 0 ? "var(--success)" : "var(--error)" }}>
-                ₺{fmt(data.summary.kasaKar || 0)}
-              </strong>
-              <span style={{ fontSize: 11.5 }}>tahsilat − gider</span>
-            </div>
+            {finans && (
+              <>
+                <div className="cari-card">
+                  <span>Kasa Tahsilatı</span>
+                  <strong style={{ ...KPI_NUM, color: "var(--success)" }}>₺{fmt(data.summary.gercekTahsilat || 0)}</strong>
+                  <span style={{ fontSize: 11.5 }}>tahsilat kayıtlarından</span>
+                </div>
+                <div className="cari-card">
+                  <span>Giderler</span>
+                  <strong style={{ ...KPI_NUM, color: "var(--error)" }}>₺{fmt(data.summary.giderToplam || 0)}</strong>
+                  {!ay && <span style={{ fontSize: 11.5 }}>son 12 ay</span>}
+                </div>
+                <div className={`cari-card ${(data.summary.kasaKar || 0) < 0 ? "borc" : ""}`}>
+                  <span>Kasa Kârı</span>
+                  <strong style={{ ...KPI_NUM, color: (data.summary.kasaKar || 0) >= 0 ? "var(--success)" : "var(--error)" }}>
+                    ₺{fmt(data.summary.kasaKar || 0)}
+                  </strong>
+                  <span style={{ fontSize: 11.5 }}>tahsilat − gider</span>
+                </div>
+              </>
+            )}
             <div className="cari-card">
               <span>Faturalı Ciro</span>
               <strong style={KPI_NUM}>₺{fmt(data.summary.faturaliCiro || 0)}</strong>
@@ -267,20 +276,22 @@ export default function Reports() {
               <div className="table-wrap" style={WRAP}>
                 <table>
                   <thead>
-                    <tr><th>Müşteri</th><th className="num">Sipariş</th><th className="num">Ciro</th><th className="num">Bakiye</th></tr>
+                    <tr><th>Müşteri</th><th className="num">Sipariş</th><th className="num">Ciro</th>{finans && <th className="num">Bakiye</th>}</tr>
                   </thead>
                   <tbody>
                     {data.customers.length === 0 ? (
-                      <tr><td colSpan={4} className="muted">Kayıt yok</td></tr>
+                      <tr><td colSpan={finans ? 4 : 3} className="muted">Kayıt yok</td></tr>
                     ) : (
                       data.customers.map((c) => (
                         <tr key={c.name}>
                           <td style={{ fontWeight: 600 }}>{c.name}</td>
                           <td className="num">{c.count}</td>
                           <td className="num" style={NOWRAP}>₺{fmt(c.total)}</td>
-                          <td className="num" style={{ ...NOWRAP, color: c.balance > 0 ? "var(--error)" : "var(--muted)" }}>
-                            {c.balance > 0 ? `₺${fmt(c.balance)}` : "—"}
-                          </td>
+                          {finans && (
+                            <td className="num" style={{ ...NOWRAP, color: c.balance > 0 ? "var(--error)" : "var(--muted)" }}>
+                              {c.balance > 0 ? `₺${fmt(c.balance)}` : "—"}
+                            </td>
+                          )}
                         </tr>
                       ))
                     )}
@@ -358,8 +369,8 @@ export default function Reports() {
               </div>
             </div>
 
-            {/* Prim raporu — Alaattin'in prim çizelgesinin karşılığı */}
-            <div className="card pad-0">
+            {/* Prim raporu — Alaattin'in prim çizelgesinin karşılığı (tahsilatlar burada işleniyorsa) */}
+            {finans && <div className="card pad-0">
               <h3 className="rep-th">Tahsil Eden Bazlı (Prim)</h3>
               <div className="table-wrap" style={WRAP}>
                 <table>
@@ -381,7 +392,7 @@ export default function Reports() {
                   </tbody>
                 </table>
               </div>
-            </div>
+            </div>}
           </div>
         </>
       )}

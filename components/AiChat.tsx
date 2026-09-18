@@ -12,7 +12,7 @@ const ONERILER = [
   "GC065 stokta kaç boy var?",
   "Bugünün kuru ne?",
   "50x70 eser, GB139, 5 cm paspartu, mat cam kaça olur?",
-  "Yılmaz Çerçeve'nin açık bakiyesi ne kadar?",
+  "Yılmaz Çerçeve'nin Mikro bakiyesi ne kadar?",
 ];
 
 export default function AiChat() {

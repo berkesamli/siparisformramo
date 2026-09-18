@@ -1,7 +1,9 @@
 "use client";
 
-// Müşteri cari kartı: sipariş geçmişi, tahsilat hareketleri, açılış bakiyesi,
-// toplam ciro ve kalan bakiye. "Tahsilat Ekle" ile buradan ödeme girilir.
+// Müşteri cari kartı: sipariş geçmişi + Mikro'daki (resmi) cari bakiye.
+// finans=true (FINANS_AKTIF=1) olduğunda sistemin kendi tahsilat hareketleri,
+// açılış bakiyesi ve kalan bakiye kutuları da görünür; kapalıyken tahsilatlar
+// burada işlenmediği için bakiye yalnızca Mikro'dan okunur.
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
@@ -29,7 +31,7 @@ interface Summary {
   lastOrderAt: string | null;
 }
 
-export default function CustomerAccount({ id }: { id: string }) {
+export default function CustomerAccount({ id, finans = false }: { id: string; finans?: boolean }) {
   const [customer, setCustomer] = useState<Customer | null>(null);
   const [entries, setEntries] = useState<CariEntry[]>([]);
   const [movements, setMovements] = useState<Tahsilat[]>([]);
@@ -93,9 +95,11 @@ export default function CustomerAccount({ id }: { id: string }) {
         }
         actions={
           <>
-            <button className="btn small" onClick={() => setModalOpen(true)}>
-              <Icon name="wallet" size={15} /> Tahsilat Ekle
-            </button>
+            {finans && (
+              <button className="btn small" onClick={() => setModalOpen(true)}>
+                <Icon name="wallet" size={15} /> Tahsilat Ekle
+              </button>
+            )}
             <Link href="/etiket" className="btn small secondary">
               <Icon name="chevron-left" size={15} /> Müşteriler
             </Link>
@@ -113,19 +117,28 @@ export default function CustomerAccount({ id }: { id: string }) {
           <span>Toplam Ciro</span>
           <strong>₺{fmt(summary?.totalAmount ?? 0)}</strong>
         </div>
-        <div className="cari-card">
-          <span>Tahsil Edilen</span>
-          <strong style={{ color: "var(--success)" }}>₺{fmt(summary?.totalPaid ?? 0)}</strong>
-        </div>
-        <div className={`cari-card ${bakiye > 0 ? "borc" : ""}`}>
-          <span>Kalan Bakiye</span>
-          <strong style={{ color: bakiye > 0 ? "var(--error)" : "var(--success)" }}>
-            ₺{fmt(bakiye)}
-          </strong>
-        </div>
+        {finans ? (
+          <>
+            <div className="cari-card">
+              <span>Tahsil Edilen</span>
+              <strong style={{ color: "var(--success)" }}>₺{fmt(summary?.totalPaid ?? 0)}</strong>
+            </div>
+            <div className={`cari-card ${bakiye > 0 ? "borc" : ""}`}>
+              <span>Kalan Bakiye</span>
+              <strong style={{ color: bakiye > 0 ? "var(--error)" : "var(--success)" }}>
+                ₺{fmt(bakiye)}
+              </strong>
+            </div>
+          </>
+        ) : (
+          <div className="cari-card">
+            <span>Son Sipariş</span>
+            <strong>{summary?.lastOrderAt ? new Date(summary.lastOrderAt).toLocaleDateString("tr-TR") : "—"}</strong>
+          </div>
+        )}
       </div>
 
-      {summary && summary.openingBalance !== 0 && (
+      {finans && summary && summary.openingBalance !== 0 && (
         <p className="notice info">
           Devir (açılış) bakiyesi: <strong>₺{fmt(summary.openingBalance)}</strong>
           {summary.openingAsOf && <> — {summary.openingAsOf} tarihi itibarıyla, Excel&apos;den aktarıldı.</>}
@@ -135,8 +148,8 @@ export default function CustomerAccount({ id }: { id: string }) {
       {/* ---- Mikro (resmi) cari: eşleştirme + canlı bakiye ---- */}
       <MikroCariKutusu customerId={customer.id} />
 
-      {/* ---- Tahsilat hareketleri ---- */}
-      <div className="card" style={{ marginTop: 18 }}>
+      {/* ---- Tahsilat hareketleri (finans modülü) ---- */}
+      {finans && <div className="card" style={{ marginTop: 18 }}>
         <div className="card-head">
           <span className="card-head-icon"><Icon name="wallet" size={16} /></span>
           <div>
@@ -183,7 +196,7 @@ export default function CustomerAccount({ id }: { id: string }) {
             </table>
           </div>
         )}
-      </div>
+      </div>}
 
       {/* ---- Sipariş geçmişi ---- */}
       <div className="card">
@@ -212,8 +225,8 @@ export default function CustomerAccount({ id }: { id: string }) {
                   <th>Tarih</th>
                   <th>Durum</th>
                   <th className="num">Tutar</th>
-                  <th className="num">Tahsilat</th>
-                  <th className="num">Bakiye</th>
+                  {finans && <th className="num">Tahsilat</th>}
+                  {finans && <th className="num">Bakiye</th>}
                   <th className="no-print"></th>
                 </tr>
               </thead>
@@ -229,13 +242,17 @@ export default function CustomerAccount({ id }: { id: string }) {
                     <td style={{ whiteSpace: "nowrap" }}>{new Date(e.createdAt).toLocaleDateString("tr-TR")}</td>
                     <td style={{ fontSize: 12.5 }}>{e.status}</td>
                     <td className="num" style={{ whiteSpace: "nowrap" }}>₺{fmt(e.total)}</td>
-                    <td className="num" style={{ color: "var(--success)", whiteSpace: "nowrap" }}>₺{fmt(e.paid)}</td>
-                    <td
-                      className="num"
-                      style={{ fontWeight: 700, whiteSpace: "nowrap", color: e.balance > 0 ? "var(--error)" : "var(--success)" }}
-                    >
-                      ₺{fmt(e.balance)}
-                    </td>
+                    {finans && (
+                      <td className="num" style={{ color: "var(--success)", whiteSpace: "nowrap" }}>₺{fmt(e.paid)}</td>
+                    )}
+                    {finans && (
+                      <td
+                        className="num"
+                        style={{ fontWeight: 700, whiteSpace: "nowrap", color: e.balance > 0 ? "var(--error)" : "var(--success)" }}
+                      >
+                        ₺{fmt(e.balance)}
+                      </td>
+                    )}
                     <td className="no-print">
                       <Link
                         className="btn small secondary"
@@ -256,7 +273,7 @@ export default function CustomerAccount({ id }: { id: string }) {
         )}
       </div>
 
-      {modalOpen && (
+      {finans && modalOpen && (
         <TahsilatModal
           baglam={{
             customerId: customer.id,
