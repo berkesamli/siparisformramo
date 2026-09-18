@@ -22,6 +22,10 @@ export interface Customer {
   // iskonto alanına otomatik yazılır (personel gerekirse değiştirir).
   iskontoPct?: number;
   note: string;
+  // Mikro Jump'taki (resmi) cari kart — cari kartından ya da sipariş formundan
+  // eşleştirilir; bakiye/vade bilgisi bu koda göre canlı okunur.
+  mikroCariKod?: string;
+  mikroUnvan?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -103,6 +107,10 @@ export function sanitizeCustomer(raw: any, existing?: Customer): Customer {
         )
       ) || undefined,
     note: s(raw?.note, 300),
+    // Eşleştirme alanları formdan gelmezse (eski istemci) mevcut değer korunur;
+    // boş gönderilirse bağlantı kaldırılır.
+    mikroCariKod: raw?.mikroCariKod === undefined ? existing?.mikroCariKod : s(raw.mikroCariKod, 40) || undefined,
+    mikroUnvan: raw?.mikroUnvan === undefined ? existing?.mikroUnvan : s(raw.mikroUnvan, 120) || undefined,
     createdAt: existing?.createdAt || now,
     updatedAt: now,
   };

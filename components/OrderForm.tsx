@@ -16,6 +16,7 @@ import { kurus, kesin, fmtQty, fmtPrice, fmtTL, sayi } from "@/lib/num";
 import { searchStock, toBoy } from "@/lib/stock-search";
 import type { StockItem } from "@/lib/stock-parse";
 import CustomerPicker from "@/components/CustomerPicker";
+import MikroCariKutusu from "@/components/MikroCariKutusu";
 import TechnicalPicker from "@/components/TechnicalPicker";
 import OrderTextImport, { type ParsedLine } from "@/components/OrderTextImport";
 import Icon from "@/components/shell/Icon";
@@ -710,6 +711,9 @@ export default function OrderForm({
                 }
               }}
             />
+            {/* Kayıtlı müşteri seçilince Mikro'daki resmi bakiye/vade uyarısı;
+                eşleşme yoksa buradan tek tıkla bağlanır. */}
+            {customerId && <MikroCariKutusu customerId={customerId} compact />}
           </div>
           <div style={{ flex: "1 1 140px", minWidth: 0 }}>
             <label>Şube</label>

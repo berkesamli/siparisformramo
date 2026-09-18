@@ -11,6 +11,7 @@ import { customerTitle, type Customer } from "@/lib/customers";
 import type { CariEntry } from "@/app/api/musteriler/cari/route";
 import { TAHSILAT_YONTEM_LABELS, type Tahsilat } from "@/lib/tahsilat";
 import TahsilatModal from "./TahsilatModal";
+import MikroCariKutusu from "./MikroCariKutusu";
 
 const fmt = (n: number) =>
   (Number(n) || 0).toLocaleString("tr-TR", {
@@ -130,6 +131,9 @@ export default function CustomerAccount({ id }: { id: string }) {
           {summary.openingAsOf && <> — {summary.openingAsOf} tarihi itibarıyla, Excel&apos;den aktarıldı.</>}
         </p>
       )}
+
+      {/* ---- Mikro (resmi) cari: eşleştirme + canlı bakiye ---- */}
+      <MikroCariKutusu customerId={customer.id} />
 
       {/* ---- Tahsilat hareketleri ---- */}
       <div className="card" style={{ marginTop: 18 }}>
