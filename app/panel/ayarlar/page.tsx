@@ -3,6 +3,7 @@ import { getSessionUser } from "@/lib/auth";
 import { isOwner } from "@/data/users";
 import PageHeader from "@/components/PageHeader";
 import BildirimAyarlari from "@/components/BildirimAyarlari";
+import MikroAyarlari from "@/components/MikroAyarlari";
 
 export const dynamic = "force-dynamic";
 
@@ -18,9 +19,10 @@ export default async function AyarlarPage() {
         icon="bell"
         kicker="Yönetim"
         title="Bildirim Ayarları"
-        subtitle="Sipariş fişlerinin WhatsApp'a PDF olarak gitmesi için kurulum durumu ve test."
+        subtitle="WhatsApp fiş bildirimleri ve Mikro bağlantısı: kurulum durumu ve test."
       />
       <BildirimAyarlari />
+      <MikroAyarlari />
     </main>
   );
 }
