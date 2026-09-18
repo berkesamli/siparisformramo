@@ -177,7 +177,7 @@ const TOOL_SIPARIS: Anthropic.Tool = {
 const TOOL_MUSTERI: Anthropic.Tool = {
   name: "musteri_ara",
   description:
-    "Müşteri defterinde arama yapar. Firma/kişi adı, telefon veya şehirle arayabilir. Sipariş özeti ve, müşteri Mikro cari kartıyla eşleştirilmişse, Mikro'daki resmi bakiye (mikroBakiyeTL: pozitif = müşteri borçlu) ve vadesi geçen tutar döner.",
+    "Müşteri defterinde arama yapar. Firma/kişi adı, telefon veya şehirle arayabilir. Sipariş özeti ve, müşteri Mikro cari kartıyla eşleştirilmişse, Mikro'daki resmi bakiye (mikroBakiyeTL: pozitif = müşteri borçlu) döner.",
   input_schema: {
     type: "object",
     properties: {
@@ -373,7 +373,7 @@ async function runTool(name: string, input: any): Promise<string> {
           else {
             const r = await cariOzet(c.mikroCariKod);
             mikro = r.ok && r.ozet
-              ? { mikroCariKod: c.mikroCariKod, mikroBakiyeTL: Math.round(r.ozet.bakiye), mikroVadesiGecenTL: r.ozet.vadeVar ? Math.round(r.ozet.vadesiGecen) : undefined, mikroSonHareket: r.ozet.sonHareket || undefined }
+              ? { mikroCariKod: c.mikroCariKod, mikroBakiyeTL: Math.round(r.ozet.bakiye), mikroSonHareket: r.ozet.sonHareket || undefined }
               : { mikroCariKod: c.mikroCariKod, mikroBakiye: `okunamadı: ${r.hata || "?"}` };
           }
           return {

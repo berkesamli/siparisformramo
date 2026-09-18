@@ -19,7 +19,7 @@ interface Durum {
 interface CariSatir { cari_kod: string; unvan: string }
 interface TestSonuc { ok: boolean; cariler?: CariSatir[]; hata?: string; error?: string; ham?: string; sutunlar?: string[]; sifreBicimi?: string }
 interface CariOzet {
-  cariKod: string; unvan: string; borc: number; alacak: number; bakiye: number; vadesiGecen: number; sonHareket: string | null;
+  cariKod: string; unvan: string; borc: number; alacak: number; bakiye: number; sonHareket: string | null;
 }
 
 const fmt = (n: number) =>
@@ -92,7 +92,7 @@ export default function MikroAyarlari() {
         <span className="card-head-icon"><Icon name="dollar" size={18} /></span>
         <div>
           <h2>Mikro Bağlantısı</h2>
-          <span className="card-head-sub">Ankara sunucusundaki Mikro Jump 17 API&apos;si · yalnızca okuma (cari bakiye, vade)</span>
+          <span className="card-head-sub">Ankara sunucusundaki Mikro Jump 17 API&apos;si · yalnızca okuma (cari bakiye)</span>
         </div>
         <span className="spacer" />
         <button type="button" className="btn" onClick={() => baglantiDene(false)} disabled={!durum?.kurulu || deniyor}>
@@ -167,7 +167,6 @@ export default function MikroAyarlari() {
           <strong>{ozet.unvan || ozet.cariKod}</strong> <span className="muted">({ozet.cariKod})</span>
           <div className="grid cols-2" style={{ marginTop: 8, gap: 6 }}>
             <div>Bakiye: <strong>₺ {fmt(ozet.bakiye)}</strong> {ozet.bakiye > 0 ? "(müşteri borçlu)" : ozet.bakiye < 0 ? "(müşteri alacaklı)" : ""}</div>
-            <div>Vadesi geçen (yaklaşık): <strong style={{ color: ozet.vadesiGecen > 0 ? "var(--error)" : "inherit" }}>₺ {fmt(ozet.vadesiGecen)}</strong></div>
             <div>Toplam borç: ₺ {fmt(ozet.borc)}</div>
             <div>Toplam alacak: ₺ {fmt(ozet.alacak)}</div>
             <div>Son hareket: {ozet.sonHareket || "—"}</div>
@@ -176,7 +175,7 @@ export default function MikroAyarlari() {
       )}
       {ornekHareket && (
         <details style={{ marginTop: 8 }}>
-          <summary className="muted" style={{ cursor: "pointer", fontSize: 13 }}>Son 3 hareket satırı (sütun tiplerini görmek için)</summary>
+          <summary className="muted" style={{ cursor: "pointer", fontSize: 13 }}>Son 3 hareket satırı (Mikro ekstresiyle karşılaştırmak için)</summary>
           <pre style={{ whiteSpace: "pre-wrap", wordBreak: "break-all", fontSize: 12, background: "var(--surface-2)", padding: 10, borderRadius: 8, marginTop: 6 }}>{ornekHareket}</pre>
         </details>
       )}

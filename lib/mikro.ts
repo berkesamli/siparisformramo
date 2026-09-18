@@ -314,9 +314,7 @@ export interface CariOzet {
   borc: number;
   alacak: number;
   bakiye: number;          // borç − alacak (pozitif: müşteri borçlu)
-  vadesiGecen: number;     // yaklaşık: vadesi geçmiş borç − toplam alacak (0'dan küçük olamaz)
   sonHareket: string | null;
-  vadeVar: boolean;        // false: vade sütunları okunamadı, yalnızca bakiye güvenilir
 }
 
 export interface CariKart { cariKod: string; unvan: string; unvan2?: string }
@@ -350,32 +348,24 @@ export async function cariAra(sorgu: string): Promise<{ ok: boolean; cariler: Ca
 
 const num = (v: unknown) => (typeof v === "number" ? v : Number(String(v ?? "").replace(",", ".")) || 0);
 
-/**
- * "Vadesi geçmiş" koşulu. Mikro'da cha_vade vade GÜN sayısıdır (int); vade
- * tarihi = cha_tarihi + cha_vade gün. Bazı kurulumlarda tarih olarak da
- * tutulabildiğinden ikinci ifade yedektir. Sıfır/boş vade → belge tarihi.
- */
-const VADE_IFADELERI = [
-  "DATEADD(day, ISNULL(h.cha_vade, 0), h.cha_tarihi) < GETDATE()",
-  "h.cha_vade < GETDATE()",
-];
-let tutanVade = -1;
+/** Ağ ya da kimlik hatası: sorgu biçimini değiştirmek işe yaramaz, yedek sorgu denenmez. */
+const zincirDursun = (r: SqlSonuc) => r.status === 0 || /ifre|password|ulaşılamadı|yanıt vermedi/i.test(r.hata || "");
 
-/** Ayarlar kartı için: hareket tablosundan birkaç örnek satır (sütun tiplerini görmek için). */
+/** Ayarlar kartı için: hareket tablosundan son birkaç satır (Mikro ekstresiyle karşılaştırmak için). */
 export async function hareketOrnegi(cariKod: string): Promise<{ ok: boolean; satirlar?: Record<string, unknown>[]; hata?: string }> {
   const kod = sqlStr(cariKod.trim());
   if (!kod) return { ok: false, hata: "Cari kodu boş." };
   const r = await sabitSorgu(
-    `SELECT TOP 3 cha_tarihi, cha_vade, cha_tip, cha_meblag FROM CARI_HESAP_HAREKETLERI WHERE cha_kod = '${kod}' ORDER BY cha_tarihi DESC`
+    `SELECT TOP 3 cha_tarihi, cha_tip, cha_meblag FROM CARI_HESAP_HAREKETLERI WHERE cha_kod = '${kod}' ORDER BY cha_tarihi DESC`
   );
   if (!r.ok) return { ok: false, hata: r.hata };
   return { ok: true, satirlar: r.rows };
 }
 
 /**
- * Cari hesabın bakiyesi ve vadesi geçen tutarı. Mikro'nun CARI_HESAPLAR ve
- * CARI_HESAP_HAREKETLERI tablolarından okunur (cha_tip 0 = borç, 1 = alacak).
- * Vadesi geçen tutar FIFO kapatma yapılmadan hesaplandığı için yaklaşıktır.
+ * Cari hesabın bakiyesi: Mikro'nun CARI_HESAPLAR ve CARI_HESAP_HAREKETLERI
+ * tablolarından borç (cha_tip 0) ve alacak (cha_tip 1) toplamı; bakiye = borç − alacak.
+ * Vade hesabı yapılmaz; kuruşu kuruşuna Mikro ekstresi esastır.
  */
 export async function cariOzet(cariKod: string): Promise<{ ok: boolean; ozet?: CariOzet; hata?: string }> {
   const kod = sqlStr(cariKod.trim());
@@ -390,40 +380,22 @@ export async function cariOzet(cariKod: string): Promise<{ ok: boolean; ozet?: C
     `SELECT c.cari_kod AS cari_kod, c.cari_unvan1 AS unvan, ` +
     `ISNULL(SUM(CASE WHEN h.cha_tip = 0 THEN h.cha_meblag ELSE 0 END), 0) AS borc, ` +
     `ISNULL(SUM(CASE WHEN h.cha_tip = 1 THEN h.cha_meblag ELSE 0 END), 0) AS alacak`;
-  const tam = (vadeGecmis: string) => `${borcAlacak}, ` +
-    `ISNULL(SUM(CASE WHEN h.cha_tip = 0 AND ${vadeGecmis} THEN h.cha_meblag ELSE 0 END), 0) AS vadesi_gecen_borc, ` +
-    `MAX(h.cha_tarihi) AS son_hareket ${govde}`;
-  // Vade ifadeleri sırayla denenir; SQL hatası veren atlanır, tutan hatırlanır.
-  // Ağ (status 0) ya da kimlik (401) hatasında denemeye devam edilmez.
-  const sira = tutanVade >= 0 ? [tutanVade, ...VADE_IFADELERI.map((_, i) => i).filter((i) => i !== tutanVade)] : VADE_IFADELERI.map((_, i) => i);
-  let r: SqlSonuc | undefined;
-  let vadeVar = false;
-  for (const i of sira) {
-    r = await sabitSorgu(tam(VADE_IFADELERI[i]));
-    if (r.ok) { vadeVar = true; tutanVade = i; break; }
-    if (r.status === 0 || r.status === 401) return { ok: false, hata: r.hata };
-  }
-  if (!vadeVar) {
-    // Hiçbir vade ifadesi çalışmadı: yalnızca borç/alacak (vade bilgisi "—")
-    tutanVade = -1;
-    r = await sabitSorgu(`${borcAlacak} ${govde}`);
-  }
-  if (!r || !r.ok) return { ok: false, hata: r?.hata || "Mikro yanıt vermedi." };
+  // Son hareket tarihiyle birlikte; o sütun bu kurulumda sorun çıkarırsa yalnızca borç/alacak
+  let r = await sabitSorgu(`${borcAlacak}, MAX(h.cha_tarihi) AS son_hareket ${govde}`);
+  if (!r.ok && !zincirDursun(r)) r = await sabitSorgu(`${borcAlacak} ${govde}`);
+  if (!r.ok) return { ok: false, hata: r.hata };
   const row = r.rows[0];
   if (!row) return { ok: false, hata: `Mikro'da '${cariKod}' kodlu cari bulunamadı.` };
   if (!("borc" in row) || !("unvan" in row)) {
     return { ok: false, hata: `Yanıt beklenen sütunları taşımıyor. Gelen: ${hamOzet(r.raw, 800)}` };
   }
   const borc = num(row.borc), alacak = num(row.alacak);
-  const vg = vadeVar ? num(row.vadesi_gecen_borc) - alacak : 0;
   const ozet: CariOzet = {
     cariKod: String(row.cari_kod ?? cariKod),
     unvan: String(row.unvan ?? ""),
     borc, alacak,
     bakiye: Math.round((borc - alacak) * 100) / 100,
-    vadesiGecen: Math.max(0, Math.round(vg * 100) / 100),
-    sonHareket: vadeVar && row.son_hareket ? String(row.son_hareket).slice(0, 10) : null,
-    vadeVar,
+    sonHareket: row.son_hareket ? String(row.son_hareket).slice(0, 10) : null,
   };
   onbellekKoy(anahtar, ozet);
   return { ok: true, ozet };
