@@ -15,6 +15,7 @@ interface Durum {
   sifre: boolean;
 }
 interface CariSatir { cari_kod: string; unvan: string }
+interface TestSonuc { ok: boolean; cariler?: CariSatir[]; hata?: string; error?: string; ham?: string; sutunlar?: string[] }
 interface CariOzet {
   cariKod: string; unvan: string; borc: number; alacak: number; bakiye: number; vadesiGecen: number; sonHareket: string | null;
 }
@@ -45,9 +46,10 @@ export default function MikroAyarlari() {
     setDeniyor(true); setCariler(null); setTestHata(""); setTestRaw("");
     try {
       const r = await fetch("/api/mikro/test", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ islem: "baglanti" }) });
-      const d = await r.json();
+      const d = (await r.json()) as TestSonuc;
+      if (d.ham) setTestRaw((d.sutunlar?.length ? `Sütunlar: ${d.sutunlar.join(", ")}\n` : "") + d.ham);
       if (d.ok) setCariler(d.cariler || []);
-      else { setTestHata(d.hata || d.error || "Bağlantı başarısız."); if (d.raw) setTestRaw(JSON.stringify(d.raw).slice(0, 600)); }
+      else setTestHata(d.hata || d.error || "Bağlantı başarısız.");
     } catch { setTestHata("Sunucuya ulaşılamadı."); }
     finally { setDeniyor(false); }
   }
@@ -101,7 +103,6 @@ export default function MikroAyarlari() {
       {testHata && (
         <div className="notice err" style={{ marginTop: 14 }}>
           <strong>Bağlantı başarısız</strong> · {testHata}
-          {testRaw && <pre style={{ whiteSpace: "pre-wrap", fontSize: 12, marginTop: 6 }}>{testRaw}</pre>}
         </div>
       )}
       {cariler && (
@@ -112,6 +113,12 @@ export default function MikroAyarlari() {
             {cariler.length === 0 && <li>Liste boş döndü.</li>}
           </ul>
         </div>
+      )}
+      {testRaw && (
+        <details style={{ marginTop: 10 }}>
+          <summary className="muted" style={{ cursor: "pointer", fontSize: 13 }}>Mikro&apos;nun ham yanıtı (inceleme için)</summary>
+          <pre style={{ whiteSpace: "pre-wrap", wordBreak: "break-all", fontSize: 12, background: "var(--surface-2)", padding: 10, borderRadius: 8, marginTop: 6 }}>{testRaw}</pre>
+        </details>
       )}
 
       <div className="row" style={{ marginTop: 16, gap: 8 }}>
