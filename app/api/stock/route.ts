@@ -6,17 +6,30 @@ import {
   stockBlobConfigured as blobConfigured,
   STOCK_BLOB_PATH as BLOB_PATH,
 } from "@/lib/stock-store";
+import { mikroConfigured } from "@/lib/mikro";
+import { mikroStokCekVeKaydet, stokTazelikDk } from "@/lib/mikro-stok";
+import { memo, bust } from "@/lib/server-cache";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
-// Güncel stok verisi: önce Blob (günlük yüklenen), yoksa repo içindeki snapshot.
+// Güncel stok verisi: önce Blob (Mikro'dan çekilen ya da yüklenen Excel), yoksa
+// repo içindeki snapshot. Çalışan oturumunda veri STOK_TAZELIK_DK'dan eskiyse
+// Mikro'dan tazelenir; başarısız olursa eldeki veri döner (5 dk yeniden denenmez).
 export async function GET() {
   const user = await getSessionUser();
   if (!user) {
     return NextResponse.json({ ok: false, error: "Giriş gerekli." }, { status: 401 });
   }
-  const data = await getStockData();
+  let data = await getStockData();
+  if (user.role === "staff" && mikroConfigured() && blobConfigured()) {
+    const yasDk = (Date.now() - new Date(data.updatedAt).getTime()) / 60_000;
+    if (!(yasDk < stokTazelikDk())) {
+      const r = await memo("stok:mikro-tazele", 5 * 60_000, () => mikroStokCekVeKaydet().catch((e) => ({ ok: false, hata: String(e), kaydedildi: false, data: undefined })));
+      if (r.ok && r.data) { data = r.data; bust("dash:stok"); bust("search:stok"); }
+    }
+  }
   return NextResponse.json({ ok: true, data });
 }
 

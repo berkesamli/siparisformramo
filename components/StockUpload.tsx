@@ -36,7 +36,7 @@ export default function StockUpload() {
   }
 
   return (
-    <div className="card">
+    <div>
       <p style={{ color: "var(--text-2)", marginBottom: 16 }}>
         Muhasebe programından aldığınız günlük stok Excel&apos;ini (xls/xlsx)
         buraya yükleyin. Sistem <strong>DEPO ADI / STOK İSMİ / MİKTAR</strong>{" "}

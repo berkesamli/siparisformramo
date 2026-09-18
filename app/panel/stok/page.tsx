@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getSessionUser } from "@/lib/auth";
 import StockUpload from "@/components/StockUpload";
+import StockMikro from "@/components/StockMikro";
+import { isOwner } from "@/data/users";
 import StockSearch from "@/components/StockSearch";
 import PageHeader from "@/components/PageHeader";
 import Icon from "@/components/shell/Icon";
@@ -14,8 +16,8 @@ export default async function StockAdminPage() {
   return (
     <main className="container">
       <PageHeader
-        title="Günlük Stok Güncelleme"
-        subtitle="Her gün güncel stok Excel'ini yükleyin — müşteri portalındaki stok sorgusu anında güncellenir."
+        title="Stok Güncelleme"
+        subtitle="Stok artık Mikro'dan çekilir; Excel yüklemesi yedek olarak durur. Müşteri portalındaki stok sorgusu anında güncellenir."
         icon="upload"
         actions={
           <Link href="/panel" className="btn secondary">
@@ -24,7 +26,18 @@ export default async function StockAdminPage() {
         }
       />
 
-      <StockUpload />
+      <StockMikro owner={isOwner(user.username)} />
+
+      <div className="card" style={{ marginTop: 16 }}>
+        <div className="card-head">
+          <span className="card-head-icon"><Icon name="upload" size={18} /></span>
+          <div>
+            <h2>Excel ile Yükleme (yedek)</h2>
+            <span className="card-head-sub">Mikro bağlantısı çalışmazsa eski yöntem</span>
+          </div>
+        </div>
+        <StockUpload />
+      </div>
 
       <div className="card" style={{ marginTop: 16 }}>
         <div className="card-head">

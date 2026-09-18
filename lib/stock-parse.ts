@@ -16,7 +16,7 @@ export interface StockData {
   items: StockItem[];
 }
 
-const norm = (s: unknown) =>
+export const norm = (s: unknown) =>
   String(s ?? "")
     .toLocaleUpperCase("tr-TR")
     .replace(/İ/g, "I")
