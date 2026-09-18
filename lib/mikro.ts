@@ -144,7 +144,7 @@ interface SqlSonuc {
   ok: boolean;
   rows: Record<string, unknown>[];
   hata?: string;
-  raw?: unknown;   // satır bulunamadıysa ham yanıt (biçimi öğrenmek için)
+  raw?: unknown;   // ham yanıt (biçimi öğrenmek/ayıklamak için)
 }
 
 /** Modül içi: yalnızca bu dosyada yazılı sabit SELECT sorguları için. */
@@ -153,7 +153,12 @@ async function sabitSorgu(sql: string): Promise<SqlSonuc> {
   if (!r.ok) return { ok: false, rows: [], hata: r.hata, raw: r.data ?? r.raw };
   const rows = satirlariAl(r.data);
   if (!rows) return { ok: false, rows: [], hata: "Yanıtta satır listesi bulunamadı.", raw: r.data };
-  return { ok: true, rows };
+  return { ok: true, rows, raw: r.data };
+}
+
+/** Ham yanıtın kısaltılmış JSON'u (ekranda inceleme için). */
+export function hamOzet(v: unknown, n = 1500): string {
+  try { return JSON.stringify(v).slice(0, n); } catch { return String(v).slice(0, n); }
 }
 
 /** Tek tırnaklı SQL sabiti için kaçış; kod alanları kısa ve satırsız. */
@@ -164,12 +169,15 @@ const sqlStr = (s: string) => s.replace(/'/g, "''").replace(/[\r\n\t]/g, " ").sl
 export interface CariSatir { cari_kod: string; unvan: string }
 
 /** Bağlantı denemesi: ilk 5 cari kart. */
-export async function baglantiTesti(): Promise<{ ok: boolean; cariler: CariSatir[]; hata?: string; raw?: unknown }> {
+export async function baglantiTesti(): Promise<{ ok: boolean; cariler: CariSatir[]; hata?: string; ham?: string; sutunlar?: string[] }> {
   const r = await sabitSorgu("SELECT TOP 5 cari_kod, cari_unvan1 FROM CARI_HESAPLAR ORDER BY cari_kod");
-  if (!r.ok) return { ok: false, cariler: [], hata: r.hata, raw: r.raw };
+  if (!r.ok) return { ok: false, cariler: [], hata: r.hata, ham: hamOzet(r.raw) };
+  const ilk = r.rows[0];
   return {
     ok: true,
     cariler: r.rows.map((x) => ({ cari_kod: String(x.cari_kod ?? ""), unvan: String(x.cari_unvan1 ?? x.unvan ?? "") })),
+    sutunlar: ilk && typeof ilk === "object" ? Object.keys(ilk) : [],
+    ham: hamOzet(r.raw),
   };
 }
 
@@ -205,6 +213,9 @@ export async function cariOzet(cariKod: string): Promise<{ ok: boolean; ozet?: C
   if (!r.ok) return { ok: false, hata: r.hata };
   const row = r.rows[0];
   if (!row) return { ok: false, hata: `Mikro'da '${cariKod}' kodlu cari bulunamadı.` };
+  if (!("borc" in row) || !("unvan" in row)) {
+    return { ok: false, hata: `Yanıt beklenen sütunları taşımıyor. Gelen: ${hamOzet(r.raw, 800)}` };
+  }
   const borc = num(row.borc), alacak = num(row.alacak);
   const vg = num(row.vadesi_gecen_borc) - alacak;
   return {
