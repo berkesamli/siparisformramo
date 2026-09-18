@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { isOwner } from "@/data/users";
-import { mikroAyar, mikroConfigured, baglantiTesti, cariOzet, sifreBicimiAdi } from "@/lib/mikro";
+import { mikroAyar, mikroConfigured, baglantiTesti, cariOzet, sifreBicimiAdi, mikroAyarUyarilari } from "@/lib/mikro";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -23,6 +23,8 @@ export async function GET() {
     yil: a.yil,
     apiKey: Boolean(a.apiKey),
     sifre: Boolean(a.sifre),
+    sifreUzunluk: a.sifre.length,
+    uyarilar: mikroAyarUyarilari(),
   });
 }
 
@@ -46,5 +48,9 @@ export async function POST(req: Request) {
     ? { kullanici: String(d.kullanici || "").slice(0, 40), sifre: String(d.sifre || "").slice(0, 80), firma: String(d.firma || "").slice(0, 40), yil: String(d.yil || "").slice(0, 4) }
     : undefined;
   const r = await baglantiTesti(override);
-  return NextResponse.json({ ...r, sifreBicimi: override ? "deneme bilgileri" : sifreBicimiAdi() });
+  // Tutan varyant başarılı yanıttan gelir; tutmadıysa bunu açıkça söyle (eskiden ilk biçim yazılıyordu, yanıltıyordu)
+  const sifreBicimi = r.bicim
+    ? (override ? `deneme bilgileri · ${r.bicim}` : r.bicim)
+    : (override ? "deneme bilgileri · hiçbir kullanıcı/şifre biçimi tutmadı" : `hiçbir kullanıcı/şifre biçimi tutmadı (ilk denenen: ${sifreBicimiAdi()})`);
+  return NextResponse.json({ ...r, sifreBicimi });
 }

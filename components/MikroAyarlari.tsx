@@ -13,6 +13,8 @@ interface Durum {
   yil: string;
   apiKey: boolean;
   sifre: boolean;
+  sifreUzunluk?: number;
+  uyarilar?: string[];
 }
 interface CariSatir { cari_kod: string; unvan: string }
 interface TestSonuc { ok: boolean; cariler?: CariSatir[]; hata?: string; error?: string; ham?: string; sutunlar?: string[]; sifreBicimi?: string }
@@ -101,8 +103,14 @@ export default function MikroAyarlari() {
         <ul style={{ listStyle: "none" }}>
           <Satir ok={!!durum.url} baslik="Sunucu adresi (MIKRO_API_URL)" aciklama={durum.url || "Tanımlı değil. Örn. https://olgaserver.tailbbb7b8.ts.net"} />
           <Satir ok={durum.apiKey} baslik="API anahtarı (MIKRO_API_KEY)" aciklama={durum.apiKey ? "Tanımlı." : "Mikro'nun verdiği anahtar."} />
-          <Satir ok={!!durum.firma && !!durum.kullanici && durum.sifre} baslik="Firma / kullanıcı / şifre" aciklama={`Veri tabanı: ${durum.firma || "—"} · Kullanıcı: ${durum.kullanici || "—"} · Şifre: ${durum.sifre ? "tanımlı" : "eksik"} · Çalışma yılı: ${durum.yil}`} />
+          <Satir ok={!!durum.firma && !!durum.kullanici && durum.sifre} baslik="Firma / kullanıcı / şifre" aciklama={`Veri tabanı: ${durum.firma || "—"} · Kullanıcı: ${durum.kullanici || "—"} · Şifre: ${durum.sifre ? `tanımlı (${durum.sifreUzunluk ?? "?"} karakter)` : "eksik"} · Çalışma yılı: ${durum.yil}`} />
         </ul>
+      )}
+      {durum && durum.uyarilar && durum.uyarilar.length > 0 && (
+        <div className="notice warn" style={{ marginTop: 12 }}>
+          Vercel&apos;deki şu değerlerin başında/sonunda boşluk, satır sonu ya da tırnak vardı; temizlenerek kullanılıyor: <code>{durum.uyarilar.join(", ")}</code>.
+          İstersen Vercel&apos;de düzeltip Redeploy edersin.
+        </div>
       )}
       {testHata && (
         <div className="notice err" style={{ marginTop: 14 }}>

@@ -27,15 +27,30 @@ export interface MikroAyar {
   yil: string;
 }
 
+/** Vercel'e yapıştırırken kalan baştaki/sondaki boşluk, satır sonu ve sarmalayan tırnakları ayıklar. */
+function envDeger(v: string | undefined): string {
+  let s = (v || "").trim();
+  if (s.length >= 2 && ((s.startsWith('"') && s.endsWith('"')) || (s.startsWith("'") && s.endsWith("'")))) s = s.slice(1, -1).trim();
+  return s;
+}
+
+const ENV_ALANLARI = ["MIKRO_API_KEY", "MIKRO_FIRMA_KODU", "MIKRO_KULLANICI", "MIKRO_SIFRE", "MIKRO_CALISMA_YILI"] as const;
+
+/** Temizlenmek zorunda kalınan ortam değişkenleri (ayarlar kartında uyarı için). */
+export function mikroAyarUyarilari(): string[] {
+  return ENV_ALANLARI.filter((ad) => { const v = process.env[ad]; return v !== undefined && v !== envDeger(v); });
+}
+
 export function mikroAyar(): MikroAyar {
-  const url = (process.env.MIKRO_API_URL || "").trim().replace(/\/+$/, "");
+  const url = envDeger(process.env.MIKRO_API_URL).replace(/\/+$/, "");
   return {
     url,
-    apiKey: (process.env.MIKRO_API_KEY || "").trim(),
-    firma: (process.env.MIKRO_FIRMA_KODU || "").trim(),
-    kullanici: (process.env.MIKRO_KULLANICI || "").trim(),
-    sifre: process.env.MIKRO_SIFRE || "",
-    yil: (process.env.MIKRO_CALISMA_YILI || "").trim() || istanbulGun().slice(0, 4),
+    apiKey: envDeger(process.env.MIKRO_API_KEY),
+    firma: envDeger(process.env.MIKRO_FIRMA_KODU),
+    kullanici: envDeger(process.env.MIKRO_KULLANICI),
+    // Şifre de temizlenir: sondaki görünmez satır sonu MD5'i tamamen değiştirir ("Şifre Hatalı")
+    sifre: envDeger(process.env.MIKRO_SIFRE),
+    yil: envDeger(process.env.MIKRO_CALISMA_YILI) || istanbulGun().slice(0, 4),
   };
 }
 
@@ -114,6 +129,7 @@ export interface MikroYanit<T = unknown> {
   data?: T;
   raw?: string;   // JSON çözülemediyse ham metin (kısaltılmış)
   hata?: string;
+  bicim?: string; // tutan kimlik varyantının adı (başarılı yanıtta)
 }
 
 const ZAMAN_ASIMI_MS = 15000;
@@ -171,7 +187,7 @@ async function mikroPost<T = unknown>(metot: string, govde: Record<string, unkno
     return { ok: false, status: zarf.kod || res.status, data: (zarf.icerik ?? data) as T, raw: data === undefined ? text.slice(0, 500) : undefined, hata: hataMetni };
   }
   if (data === undefined) return { ok: false, status: res.status, raw: text.slice(0, 500), hata: "Mikro JSON yerine metin döndürdü." };
-  return { ok: true, status: res.status, data: (zarf.icerik ?? data) as T };
+  return { ok: true, status: res.status, data: (zarf.icerik ?? data) as T, bicim: sifreBicimiAdi(bicim) };
 }
 
 /** Mikro Desktop API zarfını açar; zarf yoksa veriyi olduğu gibi döndürür. */
@@ -206,9 +222,20 @@ function mikroHataMetni(data: unknown): string {
   return "";
 }
 
-/** Yanıttan satır dizisini bulur: [] | {Data:[]} | {data:[]} | {Sonuc:[]} | {Result:[]} | {rows:[]} … */
+/**
+ * Yanıttan satır dizisini bulur. Mikro Desktop API (17.07) SqlVeriOkuV2 için
+ * Data = [{"SQLResult1":[{…satır…},…]}] döndürür; tek sorguda ilk sonuç
+ * kümesi açılır. Diğer biçimler: [] | {Data:[]} | {Sonuc:[]} | {rows:[]} …
+ */
 function satirlariAl(data: unknown): Record<string, unknown>[] | null {
-  if (Array.isArray(data)) return data as Record<string, unknown>[];
+  if (Array.isArray(data)) {
+    const ilk = data[0] as Record<string, unknown> | undefined;
+    if (data.length === 1 && ilk && typeof ilk === "object" && !Array.isArray(ilk)) {
+      const anahtar = Object.keys(ilk).find((k) => /^SQLResult\d*$/i.test(k) && Array.isArray(ilk[k]));
+      if (anahtar) return ilk[anahtar] as Record<string, unknown>[];
+    }
+    return data as Record<string, unknown>[];
+  }
   if (data && typeof data === "object") {
     const o = data as Record<string, unknown>;
     for (const k of ["Data", "data", "Sonuc", "sonuc", "Result", "result", "rows", "Rows", "Kayitlar", "Liste", "value"]) {
@@ -221,6 +248,7 @@ function satirlariAl(data: unknown): Record<string, unknown>[] | null {
 }
 
 interface SqlSonuc {
+  bicim?: string;
   ok: boolean;
   rows: Record<string, unknown>[];
   hata?: string;
@@ -233,7 +261,7 @@ async function sabitSorgu(sql: string, o?: KimlikOverride): Promise<SqlSonuc> {
   if (!r.ok) return { ok: false, rows: [], hata: r.hata, raw: r.data ?? r.raw };
   const rows = satirlariAl(r.data);
   if (!rows) return { ok: false, rows: [], hata: "Yanıtta satır listesi bulunamadı.", raw: r.data };
-  return { ok: true, rows, raw: r.data };
+  return { ok: true, rows, raw: r.data, bicim: r.bicim };
 }
 
 /** Ham yanıtın kısaltılmış JSON'u (ekranda inceleme için). */
@@ -249,7 +277,7 @@ const sqlStr = (s: string) => s.replace(/'/g, "''").replace(/[\r\n\t]/g, " ").sl
 export interface CariSatir { cari_kod: string; unvan: string }
 
 /** Bağlantı denemesi: ilk 5 cari kart. */
-export async function baglantiTesti(o?: KimlikOverride): Promise<{ ok: boolean; cariler: CariSatir[]; hata?: string; ham?: string; sutunlar?: string[] }> {
+export async function baglantiTesti(o?: KimlikOverride): Promise<{ ok: boolean; cariler: CariSatir[]; hata?: string; ham?: string; sutunlar?: string[]; bicim?: string }> {
   const r = await sabitSorgu("SELECT TOP 5 cari_kod, cari_unvan1 FROM CARI_HESAPLAR ORDER BY cari_kod", o);
   if (!r.ok) return { ok: false, cariler: [], hata: r.hata, ham: hamOzet(r.raw) };
   const ilk = r.rows[0];
@@ -258,6 +286,7 @@ export async function baglantiTesti(o?: KimlikOverride): Promise<{ ok: boolean; 
     cariler: r.rows.map((x) => ({ cari_kod: String(x.cari_kod ?? ""), unvan: String(x.cari_unvan1 ?? x.unvan ?? "") })),
     sutunlar: ilk && typeof ilk === "object" ? Object.keys(ilk) : [],
     ham: hamOzet(r.raw),
+    bicim: r.bicim,
   };
 }
 
