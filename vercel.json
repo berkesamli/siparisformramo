@@ -3,6 +3,10 @@
     {
       "path": "/api/yedek",
       "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/stock/mikro",
+      "schedule": "30 4 * * 1-6"
     }
   ]
 }

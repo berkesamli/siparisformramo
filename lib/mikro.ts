@@ -135,13 +135,13 @@ export interface MikroYanit<T = unknown> {
 const ZAMAN_ASIMI_MS = 15000;
 
 /** Ham metot çağrısı: POST {url}/Api/APIMethods/{metot}. "Şifre Hatalı"da sıradaki şifre biçimiyle yeniden dener. */
-async function mikroPost<T = unknown>(metot: string, govde: Record<string, unknown>, bicim = tutanBicim, o?: KimlikOverride): Promise<MikroYanit<T>> {
+async function mikroPost<T = unknown>(metot: string, govde: Record<string, unknown>, bicim = tutanBicim, o?: KimlikOverride, zamanAsimi = ZAMAN_ASIMI_MS): Promise<MikroYanit<T>> {
   if (!mikroConfigured()) {
     return { ok: false, status: 0, hata: "Mikro API ayarları eksik (MIKRO_API_URL, MIKRO_API_KEY, MIKRO_FIRMA_KODU, MIKRO_KULLANICI, MIKRO_SIFRE)." };
   }
   const a = mikroAyar();
   const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort(), ZAMAN_ASIMI_MS);
+  const t = setTimeout(() => ctrl.abort(), zamanAsimi);
   let res: Response;
   try {
     res = await fetch(`${a.url}/Api/APIMethods/${metot}`, {
@@ -157,7 +157,7 @@ async function mikroPost<T = unknown>(metot: string, govde: Record<string, unkno
     return {
       ok: false, status: 0,
       hata: /abort/i.test(m)
-        ? "Mikro sunucusu 15 saniyede yanıt vermedi (Funnel ya da Desktop API servisi kapalı olabilir)."
+        ? `Mikro sunucusu ${Math.round(zamanAsimi / 1000)} saniyede yanıt vermedi (Funnel ya da Desktop API servisi kapalı olabilir).`
         : `Mikro sunucusuna ulaşılamadı: ${m}`,
     };
   }
@@ -179,7 +179,7 @@ async function mikroPost<T = unknown>(metot: string, govde: Record<string, unkno
         const anahtar = JSON.stringify(mikroKimlik(i, o));
         if (denenen.has(anahtar)) continue;
         denenen.add(anahtar);
-        const tekrar = await mikroPost<T>(metot, govde, i, o);
+        const tekrar = await mikroPost<T>(metot, govde, i, o, zamanAsimi);
         if (tekrar.ok) { if (!o) { tutanBicim = i; console.log(`Mikro: kimlik varyantı '${sifreBicimiAdi()}' tuttu.`); } return tekrar; }
         if (!/ifre|password/i.test(tekrar.hata || "")) { hataMetni = tekrar.hata || hataMetni; break; }
       }
@@ -257,8 +257,8 @@ interface SqlSonuc {
 }
 
 /** Modül içi: yalnızca bu dosyada yazılı sabit SELECT sorguları için. */
-async function sabitSorgu(sql: string, o?: KimlikOverride): Promise<SqlSonuc> {
-  const r = await mikroPost("SqlVeriOkuV2", { SQLSorgu: sql }, tutanBicim, o);
+async function sabitSorgu(sql: string, o?: KimlikOverride, zamanAsimi?: number): Promise<SqlSonuc> {
+  const r = await mikroPost("SqlVeriOkuV2", { SQLSorgu: sql }, tutanBicim, o, zamanAsimi);
   if (!r.ok) return { ok: false, rows: [], hata: r.hata, raw: r.data ?? r.raw, status: r.status };
   const rows = satirlariAl(r.data);
   if (!rows) return { ok: false, rows: [], hata: "Yanıtta satır listesi bulunamadı.", raw: r.data };
@@ -399,4 +399,100 @@ export async function cariOzet(cariKod: string): Promise<{ ok: boolean; ozet?: C
   };
   onbellekKoy(anahtar, ozet);
   return { ok: true, ozet };
+}
+
+// ---------- Stok: depo bazında miktar (günlük Excel'in yerine) ----------
+//
+// Excel'deki "DEPO ADI / STOK İSMİ / MİKTAR" raporunun karşılığı: STOKLAR
+// tablosundaki kalemler için Ankara ve İstanbul depolarındaki güncel miktar.
+// Depo numaraları DEPOLAR tablosundan adına göre bulunur (adında ANKARA /
+// İSTANBUL geçen depolar toplanır); MIKRO_DEPO_ANKARA / MIKRO_DEPO_ISTANBUL
+// ("1,3" gibi) tanımlıysa onlar kullanılır. Miktar önce Mikro'nun kendi
+// fonksiyonuyla (fn_DepodakiMiktar), o yoksa STOK_HAREKETLERI toplamıyla okunur.
+
+export interface MikroDepo { no: number; ad: string }
+export interface MikroStokSatir { kod: string; isim: string; birim: string; ankara: number; istanbul: number }
+export interface MikroStokSonuc {
+  ok: boolean;
+  hata?: string;
+  depolar: MikroDepo[];
+  ankaraDepolar: number[];
+  istanbulDepolar: number[];
+  yontem?: string;
+  satirlar: MikroStokSatir[];
+  sureMs: number;
+}
+
+const STOK_ZAMAN_ASIMI_MS = 50_000;
+const depoNoListesi = (v: string | undefined) =>
+  envDeger(v).split(/[,; ]+/).map((x) => parseInt(x, 10)).filter((n) => Number.isInteger(n) && n >= 0);
+const depoAdiNorm = (s: string) => String(s || "").toLocaleUpperCase("tr-TR").replace(/İ/g, "I");
+
+export async function depoListesi(): Promise<{ ok: boolean; depolar: MikroDepo[]; hata?: string }> {
+  const r = await sabitSorgu("SELECT dep_no, dep_adi FROM DEPOLAR ORDER BY dep_no");
+  if (!r.ok) return { ok: false, depolar: [], hata: r.hata };
+  const depolar = r.rows
+    .map((x) => ({ no: Number(x.dep_no), ad: String(x.dep_adi ?? "").trim() }))
+    .filter((d) => Number.isInteger(d.no));
+  return { ok: true, depolar };
+}
+
+/** Ankara / İstanbul depo numaraları: önce ortam değişkeni, yoksa DEPOLAR'daki ad eşleşmesi. */
+async function subeDepolari(): Promise<{ depolar: MikroDepo[]; ankara: number[]; istanbul: number[]; hata?: string }> {
+  const envAnk = depoNoListesi(process.env.MIKRO_DEPO_ANKARA);
+  const envIst = depoNoListesi(process.env.MIKRO_DEPO_ISTANBUL);
+  const d = await depoListesi();
+  const depolar = d.depolar;
+  const ankara = envAnk.length ? envAnk : depolar.filter((x) => depoAdiNorm(x.ad).includes("ANKARA")).map((x) => x.no);
+  const istanbul = envIst.length ? envIst : depolar.filter((x) => depoAdiNorm(x.ad).includes("ISTANBUL")).map((x) => x.no);
+  return { depolar, ankara, istanbul, hata: d.ok ? undefined : d.hata };
+}
+
+let tutanStokYontemi = 0;
+
+/** Depo bazında güncel miktarlar; adında PROF geçen kalemler (Excel'deki PROFİL süzgeciyle aynı). */
+export async function stokMiktarlari(): Promise<MikroStokSonuc> {
+  const t0 = Date.now();
+  const sd = await subeDepolari();
+  const bos: MikroStokSonuc = { ok: false, depolar: sd.depolar, ankaraDepolar: sd.ankara, istanbulDepolar: sd.istanbul, satirlar: [], sureMs: 0 };
+  if (!sd.ankara.length && !sd.istanbul.length) {
+    return { ...bos, hata: sd.hata ? `Depo listesi okunamadı: ${sd.hata}` : `Adında ANKARA ya da İSTANBUL geçen depo bulunamadı (${sd.depolar.map((d) => `${d.no}: ${d.ad}`).join(", ") || "depo yok"}). MIKRO_DEPO_ANKARA / MIKRO_DEPO_ISTANBUL ile numara verin.`, sureMs: Date.now() - t0 };
+  }
+  const depolar = Array.from(new Set([...sd.ankara, ...sd.istanbul]));
+  // Sütun adları d<no>; depo numaraları tam sayı olarak doğrulandı
+  const fonksiyonlu =
+    `SELECT s.sto_kod AS kod, s.sto_isim AS isim, s.sto_birim1_ad AS birim, ` +
+    depolar.map((n) => `dbo.fn_DepodakiMiktar(s.sto_kod, ${n}, GETDATE()) AS d${n}`).join(", ") +
+    ` FROM STOKLAR s WHERE s.sto_isim LIKE '%PROF%'`;
+  const hareketli =
+    `SELECT s.sto_kod AS kod, s.sto_isim AS isim, s.sto_birim1_ad AS birim, ` +
+    depolar.map((n) =>
+      `ISNULL(SUM(CASE WHEN h.sth_tip = 0 AND h.sth_giris_depo_no = ${n} THEN h.sth_miktar ELSE 0 END), 0) - ` +
+      `ISNULL(SUM(CASE WHEN h.sth_tip = 1 AND h.sth_cikis_depo_no = ${n} THEN h.sth_miktar ELSE 0 END), 0) AS d${n}`
+    ).join(", ") +
+    ` FROM STOKLAR s LEFT JOIN STOK_HAREKETLERI h ON h.sth_stok_kod = s.sto_kod WHERE s.sto_isim LIKE '%PROF%' GROUP BY s.sto_kod, s.sto_isim, s.sto_birim1_ad`;
+  const yontemler = [
+    { ad: "fn_DepodakiMiktar", sql: fonksiyonlu },
+    { ad: "STOK_HAREKETLERI toplamı", sql: hareketli },
+  ];
+  const sira = tutanStokYontemi ? [tutanStokYontemi, ...yontemler.map((_, i) => i).filter((i) => i !== tutanStokYontemi)] : yontemler.map((_, i) => i);
+  let r: SqlSonuc | undefined;
+  let yontem = "";
+  for (const i of sira) {
+    r = await sabitSorgu(yontemler[i].sql, undefined, STOK_ZAMAN_ASIMI_MS);
+    if (r.ok) { yontem = yontemler[i].ad; tutanStokYontemi = i; break; }
+    if (zincirDursun(r)) return { ...bos, hata: r.hata, sureMs: Date.now() - t0 };
+  }
+  if (!r || !r.ok) return { ...bos, hata: r?.hata || "Stok sorgusu yanıt vermedi.", sureMs: Date.now() - t0 };
+  const satirlar: MikroStokSatir[] = r.rows.map((x) => {
+    const topla = (nolar: number[]) => nolar.reduce((s, n) => s + num(x[`d${n}`]), 0);
+    return {
+      kod: String(x.kod ?? "").trim(),
+      isim: String(x.isim ?? "").trim(),
+      birim: String(x.birim ?? "").trim(),
+      ankara: Math.round(topla(sd.ankara) * 100) / 100,
+      istanbul: Math.round(topla(sd.istanbul) * 100) / 100,
+    };
+  }).filter((x) => x.kod || x.isim);
+  return { ok: true, depolar: sd.depolar, ankaraDepolar: sd.ankara, istanbulDepolar: sd.istanbul, yontem, satirlar, sureMs: Date.now() - t0 };
 }

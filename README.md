@@ -63,6 +63,8 @@ Eski Apps Script kodu `legacy-apps-script/` klasöründe korunmaktadır.
 | `PATRON_WHATSAPP`, `WHATSAPP_TEMPLATE_SIPARIS`, `WHATSAPP_TEMPLATE_DIL` | — | Her siparişin fiş PDF'i WhatsApp Cloud API ile bu alıcılara **dosya olarak** gider (`05325099442:Özgür Bey,05336610287:Gültekin Bey` — iki nokta sonrası şablondaki hitap); onaylı şablon ad(lar)ı (`siparis_fisi,siparis_fisi_v2`, sırayla denenir) ve dili (`tr`). Kurulum durumu ve test: `/panel/ayarlar` (sahipler) |
 | `WHATSAPP_TEMPLATE_MUSTERI`, `WHATSAPP_VERIFY_TOKEN`, `WHATSAPP_APP_SECRET` | — | Müşteriye fiş: sipariş formunda "müşteriye bildir" işaretliyse önce WhatsApp ile PDF (2 değişkenli şablon), Meta "teslim edilemedi" derse webhook (`/api/whatsapp/webhook`) SMS'e düşer. Doğrulama metni ve isteğe bağlı imza gizi |
 | `MIKRO_API_URL`, `MIKRO_API_KEY`, `MIKRO_FIRMA_KODU`, `MIKRO_KULLANICI`, `MIKRO_SIFRE`, `MIKRO_CALISMA_YILI` | — | Mikro Jump 17 Desktop API (yalnızca okuma): cari bakiye sorgusu. Bağlantı denemesi `/panel/ayarlar` (sahipler) |
+| `MIKRO_DEPO_ANKARA`, `MIKRO_DEPO_ISTANBUL` | DEPOLAR'daki ada göre | Mikro'dan stok çekerken şubeye sayılacak depo numaraları (`1,3` gibi). Boşsa adında ANKARA / İSTANBUL geçen depolar |
+| `STOK_TAZELIK_DK` | 120 | Çalışan stok sorgularken yayındaki veri bu kadar dakikadan eskiyse Mikro'dan tazelenir; ayrıca cron her sabah 07:30'da çeker (`/api/stock/mikro`) |
 | `BOLGE_SORUMLULARI` | Ankara: Ramazan Kaypan, İstanbul: Alaattin Yıldız, Taşra: Murat Gündüz | Müşteri satış bölgeleriyle ilgilenen satışçılar: `ankara=…;istanbul=…;tasra=…` |
 
 ## Kullanıcılar ve Roller
