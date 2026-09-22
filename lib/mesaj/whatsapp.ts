@@ -129,7 +129,7 @@ export async function whatsappDurum(): Promise<{ ok: boolean; numara?: string; a
  * Uygulamanın WhatsApp Business hesabına (WABA) webhook aboneliği. WHATSAPP_WABA_ID
  * tanımlıysa kontrol edilir; onar=true ile abone yapılır (gelen mesajlar ancak böyle düşer).
  */
-export async function wabaAbonelik(onar = false): Promise<{ ok: boolean; wabaId?: string; abone?: boolean; alanlar?: string[]; hata?: string }> {
+export async function wabaAbonelik(onar = false): Promise<{ ok: boolean; wabaId?: string; abone?: boolean; alanlar?: string[]; uygulamalar?: { id: string; ad: string; alanlar: string[] }[]; hata?: string }> {
   const waba = (process.env.WHATSAPP_WABA_ID || "").trim();
   if (!waba) return { ok: false, hata: "WHATSAPP_WABA_ID tanımlı değil (Meta → WhatsApp → API Setup → WhatsApp Business Account ID)." };
   if (!token()) return { ok: false, hata: "WHATSAPP_TOKEN yok." };
@@ -142,8 +142,11 @@ export async function wabaAbonelik(onar = false): Promise<{ ok: boolean; wabaId?
     const r = await fetch(`${GRAPH}/${waba}/subscribed_apps`, { headers: { Authorization: `Bearer ${token()}` }, signal: AbortSignal.timeout(10_000) });
     const j = (await r.json().catch(() => ({}))) as { data?: { whatsapp_business_api_data?: { name?: string; id?: string }; subscribed_fields?: string[] }[]; error?: { message?: string; code?: number } };
     if (!r.ok) return { ok: false, wabaId: waba, hata: `${j.error?.message || `HTTP ${r.status}`}${j.error?.code ? ` (kod ${j.error.code})` : ""}` };
+    // Not: WhatsApp hesabı aboneliğinde Meta çoğu zaman alan listesi DÖNDÜRMEZ; boş liste "eksik" demek değildir.
+    // "messages" alanı uygulama panelinde (WhatsApp → Configuration → Webhook fields) açılır.
     const alanlar = [...new Set((j.data || []).flatMap((d) => d.subscribed_fields || []))];
-    return { ok: true, wabaId: waba, abone: (j.data || []).length > 0, alanlar };
+    const uygulamalar = (j.data || []).map((d) => ({ id: d.whatsapp_business_api_data?.id || "?", ad: d.whatsapp_business_api_data?.name || "?", alanlar: d.subscribed_fields || [] }));
+    return { ok: true, wabaId: waba, abone: uygulamalar.length > 0, alanlar, uygulamalar };
   } catch (e) {
     return { ok: false, wabaId: waba, hata: (e as Error)?.message || String(e) };
   }
