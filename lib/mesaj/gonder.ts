@@ -6,7 +6,7 @@ import { konusma, konusmaBulVeyaOlustur, konusmaGuncelle, mesajEkle } from "./db
 import { gmailConfigured, gmailGonder } from "./gmail";
 import { instagramConfigured, instagramGonder } from "./instagram";
 import { musteriEsle } from "./musteri-esle";
-import { whatsappConfigured, whatsappGonder, whatsappSablonHazir } from "./whatsapp";
+import { sablonParam, whatsappConfigured, whatsappGonder, whatsappSablonHazir } from "./whatsapp";
 import type { KanalDurumu, Konusma, Mesaj } from "./tur";
 
 export function kanalDurumu(): KanalDurumu {
@@ -31,7 +31,9 @@ async function gonderVeKaydet(k: Konusma, govde: string, kullanici: Kullanici, t
     disId = r.disId; yontem = "eposta";
     await konusmaGuncelle(k.id, { meta: { ...k.meta, references: r.references } });
   }
-  const { mesaj } = await mesajEkle({ konusmaId: k.id, yon: "giden", govde, disId, gonderen: kullanici.name, taslakAi, durum: "gonderildi" });
+  // Şablonla gidince satır sonları boşluğa döner; kayıt, müşterinin gerçekten gördüğü metin olsun.
+  const kayit = yontem === "sablon" ? sablonParam(govde) : govde;
+  const { mesaj } = await mesajEkle({ konusmaId: k.id, yon: "giden", govde: kayit, disId, gonderen: kullanici.name, taslakAi, durum: "gonderildi" });
   return { mesaj, yontem, sablon };
 }
 

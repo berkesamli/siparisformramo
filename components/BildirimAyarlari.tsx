@@ -133,7 +133,7 @@ export default function BildirimAyarlari() {
           <ul style={{ listStyle: "none" }}>
             <Satir ok={!!durum.musteriSablon} baslik="Müşteri şablonu (WHATSAPP_TEMPLATE_MUSTERI)" aciklama={durum.musteriSablon ? `${durum.musteriSablon} · dil: ${durum.dil}` : "Tanımlı değil: müşteriye yalnızca SMS gider. Meta'da 2 değişkenli, belge başlıklı şablonu (örn. musteri_siparis_fisi) onaylatıp adını girin."} />
             <Satir ok={durum.webhook} baslik="Teslim webhook'u (WHATSAPP_VERIFY_TOKEN)" aciklama={durum.webhook ? "Tanımlı. Meta uygulamasında Callback URL: https://olgasiparis.com/api/whatsapp/webhook · alan: messages" : "Tanımlı değil: numarada WhatsApp yoksa SMS'e düşülemez. Rastgele bir doğrulama metni belirleyip Vercel'e ve Meta'daki webhook ayarına aynı değeri girin."} />
-            <Satir ok={durum.imza} baslik="Webhook imzası (WHATSAPP_APP_SECRET)" aciklama={durum.imza ? "Tanımlı: gelen istekler Meta imzasıyla doğrulanıyor." : "İsteğe bağlı. Meta uygulaması → App settings → Basic → App secret değerini girerseniz webhook istekleri imzayla doğrulanır."} />
+            <Satir ok={durum.imza} baslik="Webhook imzası (WHATSAPP_APP_SECRET)" aciklama={durum.imza ? "Tanımlı: gelen istekler Meta imzasıyla doğrulanıyor." : "ZORUNLU: tanımlı değilken Meta'dan gelen olaylar (teslim durumu ve gelen mesajlar) güvenlik için reddedilir. Meta uygulaması → App settings → Basic → App secret değerini Vercel'e girin."} />
           </ul>
         )}
         <div className="row" style={{ marginTop: 12, gap: 8 }}>

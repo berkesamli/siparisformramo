@@ -13,9 +13,10 @@ export const dynamic = "force-dynamic";
 // Gelen müşteri mesajları (messages) DATABASE_URL tanımlıysa gelen kutusuna
 // (lib/mesaj) yazılır; giden mesajların teslim/okundu durumu da oraya işlenir.
 //
-// Güvenlik: WHATSAPP_APP_SECRET tanımlıysa X-Hub-Signature-256 doğrulanır.
-// Tanımlı değilse yalnızca bizim yazdığımız (tahmin edilemez) wamid'lere
-// ait kayıtlar işlenir; sahte bir istek en fazla boşa döner.
+// Güvenlik: POST istekleri X-Hub-Signature-256 ile WHATSAPP_APP_SECRET (ya da
+// META_APP_SECRET) üzerinden doğrulanır. Gizli anahtar tanımlı değilse HİÇBİR
+// POST işlenmez (401): gelen mesajlar doğrudan gelen kutusuna yazıldığı için
+// imzasız istek kabul etmek sahte müşteri mesajı enjekte edilmesine yol açar.
 
 export async function GET(req: Request) {
   const url = new URL(req.url);
@@ -36,20 +37,22 @@ interface Durum {
   errors?: { code?: number; title?: string; message?: string; error_data?: { details?: string } }[];
 }
 
+const appSecret = () => (process.env.WHATSAPP_APP_SECRET || process.env.META_APP_SECRET || "").trim();
+
 function imzaGecerli(raw: string, header: string | null): boolean {
-  const secret = (process.env.WHATSAPP_APP_SECRET || "").trim();
-  if (!secret) return true; // imza zorunlu değil (bkz. üstteki not)
-  if (!header || !header.startsWith("sha256=")) return false;
-  const beklenen = createHmac("sha256", secret).update(raw, "utf8").digest("hex");
-  const gelen = header.slice(7);
-  if (gelen.length !== beklenen.length) return false;
-  return timingSafeEqual(Buffer.from(gelen, "hex"), Buffer.from(beklenen, "hex"));
+  const secret = appSecret();
+  if (!secret) return false; // gizli anahtar girilmeden POST kabul edilmez (fail-closed)
+  if (!header || !/^sha256=[0-9a-f]{64}$/i.test(header)) return false;
+  const beklenen = createHmac("sha256", secret).update(raw, "utf8").digest();
+  return timingSafeEqual(Buffer.from(header.slice(7), "hex"), beklenen);
 }
 
 export async function POST(req: Request) {
   const raw = await req.text();
   if (!imzaGecerli(raw, req.headers.get("x-hub-signature-256"))) {
-    await izKaydet("whatsapp", "imza-red", "Meta'dan olay geldi ama imza doğrulanamadı (WHATSAPP_APP_SECRET uyuşmuyor).");
+    await izKaydet("whatsapp", "imza-red", appSecret()
+      ? "Meta'dan olay geldi ama imza doğrulanamadı: Vercel'deki WHATSAPP_APP_SECRET, Meta uygulamasının App Secret'ıyla aynı değil."
+      : "Meta'dan olay geldi ama WHATSAPP_APP_SECRET tanımlı olmadığı için reddedildi. Meta → App settings → Basic → App secret değerini Vercel'e girin.");
     return NextResponse.json({ ok: false, error: "İmza geçersiz." }, { status: 401 });
   }
   let body: { entry?: { changes?: { field?: string; value?: { statuses?: Durum[]; messages?: unknown[] } }[] }[] } | null = null;

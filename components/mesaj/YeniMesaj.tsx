@@ -123,7 +123,7 @@ export default function YeniMesaj({ kanallar, onClose, onSent }: {
               aria-label="Mesaj"
             />
             <p className="muted" style={{ fontSize: 12, margin: "6px 0 10px" }}>
-              Müşteri son 24 saatte bize yazdıysa mesaj olduğu gibi gider; yazmadıysa Meta onaylı şablonun içinde gider ve müşteri yanıtlayınca serbest yazışma açılır.
+              Müşteri son 24 saatte bize yazdıysa mesaj olduğu gibi gider; yazmadıysa Meta onaylı şablonun içinde gider (satır sonları tek boşluk olur) ve müşteri yanıtlayınca serbest yazışma açılır.
             </p>
             {hata && <div className="notice err" style={{ margin: "0 0 10px" }}>{hata}</div>}
             <div className="ib-compose-actions">

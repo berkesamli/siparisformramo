@@ -12,7 +12,7 @@ export const maxDuration = 60;
 // Meta webhook'u — Instagram mesajları (object: "instagram"). Aynı Meta
 // uygulamasındaki WhatsApp olayları da buraya yönlendirilirse işlenir.
 //   GET  — doğrulama (hub.verify_token = INSTAGRAM_VERIFY_TOKEN ya da WHATSAPP_VERIFY_TOKEN)
-//   POST — olaylar; META_APP_SECRET / WHATSAPP_APP_SECRET tanımlıysa imza doğrulanır.
+//   POST — olaylar; META_APP_SECRET / WHATSAPP_APP_SECRET ZORUNLU: imza doğrulanmadan işlenmez (yoksa 401).
 
 const verifyToken = () => (process.env.INSTAGRAM_VERIFY_TOKEN || process.env.WHATSAPP_VERIFY_TOKEN || "").trim();
 const appSecret = () => (process.env.META_APP_SECRET || process.env.WHATSAPP_APP_SECRET || "").trim();
@@ -28,11 +28,10 @@ export async function GET(req: Request) {
 
 function imzaGecerli(raw: string, header: string | null): boolean {
   const secret = appSecret();
-  if (!secret) return true;
-  if (!header || !header.startsWith("sha256=")) return false;
-  const beklenen = createHmac("sha256", secret).update(raw, "utf8").digest("hex");
-  const gelen = header.slice(7);
-  return gelen.length === beklenen.length && timingSafeEqual(Buffer.from(gelen, "hex"), Buffer.from(beklenen, "hex"));
+  if (!secret) return false; // gizli anahtar girilmeden POST kabul edilmez (fail-closed)
+  if (!header || !/^sha256=[0-9a-f]{64}$/i.test(header)) return false;
+  const beklenen = createHmac("sha256", secret).update(raw, "utf8").digest();
+  return timingSafeEqual(Buffer.from(header.slice(7), "hex"), beklenen);
 }
 
 interface Govde {
@@ -43,7 +42,9 @@ interface Govde {
 export async function POST(req: Request) {
   const raw = await req.text();
   if (!imzaGecerli(raw, req.headers.get("x-hub-signature-256"))) {
-    await izKaydet("instagram", "imza-red", "Meta'dan olay geldi ama imza doğrulanamadı (META_APP_SECRET / WHATSAPP_APP_SECRET uyuşmuyor).");
+    await izKaydet("instagram", "imza-red", appSecret()
+      ? "Meta'dan olay geldi ama imza doğrulanamadı: META_APP_SECRET / WHATSAPP_APP_SECRET, Meta uygulamasının App Secret'ıyla aynı değil."
+      : "Meta'dan olay geldi ama META_APP_SECRET / WHATSAPP_APP_SECRET tanımlı olmadığı için reddedildi. Meta → App settings → Basic → App secret değerini Vercel'e girin.");
     return NextResponse.json({ ok: false, error: "İmza geçersiz." }, { status: 401 });
   }
   let body: Govde | null = null;

@@ -257,10 +257,12 @@ export async function konusma(id: string): Promise<Konusma | null> {
   return r.rows[0] ? konusmaSatir(r.rows[0]) : null;
 }
 
+/** Konuşmanın en YENİ n mesajı, kronolojik (eski → yeni) sırayla. */
 export async function mesajlar(konusmaId: string, limit = 200): Promise<Mesaj[]> {
   const p = await db();
-  const r = await p.query(`SELECT * FROM mesaj WHERE konusma_id = $1 ORDER BY at ASC LIMIT ${Math.min(500, limit)}`, [konusmaId]);
-  return r.rows.map(mesajSatir);
+  const n = Math.min(500, Math.max(1, limit));
+  const r = await p.query(`SELECT * FROM mesaj WHERE konusma_id = $1 ORDER BY at DESC, id DESC LIMIT ${n}`, [konusmaId]);
+  return r.rows.map(mesajSatir).reverse();
 }
 
 export async function okunduIsaretle(konusmaId: string): Promise<void> {

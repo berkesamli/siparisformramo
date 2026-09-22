@@ -53,15 +53,60 @@ export async function ekOku(yol: string): Promise<{ stream: ReadableStream; cont
   }
 }
 
-/** Dış bağlantıdan (Graph medya URL'si, IG CDN) baytları indirir; boyut sınırı aşılırsa null. */
-export async function ekIndir(url: string, basliklar: Record<string, string> = {}, zamanAsimi = 20_000): Promise<{ veri: Uint8Array; mime: string } | null> {
+// Yalnızca Meta'nın medya sunucularından indirilir (webhook'tan gelen adres SSRF için kullanılamasın).
+const EK_HOSTLAR = [".cdninstagram.com", ".fbcdn.net", "lookaside.fbsbx.com", ".facebook.com", ".instagram.com", ".whatsapp.net"];
+export function ekHostIzinli(u: string): boolean {
   try {
-    const r = await fetch(url, { headers: basliklar, signal: AbortSignal.timeout(zamanAsimi) });
+    const p = new URL(u);
+    if (p.protocol !== "https:") return false;
+    const h = p.hostname.toLowerCase();
+    return EK_HOSTLAR.some((s) => (s.startsWith(".") ? h.endsWith(s) : h === s));
+  } catch {
+    return false;
+  }
+}
+
+/** Gövdeyi akış hâlinde okur; sınır aşılırsa null (Content-Length verilmese de bellek şişmez). */
+async function govdeOku(r: Response): Promise<Uint8Array | null> {
+  const body = (r as { body?: ReadableStream<Uint8Array> | null }).body;
+  if (!body || typeof body.getReader !== "function") {
+    const buf = new Uint8Array(await r.arrayBuffer());
+    return buf.byteLength > EK_AZAMI_BAYT ? null : buf;
+  }
+  const reader = body.getReader();
+  const parcalar: Uint8Array[] = [];
+  let toplam = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    if (value) {
+      toplam += value.byteLength;
+      if (toplam > EK_AZAMI_BAYT) { await reader.cancel().catch(() => {}); return null; }
+      parcalar.push(value);
+    }
+  }
+  const out = new Uint8Array(toplam);
+  let i = 0;
+  for (const pc of parcalar) { out.set(pc, i); i += pc.byteLength; }
+  return out;
+}
+
+/** Meta medya sunucusundan (Graph medya URL'si, IG CDN) baytları indirir; izinsiz adres / boyut aşımı → null. */
+export async function ekIndir(url: string, basliklar: Record<string, string> = {}, zamanAsimi = 20_000): Promise<{ veri: Uint8Array; mime: string } | null> {
+  if (!ekHostIzinli(url)) return null;
+  try {
+    const signal = AbortSignal.timeout(zamanAsimi);
+    let r = await fetch(url, { headers: basliklar, signal, redirect: "manual" });
+    if (r.status >= 300 && r.status < 400) {
+      const hedef = new URL(r.headers.get("location") || "", url).href;
+      if (!ekHostIzinli(hedef)) return null;
+      r = await fetch(hedef, { headers: basliklar, signal, redirect: "manual" });
+    }
     if (!r.ok) return null;
     const len = Number(r.headers.get("content-length") || 0);
     if (len > EK_AZAMI_BAYT) return null;
-    const buf = new Uint8Array(await r.arrayBuffer());
-    if (buf.byteLength > EK_AZAMI_BAYT) return null;
+    const buf = await govdeOku(r);
+    if (!buf || buf.byteLength === 0) return null;
     return { veri: buf, mime: (r.headers.get("content-type") || "application/octet-stream").split(";")[0].trim() };
   } catch {
     return null;

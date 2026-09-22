@@ -86,7 +86,7 @@ export default function MesajAyarlari() {
   const webhookOk = sonOlay ? sonOlay.tur !== "imza-red" : null;
   const webhookDetay = !wh ? "" : sonOlay
     ? (sonOlay.tur === "imza-red"
-        ? `Meta'dan olay geldi (${nekadar(sonOlay.at)}) ama imza reddedildi → Vercel'deki WHATSAPP_APP_SECRET, Meta uygulamasının App Secret'ıyla aynı olmalı.`
+        ? `Meta'dan olay geldi (${nekadar(sonOlay.at)}) ama reddedildi: ${sonOlay.ozet}`
         : `Meta'dan son olay ${nekadar(sonOlay.at)}: ${sonOlay.ozet}${sonOlay.tur !== "mesaj" ? " — mesaj içermiyor; gelen mesaj düşmüyorsa Meta'da \"messages\" alanına abonelik eksik olabilir." : ""}`)
     : `Meta'dan henüz hiç olay gelmedi. Meta uygulaması → WhatsApp → Configuration → Webhook: Callback URL ${wh.url}, Verify token = WHATSAPP_VERIFY_TOKEN${wh.verifyToken ? "" : " (Vercel'de tanımlı DEĞİL)"} → "Verify and save"; Webhook fields → messages → Subscribe.`;
   const abonelik = wh?.abonelik;
@@ -143,7 +143,7 @@ export default function MesajAyarlari() {
             detay={
               <>
                 <div>{webhookDetay}</div>
-                {wh && !wh.appSecret && <div>İsteğe bağlı: WHATSAPP_APP_SECRET tanımlanırsa Meta'nın imzası doğrulanır.</div>}
+                {wh && !wh.appSecret && <div><strong>Zorunlu:</strong> WHATSAPP_APP_SECRET tanımlı değil; güvenlik için Meta'dan gelen bütün olaylar reddedilir. Meta uygulaması → App settings → Basic → App secret değerini Vercel'e girin.</div>}
                 {abonelik && (
                   <div>
                     {abonelik.ok
