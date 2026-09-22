@@ -41,6 +41,16 @@
 .ib-filters .chip { padding: 5px 10px; font-size: 12px; }
 .ib-senk { margin: 8px 12px 0; padding: 8px 12px; font-size: 12.5px; cursor: pointer; }
 
+/* E-posta hesabı etiketleri: hesap başına ayrı ton (0 altın, 1 mavi, 2 yeşil) */
+.ib-hesaplar { padding-top: 2px; border-top: 1px dashed var(--hairline); margin-top: -4px; }
+.badge.ib-hesap { padding: 1px 7px; font-size: 10.5px; max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.badge.ib-hesap-0, .chip.ib-hesap-0.sel { background: var(--brand-soft); color: var(--brand); }
+.badge.ib-hesap-1, .chip.ib-hesap-1.sel { background: var(--info-soft); color: var(--info); }
+.badge.ib-hesap-2, .chip.ib-hesap-2.sel { background: var(--success-soft); color: var(--success); }
+.chip.ib-hesap-0.sel { border-color: var(--brand); }
+.chip.ib-hesap-1.sel { border-color: var(--info); }
+.chip.ib-hesap-2.sel { border-color: var(--success); }
+
 /* ---- Satırlar ---- */
 .ib-rows { flex: 1 1 auto; overflow-y: auto; padding: 8px; display: flex; flex-direction: column; gap: 4px; overscroll-behavior: contain; }
 .ib-row {

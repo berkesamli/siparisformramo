@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getUsers, isMesajci } from "@/data/users";
-import { konusmalar, okunmamisSayisi } from "@/lib/mesaj/db";
-import { gmailConfigured, gmailSenk } from "@/lib/mesaj/gmail";
+import { epostaHesaplari, konusmalar, okunmamisSayisi } from "@/lib/mesaj/db";
+import { gmailConfigured, gmailHesaplar, gmailSenk } from "@/lib/mesaj/gmail";
 import { kanalDurumu } from "@/lib/mesaj/gonder";
 import { taslakHazir } from "@/lib/mesaj/taslak";
 import { hataYaniti, mesajKullanici } from "@/lib/mesaj/yetki";
@@ -21,15 +21,19 @@ export async function GET(req: NextRequest) {
     if (q.get("senk") === "1" && gmailConfigured()) senk = await gmailSenk({ zorla: q.get("zorla") === "1" });
     const liste = await konusmalar({
       kanal: (q.get("kanal") || "") as Kanal | "",
+      hesap: (q.get("hesap") || "").trim().toLowerCase().slice(0, 120),
       durum: (q.get("durum") || "") as KonusmaDurum | "",
       atanan: q.get("atanan") || "",
       q: (q.get("q") || "").trim().slice(0, 80),
       limit: Number(q.get("limit")) || 80,
     }, y.user.username);
     const kullanicilar = getUsers().filter((u) => u.role === "staff" && isMesajci(u.username)).map((u) => ({ username: u.username, name: u.name }));
+    // E-posta hesapları: env listesi + veri tabanında görülenler (hesapları ayırmak için)
+    const epostaHesap = [...new Set([...gmailHesaplar().map((h) => h.adres), ...(await epostaHesaplari().catch(() => []))])];
     return NextResponse.json({
       ok: true,
       konusmalar: liste,
+      hesaplar: { email: epostaHesap },
       okunmamis: await okunmamisSayisi(),
       kanallar: kanalDurumu(),
       taslak: taslakHazir(),

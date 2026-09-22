@@ -128,6 +128,7 @@ export default function KonusmaPaneli({ id, me, kullanicilar, taslakHazir, kanal
           <span className="muted">
             {KANAL_ADI[k.kanal]} · {iletisim ? <a href={iletisim} target="_blank" rel="noreferrer">{kimlik}</a> : kimlik}
             {k.kanal === "email" && k.baslik ? <> · <em>{k.baslik}</em></> : null}
+            {k.kanal === "email" && k.hesap ? <> · gelen hesap: <strong>{k.hesap}</strong></> : null}
           </span>
         </div>
         <div className="ib-panel-actions">
@@ -196,7 +197,7 @@ export default function KonusmaPaneli({ id, me, kullanicilar, taslakHazir, kanal
             value={metin}
             onChange={(e) => { setMetin(e.target.value); if (taslakAi && !e.target.value.trim()) setTaslakAi(false); }}
             onKeyDown={(e) => { if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { e.preventDefault(); void gonder(); } }}
-            placeholder={k.kanal === "email" ? `E-posta yanıtı (konu: ${/^re:/i.test(k.baslik) ? k.baslik : "Re: " + (k.baslik || "")})` : `${KANAL_ADI[k.kanal]} yanıtı yazın… (Ctrl+Enter gönderir)`}
+            placeholder={k.kanal === "email" ? `${k.hesap || "E-posta"} adresinden yanıt (konu: ${/^re:/i.test(k.baslik) ? k.baslik : "Re: " + (k.baslik || "")})` : `${KANAL_ADI[k.kanal]} yanıtı yazın… (Ctrl+Enter gönderir)`}
             rows={2}
             maxLength={sablonla ? 1000 : k.kanal === "email" ? 20000 : 4000}
             disabled={gonderiliyor}
