@@ -4,6 +4,7 @@ import { isOwner } from "@/data/users";
 import PageHeader from "@/components/PageHeader";
 import BildirimAyarlari from "@/components/BildirimAyarlari";
 import MikroAyarlari from "@/components/MikroAyarlari";
+import MesajAyarlari from "@/components/MesajAyarlari";
 
 export const dynamic = "force-dynamic";
 
@@ -19,10 +20,11 @@ export default async function AyarlarPage() {
         icon="bell"
         kicker="Yönetim"
         title="Bildirim Ayarları"
-        subtitle="WhatsApp fiş bildirimleri ve Mikro bağlantısı: kurulum durumu ve test."
+        subtitle="WhatsApp fiş bildirimleri, Mikro bağlantısı ve Mesajlar (gelen kutusu): kurulum durumu ve test."
       />
       <BildirimAyarlari />
       <MikroAyarlari />
+      <MesajAyarlari />
     </main>
   );
 }

@@ -177,3 +177,11 @@
 @media (max-width: 480px) {
   .ib-seg button { padding: 6px 8px; font-size: 12px; }
 }
+
+/* Ayarlar: Mesajlar test kartı */
+.ma-list { display: flex; flex-direction: column; gap: 10px; }
+.ma-row { display: grid; grid-template-columns: 30px minmax(0, 1fr); gap: 10px; align-items: start; }
+.ma-row .badge { justify-content: center; min-width: 28px; padding: 2px 0; font-weight: 800; }
+.ma-row .badge:not(.ok):not(.err):not(.warn) { background: var(--surface-3); color: var(--muted); }
+.ma-row strong { font-size: 14px; }
+.ma-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--hairline); }
