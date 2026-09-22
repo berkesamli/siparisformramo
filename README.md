@@ -66,7 +66,7 @@ Eski Apps Script kodu `legacy-apps-script/` klasöründe korunmaktadır.
 | `MIKRO_DEPO_ANKARA`, `MIKRO_DEPO_ISTANBUL` | DEPOLAR'daki ada göre | Mikro'dan stok çekerken şubeye sayılacak depo numaraları (`1,3` gibi). Boşsa adında ANKARA / İSTANBUL geçen depolar |
 | `STOK_TAZELIK_DK` | 120 | Çalışan stok sorgularken yayındaki veri bu kadar dakikadan eskiyse Mikro'dan tazelenir; ayrıca cron her sabah 07:30'da çeker (`/api/stock/mikro`) |
 | `BOLGE_SORUMLULARI` | Ankara: Ramazan Kaypan, İstanbul: Alaattin Yıldız, Taşra: Murat Gündüz | Müşteri satış bölgeleriyle ilgilenen satışçılar: `ankara=…;istanbul=…;tasra=…` |
-| `DATABASE_URL` | Mesajlar için | Postgres (Vercel Storage → Neon). Gelen kutusu tabloları ilk açılışta kendiliğinden kurulur |
+| `DATABASE_URL` | Mesajlar için | Postgres (Vercel Storage → Neon). `STORAGE_URL` / `POSTGRES_URL` gibi farklı ön ekli adlar da tanınır. Gelen kutusu tabloları ilk açılışta kendiliğinden kurulur |
 | `MESAJ_USERNAMES` | sahipler | Gelen kutusunu (`/panel/mesajlar`) görüp yanıtlayabilen çalışanlar, virgülle |
 | `GMAIL_HESAPLAR` | — | `adres:uygulama-şifresi;adres2:şifre2` — bu Gmail hesaplarının gelen kutusu IMAP ile okunur, yanıt aynı hesaptan SMTP ile gider |
 | `INSTAGRAM_TOKEN`, `INSTAGRAM_PAGE_ID`, `INSTAGRAM_ACCOUNT_ID` | — | Instagram DM'leri (Meta Messenger Platform); webhook `/api/mesaj/webhook`. İsteğe bağlı `INSTAGRAM_VERIFY_TOKEN`, `META_APP_SECRET` |
