@@ -130,16 +130,18 @@ export function finansAktif(): boolean {
 }
 
 // Mesajlar (gelen kutusu): WhatsApp / Instagram / e-posta mesajlarını görüp
-// yanıtlayabilenler. MESAJ_USERNAMES="berke,ayse" — boşsa yalnızca sahipler.
+// yanıtlayabilenler. Varsayılan: BÜTÜN çalışanlar. Daraltmak için
+// MESAJ_USERNAMES="berke,ayse" (sahipler her zaman dahildir); "*" = herkes.
 export function mesajUsernames(): string[] {
-  const raw = process.env.MESAJ_USERNAMES || "";
+  const raw = (process.env.MESAJ_USERNAMES || "").trim();
+  const herkes = () => getUsers().filter((u) => u.role === "staff").map((u) => normalizeUsername(u.username));
+  if (!raw || raw === "*") return [...new Set([...herkes(), ...ownerUsernames()])];
   const list = raw.split(",").map((s) => normalizeUsername(s)).filter(Boolean);
-  return list.length ? list : ownerUsernames();
+  return [...new Set([...ownerUsernames(), ...list])];
 }
 export function isMesajci(username: string | undefined | null): boolean {
   if (!username) return false;
-  const u = normalizeUsername(username);
-  return mesajUsernames().includes(u) || ownerUsernames().includes(u);
+  return mesajUsernames().includes(normalizeUsername(username));
 }
 
 // Maliyet & kârlılık ekranı — alış fiyatları en dar çevrenin bilgisidir.

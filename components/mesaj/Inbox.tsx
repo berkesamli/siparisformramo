@@ -5,8 +5,9 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Icon from "@/components/shell/Icon";
-import { KANAL_ADI, type Kanal, type Konusma, type KonusmaDurum } from "@/lib/mesaj/tur";
+import { KANAL_ADI, type Kanal, type KanalDurumu, type Konusma, type KonusmaDurum } from "@/lib/mesaj/tur";
 import KonusmaPaneli from "./KonusmaPaneli";
+import YeniMesaj from "./YeniMesaj";
 import { KanalIkon, zamanKisa } from "./ortak";
 
 export interface Me { username: string; name: string; owner: boolean }
@@ -24,8 +25,10 @@ const DURUMLAR: { v: KonusmaDurum | ""; ad: string }[] = [
 const KANALLAR: Kanal[] = ["whatsapp", "instagram", "email"];
 
 export default function Inbox({ me, dbHazir, kanallar, taslak, ilkKonusma }: {
-  me: Me; dbHazir: boolean; kanallar: Record<Kanal, boolean>; taslak: boolean; ilkKonusma: string;
+  me: Me; dbHazir: boolean; kanallar: KanalDurumu; taslak: boolean; ilkKonusma: string;
 }) {
+  const [yeniAcik, setYeniAcik] = useState(false);
+  const [bilgi, setBilgi] = useState("");
   const [kanal, setKanal] = useState<Kanal | "">("");
   const [durum, setDurum] = useState<KonusmaDurum | "">("");
   const [bana, setBana] = useState(false);
@@ -106,8 +109,13 @@ export default function Inbox({ me, dbHazir, kanallar, taslak, ilkKonusma }: {
             <span className="page-head-icon" aria-hidden><Icon name="inbox" size={20} /></span>
             <div>
               <h1>Mesajlar</h1>
-              <span className="muted">{toplamOkunmamis > 0 ? `${toplamOkunmamis} okunmamış` : "WhatsApp · Instagram · E-posta"}</span>
+              <span className="muted">{toplamOkunmamis > 0 ? `${toplamOkunmamis} okunmamış` : "Gelen kutusu"}</span>
             </div>
+            {kanallar.whatsapp && kanallar.whatsappSablon && (
+              <button type="button" className="btn wa small ib-yeni-btn" title="Bizim başlattığımız WhatsApp mesajı (onaylı şablonla)" onClick={() => setYeniAcik(true)}>
+                <Icon name="edit" size={15} /> <span>Yeni</span>
+              </button>
+            )}
             <button type="button" className={`btn ghost icon small ${yukleniyor ? "spin" : ""}`} title="Yenile" aria-label="Yenile" onClick={() => void yukle(false, true)}>
               <Icon name="refresh" size={17} />
             </button>
@@ -135,6 +143,7 @@ export default function Inbox({ me, dbHazir, kanallar, taslak, ilkKonusma }: {
 
         {hata && <div className="notice err" style={{ margin: "8px 12px" }}>{hata}</div>}
         {senkNotu && <div className={`notice ${/okunamadı/.test(senkNotu) ? "warn" : "ok"} ib-senk`} onClick={() => setSenkNotu("")}>{senkNotu}</div>}
+        {bilgi && <div className="notice ok ib-senk" onClick={() => setBilgi("")}>{bilgi}</div>}
         {hicKanalYok && !hata && (
           <div className="notice warn" style={{ margin: "8px 12px" }}>Henüz hiçbir kanal bağlı değil. Bildirim Ayarları / Vercel ortam değişkenleriyle WhatsApp, Instagram ve Gmail bağlanınca mesajlar burada toplanır.</div>
         )}
@@ -153,6 +162,19 @@ export default function Inbox({ me, dbHazir, kanallar, taslak, ilkKonusma }: {
           ))}
         </div>
       </aside>
+
+      {yeniAcik && (
+        <YeniMesaj
+          kanallar={kanallar}
+          onClose={() => setYeniAcik(false)}
+          onSent={(k, not) => {
+            setYeniAcik(false);
+            setListe((l) => [k, ...l.filter((x) => x.id !== k.id)]);
+            setSecili(k.id);
+            setBilgi(not);
+          }}
+        />
+      )}
 
       <section className="ib-thread">
         {secili ? (

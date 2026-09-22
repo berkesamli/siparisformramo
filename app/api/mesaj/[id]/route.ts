@@ -90,9 +90,9 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
   const b = (await req.json().catch(() => null)) as { metin?: string; taslakAi?: boolean } | null;
   if (!b?.metin?.trim()) return NextResponse.json({ ok: false, error: "Mesaj metni boş." }, { status: 400 });
   try {
-    const mesaj = await yanitGonder(params.id, b.metin, { username: y.user.username, name: y.user.name }, Boolean(b.taslakAi));
+    const r = await yanitGonder(params.id, b.metin, { username: y.user.username, name: y.user.name }, Boolean(b.taslakAi));
     const k = await konusma(params.id);
-    return NextResponse.json({ ok: true, mesaj, konusma: k });
+    return NextResponse.json({ ok: true, mesaj: r.mesaj, yontem: r.yontem, sablon: r.sablon, konusma: k });
   } catch (e) {
     console.error("Mesaj gönderilemedi:", e);
     return hataYaniti(e, 502);

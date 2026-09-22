@@ -67,7 +67,8 @@ Eski Apps Script kodu `legacy-apps-script/` klasöründe korunmaktadır.
 | `STOK_TAZELIK_DK` | 120 | Çalışan stok sorgularken yayındaki veri bu kadar dakikadan eskiyse Mikro'dan tazelenir; ayrıca cron her sabah 07:30'da çeker (`/api/stock/mikro`) |
 | `BOLGE_SORUMLULARI` | Ankara: Ramazan Kaypan, İstanbul: Alaattin Yıldız, Taşra: Murat Gündüz | Müşteri satış bölgeleriyle ilgilenen satışçılar: `ankara=…;istanbul=…;tasra=…` |
 | `DATABASE_URL` | Mesajlar için | Postgres (Vercel Storage → Neon). `STORAGE_URL` / `POSTGRES_URL` gibi farklı ön ekli adlar da tanınır. Gelen kutusu tabloları ilk açılışta kendiliğinden kurulur |
-| `MESAJ_USERNAMES` | sahipler | Gelen kutusunu (`/panel/mesajlar`) görüp yanıtlayabilen çalışanlar, virgülle |
+| `MESAJ_USERNAMES` | bütün çalışanlar | Gelen kutusunu (`/panel/mesajlar`) görüp yanıtlayabilenleri daraltır (virgülle; sahipler her zaman dahil) |
+| `WHATSAPP_TEMPLATE_SERBEST` | — | Gelen kutusundan bizim başlattığımız WhatsApp mesajı ve 24 saat sonrası yanıt için Meta onaylı şablon ad(lar)ı (`{{1}}` = metin) |
 | `GMAIL_HESAPLAR` | — | `adres:uygulama-şifresi;adres2:şifre2` — bu Gmail hesaplarının gelen kutusu IMAP ile okunur, yanıt aynı hesaptan SMTP ile gider |
 | `INSTAGRAM_TOKEN`, `INSTAGRAM_PAGE_ID`, `INSTAGRAM_ACCOUNT_ID` | — | Instagram DM'leri (Meta Messenger Platform); webhook `/api/mesaj/webhook`. İsteğe bağlı `INSTAGRAM_VERIFY_TOKEN`, `META_APP_SECRET` |
 
@@ -112,8 +113,13 @@ yanıtlar. Yalnızca `MESAJ_USERNAMES`'teki çalışanlar (ve sahipler) görür.
   Telefon veya e-posta müşteri defterindeki (toptan `C…` ya da perakende `P…`) bir kartla
   eşleşirse konuşma o karta bağlanır; eşleşmezse "kayıtsız" kalır, elle bağlanabilir.
 - **WhatsApp:** mevcut webhook (`/api/whatsapp/webhook`) gelen mesajları ve teslim/okundu
-  durumlarını da yazar. Serbest yanıt yalnızca müşterinin son mesajından itibaren **24 saat** içinde
-  gönderilebilir (Meta kuralı); ekran pencere kapalıysa uyarır.
+  durumlarını da yazar. Müşteri yazdığında ve 24 saat içinde yanıtlandığında normal yazışma gibidir.
+  **24 saat** geçtiyse ya da konuşmayı **biz başlatıyorsak** (liste başlığındaki "Yeni" düğmesi:
+  müşteri defterinden seç ya da numara yaz) Meta onaylı şablon gerekir: `WHATSAPP_TEMPLATE_SERBEST`
+  tanımlıysa metin şablonun içinde gider, müşteri yanıtlayınca serbest yazışma açılır. Şablon yoksa
+  ekran uyarır ve yalnızca 24 saat içinde yanıt verilir.
+  Not: müşterinin başlattığı yazışmalar Meta'da ücretsizdir; bizim başlattığımız şablonlu mesajlar
+  Meta'nın mesaj başı ücretine tabidir.
 - **Instagram:** Meta uygulamasına *Instagram* ürünü eklenir, `instagram_manage_messages` izni için
   App Review geçilir, webhook `https://<site>/api/mesaj/webhook` (alan: `messages`) tanımlanır.
   Instagram uygulamasından atılan yanıtlar da (echo) konuşmada görünür. 24 saat kuralı burada da geçerlidir.

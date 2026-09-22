@@ -56,6 +56,9 @@ export interface KonusmaFiltre {
 
 export const KANAL_ADI: Record<Kanal, string> = { whatsapp: "WhatsApp", instagram: "Instagram", email: "E-posta" };
 
+/** Hangi kanallar ayarlı; whatsappSablon: 24 saat dışı / ilk mesaj için onaylı şablon tanımlı mı. */
+export type KanalDurumu = Record<Kanal, boolean> & { whatsappSablon: boolean };
+
 /** Konuşma penceresi: WhatsApp/Instagram'da müşterinin son mesajından itibaren 24 saat serbest yanıt. */
 export function pencereAcik(k: Pick<Konusma, "kanal" | "sonGelenAt">, simdi = Date.now()): boolean {
   if (k.kanal === "email") return true;
