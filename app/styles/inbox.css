@@ -92,7 +92,7 @@
 .ib-back { display: none; }
 .ib-panel-who { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
 .ib-panel-who strong { font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ib-panel-who .muted { font-size: 12.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ib-panel-who .muted { font-size: 12.5px; line-height: 1.35; overflow-wrap: anywhere; }
 .ib-panel-who a { color: inherit; text-decoration: underline dotted; }
 .ib-panel-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
 .ib-select { padding: 7px 28px 7px 10px; font-size: 13px; border-radius: 9px; max-width: 170px; }
