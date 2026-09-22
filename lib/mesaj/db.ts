@@ -242,6 +242,7 @@ export async function konusmalar(f: KonusmaFiltre = {}, benKullanici = ""): Prom
   const param: unknown[] = [];
   const ekle = (sql: string, v: unknown) => { param.push(v); kosul.push(sql.replace("?", `$${param.length}`)); };
   if (f.kanal) ekle("kanal = ?", f.kanal);
+  if (f.hesap) ekle("hesap = ?", f.hesap);
   if (f.durum) ekle("durum = ?", f.durum);
   if (f.atanan === "ben") ekle("atanan = ?", benKullanici);
   else if (f.atanan) ekle("atanan = ?", f.atanan);
@@ -296,6 +297,13 @@ export async function dbSaglik(): Promise<{ ok: boolean; konusma: number; mesaj:
   } catch (e) {
     return { ok: false, konusma: 0, mesaj: 0, hata: (e as Error)?.message || String(e), sunucu };
   }
+}
+
+/** Veri tabanında görülen e-posta hesapları (env listesiyle birleştirmek için). */
+export async function epostaHesaplari(): Promise<string[]> {
+  const p = await db();
+  const r = await p.query("SELECT DISTINCT hesap FROM mesaj_konusma WHERE kanal = 'email' AND hesap <> '' ORDER BY hesap");
+  return r.rows.map((x: { hesap: string }) => x.hesap);
 }
 
 export async function okunmamisSayisi(): Promise<number> {

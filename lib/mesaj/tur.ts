@@ -48,6 +48,7 @@ export interface Mesaj {
 
 export interface KonusmaFiltre {
   kanal?: Kanal | "";
+  hesap?: string;        // bizim taraf (örn. e-posta adresi) — hesapları ayırmak için
   durum?: KonusmaDurum | "";
   atanan?: string | "";  // "ben" çağıranın kullanıcı adıyla değiştirilir
   q?: string;
@@ -55,6 +56,12 @@ export interface KonusmaFiltre {
 }
 
 export const KANAL_ADI: Record<Kanal, string> = { whatsapp: "WhatsApp", instagram: "Instagram", email: "E-posta" };
+
+/** Hesap adının kısa hâli (etiket için): "olgacercevee@gmail.com" → "olgacercevee". */
+export function hesapKisa(hesap: string, max = 16): string {
+  const yerel = String(hesap || "").split("@")[0] || String(hesap || "");
+  return yerel.length > max ? yerel.slice(0, max - 1) + "…" : yerel;
+}
 
 /** Hangi kanallar ayarlı; whatsappSablon: 24 saat dışı / ilk mesaj için onaylı şablon tanımlı mı. */
 export type KanalDurumu = Record<Kanal, boolean> & { whatsappSablon: boolean };

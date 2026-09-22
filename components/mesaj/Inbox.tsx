@@ -5,7 +5,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Icon from "@/components/shell/Icon";
-import { KANAL_ADI, type Kanal, type KanalDurumu, type Konusma, type KonusmaDurum } from "@/lib/mesaj/tur";
+import { KANAL_ADI, hesapKisa, type Kanal, type KanalDurumu, type Konusma, type KonusmaDurum } from "@/lib/mesaj/tur";
 import KonusmaPaneli from "./KonusmaPaneli";
 import YeniMesaj from "./YeniMesaj";
 import { KanalIkon, zamanKisa } from "./ortak";
@@ -16,6 +16,7 @@ export interface Kullanici { username: string; name: string }
 interface ListeYaniti {
   ok: boolean; error?: string; kurulum?: boolean;
   konusmalar?: Konusma[]; okunmamis?: number; kanallar?: Record<Kanal, boolean>; taslak?: boolean; kullanicilar?: Kullanici[];
+  hesaplar?: { email: string[] };
   senk?: { hesap: string; yeni: number; hata?: string; atlandi?: boolean }[];
 }
 
@@ -30,6 +31,8 @@ export default function Inbox({ me, dbHazir, kanallar, taslak, ilkKonusma }: {
   const [yeniAcik, setYeniAcik] = useState(false);
   const [bilgi, setBilgi] = useState("");
   const [kanal, setKanal] = useState<Kanal | "">("");
+  const [hesap, setHesap] = useState("");
+  const [epostaHesaplar, setEpostaHesaplar] = useState<string[]>([]);
   const [durum, setDurum] = useState<KonusmaDurum | "">("");
   const [bana, setBana] = useState(false);
   const [q, setQ] = useState("");
@@ -48,6 +51,7 @@ export default function Inbox({ me, dbHazir, kanallar, taslak, ilkKonusma }: {
     if (!sessiz) setYukleniyor(true);
     const p = new URLSearchParams();
     if (kanal) p.set("kanal", kanal);
+    if (kanal === "email" && hesap) p.set("hesap", hesap);
     if (durum) p.set("durum", durum);
     if (bana) p.set("atanan", "ben");
     if (qRef.current.trim()) p.set("q", qRef.current.trim());
@@ -60,6 +64,7 @@ export default function Inbox({ me, dbHazir, kanallar, taslak, ilkKonusma }: {
       setHata("");
       setListe(d.konusmalar || []);
       if (d.kullanicilar) setKullanicilar(d.kullanicilar);
+      if (d.hesaplar?.email) setEpostaHesaplar(d.hesaplar.email);
       if (d.senk?.length) {
         const hatali = d.senk.filter((s) => s.hata);
         const yeni = d.senk.reduce((n, s) => n + (s.yeni || 0), 0);
@@ -70,7 +75,7 @@ export default function Inbox({ me, dbHazir, kanallar, taslak, ilkKonusma }: {
     } finally {
       setYukleniyor(false);
     }
-  }, [kanal, durum, bana]);
+  }, [kanal, hesap, durum, bana]);
 
   useEffect(() => { if (dbHazir) void yukle(); }, [yukle, dbHazir]);
   // Arama: yazmayı bırakınca (ilk render'da yükleme zaten yukarıda yapılır)
@@ -133,6 +138,16 @@ export default function Inbox({ me, dbHazir, kanallar, taslak, ilkKonusma }: {
               </button>
             ))}
           </div>
+          {kanal === "email" && epostaHesaplar.length > 1 && (
+            <div className="ib-chips ib-hesaplar" aria-label="E-posta hesabı">
+              <button type="button" className={`chip ${hesap === "" ? "sel" : ""}`} onClick={() => setHesap("")}>Tüm hesaplar</button>
+              {epostaHesaplar.map((h, i) => (
+                <button key={h} type="button" className={`chip ib-hesap-${i % 3} ${hesap === h ? "sel" : ""}`} onClick={() => setHesap(hesap === h ? "" : h)} title={h}>
+                  <Icon name="mail" size={12} /> {hesapKisa(h)}
+                </button>
+              ))}
+            </div>
+          )}
           <div className="ib-filters">
             <div className="seg ib-seg">
               {DURUMLAR.map((d) => <button key={d.v} type="button" className={durum === d.v ? "active" : ""} onClick={() => setDurum(d.v)}>{d.ad}</button>)}
@@ -158,7 +173,7 @@ export default function Inbox({ me, dbHazir, kanallar, taslak, ilkKonusma }: {
             </div>
           )}
           {liste.map((k) => (
-            <KonusmaSatiri key={k.id} k={k} secili={k.id === secili} kullanicilar={kullanicilar} onClick={() => setSecili(k.id)} />
+            <KonusmaSatiri key={k.id} k={k} secili={k.id === secili} kullanicilar={kullanicilar} hesapSira={k.kanal === "email" ? Math.max(0, epostaHesaplar.indexOf(k.hesap)) % 3 : 0} onClick={() => setSecili(k.id)} />
           ))}
         </div>
       </aside>
@@ -201,7 +216,7 @@ export default function Inbox({ me, dbHazir, kanallar, taslak, ilkKonusma }: {
   );
 }
 
-function KonusmaSatiri({ k, secili, kullanicilar, onClick }: { k: Konusma; secili: boolean; kullanicilar: Kullanici[]; onClick: () => void }) {
+function KonusmaSatiri({ k, secili, kullanicilar, hesapSira, onClick }: { k: Konusma; secili: boolean; kullanicilar: Kullanici[]; hesapSira: number; onClick: () => void }) {
   const atanan = k.atanan ? (kullanicilar.find((u) => u.username === k.atanan)?.name || k.atanan) : "";
   const altBilgi = k.kanal === "email" ? k.baslik : k.kanal === "instagram" ? (k.baslik || "Instagram") : `+${k.disKimlik}`;
   return (
@@ -215,6 +230,7 @@ function KonusmaSatiri({ k, secili, kullanicilar, onClick }: { k: Konusma; secil
         <span className="ib-row-sub">{altBilgi}</span>
         <span className="ib-row-ozet">{k.sonMesajOzet || "—"}</span>
         <span className="ib-row-tags">
+          {k.kanal === "email" && k.hesap && <span className={`badge ib-hesap ib-hesap-${hesapSira}`} title={`Hesap: ${k.hesap}`}><Icon name="mail" size={10} /> {hesapKisa(k.hesap)}</span>}
           {k.musteriTur && <span className={`badge ${k.musteriTur === "toptan" ? "brand" : "info"}`}>{k.musteriTur === "toptan" ? "Bayi" : "Perakende"}</span>}
           {k.durum === "kapali" && <span className="badge">Kapalı</span>}
           {k.durum === "yanitlandi" && <span className="badge ok">Yanıtlandı</span>}
