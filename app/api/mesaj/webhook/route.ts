@@ -3,6 +3,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { dbConfigured } from "@/lib/mesaj/db";
 import { gelenInstagram, type IgEntry } from "@/lib/mesaj/instagram";
 import { gelenWhatsapp, whatsappDurumlar, type WaValue, type WaDurum } from "@/lib/mesaj/whatsapp";
+import { izKaydet } from "@/lib/mesaj/webhook-iz";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -42,10 +43,15 @@ interface Govde {
 export async function POST(req: Request) {
   const raw = await req.text();
   if (!imzaGecerli(raw, req.headers.get("x-hub-signature-256"))) {
+    await izKaydet("instagram", "imza-red", "Meta'dan olay geldi ama imza doğrulanamadı (META_APP_SECRET / WHATSAPP_APP_SECRET uyuşmuyor).");
     return NextResponse.json({ ok: false, error: "İmza geçersiz." }, { status: 401 });
   }
   let body: Govde | null = null;
   try { body = JSON.parse(raw); } catch { return NextResponse.json({ ok: false }, { status: 400 }); }
+  {
+    const n = (body?.entry || []).reduce((a, e) => a + (e.messaging?.length || 0), 0);
+    await izKaydet(body?.object === "instagram" ? "instagram" : "whatsapp", n ? "mesaj" : "diger", `object: ${body?.object || "?"} · ${n} olay`);
+  }
   if (!dbConfigured()) {
     console.warn("Mesaj webhook'u geldi ama DATABASE_URL yok; olay atlandı.");
     return NextResponse.json({ ok: true, atlandi: true });
