@@ -10,7 +10,7 @@ interface Durum {
   db: { kurulu: boolean; test: { ok: boolean; konusma: number; mesaj: number; hata?: string; sunucu?: string } | null };
   gmail: { kurulu: boolean; hesaplar: string[]; test: { adres: string; ok: boolean; inbox?: number; okunmamis?: number; hata?: string }[] | null };
   whatsapp: {
-    kurulu: boolean; sablonlar: string[]; test: { ok: boolean; numara?: string; ad?: string; kalite?: string; hata?: string } | null;
+    kurulu: boolean; sablonlar: string[]; test: { ok: boolean; numara?: string; ad?: string; kalite?: string; uygulama?: { id: string; ad: string }; hata?: string } | null;
     webhook: { url: string; verifyToken: boolean; appSecret: boolean; sonOlay: Iz | null; wabaId: boolean; abonelik: Abonelik | null };
   };
   instagram: { kurulu: boolean; test: { ok: boolean; ad?: string; hata?: string } | null; webhook: { url: string; sonOlay: Iz | null } };
@@ -132,7 +132,9 @@ export default function MesajAyarlari() {
             baslik={`WhatsApp Cloud API ${d.whatsapp.kurulu ? "" : "(WHATSAPP_TOKEN / PHONE_ID yok)"}`}
             detay={
               d.whatsapp.test
-                ? (d.whatsapp.test.ok ? `${d.whatsapp.test.numara || ""} ${d.whatsapp.test.ad ? "· " + d.whatsapp.test.ad : ""}${d.whatsapp.test.kalite ? " · kalite " + d.whatsapp.test.kalite : ""}` : d.whatsapp.test.hata)
+                ? (d.whatsapp.test.ok
+                    ? <>{`${d.whatsapp.test.numara || ""} ${d.whatsapp.test.ad ? "· " + d.whatsapp.test.ad : ""}${d.whatsapp.test.kalite ? " · kalite " + d.whatsapp.test.kalite : ""}`}{d.whatsapp.test.uygulama && <div>Jeton şu Meta uygulamasına ait: <strong>{d.whatsapp.test.uygulama.ad || "?"}</strong> (ID {d.whatsapp.test.uygulama.id}) — webhook ve App Secret bu uygulamada ayarlanır: developers.facebook.com/apps/{d.whatsapp.test.uygulama.id}/whatsapp-business/wa-settings/</div>}</>
+                    : d.whatsapp.test.hata)
                 : d.whatsapp.sablonlar.length ? `Bizim başlattığımız mesaj şablonu: ${d.whatsapp.sablonlar.join(", ")}` : "Şablon tanımlı değil: yalnızca müşteri yazınca (24 saat içinde) yanıtlanır. Biz başlatmak için WHATSAPP_TEMPLATE_SERBEST."
             }
           />

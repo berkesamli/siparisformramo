@@ -103,13 +103,23 @@ async function grafGonder(hesap: string, body: Record<string, unknown>): Promise
 }
 
 /** Jeton + numara kontrolü: Graph'tan görünen numara ve doğrulanmış ad (Ayarlar test kartı). */
-export async function whatsappDurum(): Promise<{ ok: boolean; numara?: string; ad?: string; kalite?: string; hata?: string }> {
+export async function whatsappDurum(): Promise<{ ok: boolean; numara?: string; ad?: string; kalite?: string; uygulama?: { id: string; ad: string }; hata?: string }> {
   if (!whatsappConfigured()) return { ok: false, hata: "WHATSAPP_TOKEN / WHATSAPP_PHONE_ID tanımlı değil." };
   try {
-    const r = await fetch(`${GRAPH}/${phoneId()}?fields=display_phone_number,verified_name,quality_rating`, { headers: { Authorization: `Bearer ${token()}` }, signal: AbortSignal.timeout(10_000) });
+    const basliklar = { Authorization: `Bearer ${token()}` };
+    const [r, ra] = await Promise.all([
+      fetch(`${GRAPH}/${phoneId()}?fields=display_phone_number,verified_name,quality_rating`, { headers: basliklar, signal: AbortSignal.timeout(10_000) }),
+      // Jetonun ait olduğu Meta uygulaması — webhook o uygulamada ayarlanır.
+      fetch(`${GRAPH}/app?fields=id,name`, { headers: basliklar, signal: AbortSignal.timeout(10_000) }).catch(() => null),
+    ]);
     const j = (await r.json().catch(() => ({}))) as { display_phone_number?: string; verified_name?: string; quality_rating?: string; error?: { message?: string; code?: number } };
     if (!r.ok) return { ok: false, hata: `${j.error?.message || `HTTP ${r.status}`}${j.error?.code ? ` (kod ${j.error.code})` : ""}${j.error?.code === 190 ? " → jeton geçersiz/süresi dolmuş" : ""}` };
-    return { ok: true, numara: j.display_phone_number, ad: j.verified_name, kalite: j.quality_rating };
+    let uygulama: { id: string; ad: string } | undefined;
+    if (ra && ra.ok) {
+      const ja = (await ra.json().catch(() => ({}))) as { id?: string; name?: string };
+      if (ja.id) uygulama = { id: ja.id, ad: ja.name || "" };
+    }
+    return { ok: true, numara: j.display_phone_number, ad: j.verified_name, kalite: j.quality_rating, uygulama };
   } catch (e) {
     return { ok: false, hata: (e as Error)?.message || String(e) };
   }
