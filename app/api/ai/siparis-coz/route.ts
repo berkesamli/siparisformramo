@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { getSessionUser } from "@/lib/auth";
-import { FRAME_PROFILES, findProfile } from "@/data/catalog";
+import { FRAME_PROFILES } from "@/data/catalog";
+import { siparisMetniCoz, cerceveKodu, teknikUrun, type MetinSatir } from "@/lib/siparis-metin";
 import { TECHNICAL_PRODUCTS } from "@/data/technical";
 import { GLASS_TYPES } from "@/data/glass";
 
@@ -11,6 +12,11 @@ export const maxDuration = 60;
 // WhatsApp/telefon notundan gelen serbest sipariş metnini forma
 // dökülebilecek satırlara çevirir. Fiyat üretmez — fiyatlar katalogdan
 // ve günün kurundan formda hesaplanır.
+//
+// Önce kural tabanlı çözümleyici (lib/siparis-metin) çalışır: kod + desen/renk
+// eki, miktar, birim, iskonto/KDV başlıkları kesin okunur. Yalnızca orada
+// okunamayan satırlar yapay zekâya gider; anahtar yoksa bunlar "okunamayan"
+// olarak kullanıcıya gösterilir.
 
 const SYSTEM = `Olga Çerçeve'nin sipariş metni çözümleyicisisin. Sana müşteriden gelen
 serbest yazılmış (WhatsApp, telefon notu) sipariş metni verilir. Görevin bunu
@@ -86,96 +92,81 @@ export async function POST(req: Request) {
   if (!user || user.role !== "staff") {
     return NextResponse.json({ ok: false, error: "Yetkisiz." }, { status: 401 });
   }
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return NextResponse.json(
-      {
-        ok: false,
-        error:
-          "Yapay zeka henüz yapılandırılmadı. Vercel ortam değişkenlerine ANTHROPIC_API_KEY ekleyin.",
-      },
-      { status: 503 }
-    );
-  }
-
   const body = await req.json().catch(() => null);
   const text = String(body?.text || "").trim().slice(0, 6000);
   if (!text) {
     return NextResponse.json({ ok: false, error: "Metin gerekli." }, { status: 400 });
   }
 
-  const client = new Anthropic();
+  // 1) Kural tabanlı: kesin okunan satırlar
+  const det = siparisMetniCoz(text, FRAME_PROFILES, TECHNICAL_PRODUCTS);
+  const lines: MetinSatir[] = [...det.lines];
+  let customer = det.customer;
+  let note = det.note;
+  let okunamayan: string[] = [];
 
-  try {
-    const response = await client.messages.create({
-      model: "claude-opus-5",
-      max_tokens: 4096,
-      output_config: { effort: "low" },
-      system: [
-        {
-          type: "text",
-          text: `${SYSTEM}\n\n=== KATALOG ===\n${catalogList()}`,
-          cache_control: { type: "ephemeral" },
-        },
-      ],
-      tools: [TOOL],
-      tool_choice: { type: "tool", name: "siparis_satirlari" },
-      messages: [{ role: "user", content: text }],
-    });
-
-    const toolUse = response.content.find(
-      (c): c is Anthropic.ToolUseBlock => c.type === "tool_use"
-    );
-    if (!toolUse) {
-      return NextResponse.json(
-        { ok: false, error: "Metin çözümlenemedi, elle girmeyi deneyin." },
-        { status: 502 }
+  // 2) Kalan satırlar yapay zekâya (anahtar varsa)
+  if (det.kalan.length && process.env.ANTHROPIC_API_KEY) {
+    try {
+      const client = new Anthropic();
+      const response = await client.messages.create({
+        model: "claude-opus-5",
+        max_tokens: 4096,
+        output_config: { effort: "low" },
+        system: [
+          {
+            type: "text",
+            text: `${SYSTEM}\n\n=== KATALOG ===\n${catalogList()}`,
+            cache_control: { type: "ephemeral" },
+          },
+        ],
+        tools: [TOOL],
+        tool_choice: { type: "tool", name: "siparis_satirlari" },
+        messages: [{ role: "user", content: det.kalan.join("\n") }],
+      });
+      const toolUse = response.content.find(
+        (c): c is Anthropic.ToolUseBlock => c.type === "tool_use"
       );
-    }
-
-    const parsed = toolUse.input as {
-      customer?: string;
-      note?: string;
-      lines?: any[];
-    };
-
-    // Kodları katalogla doğrula: bulunanı tam koda çevir, bulunamayanı işaretle
-    const lines = (parsed.lines || []).slice(0, 60).map((l: any) => {
-      const rawCode = String(l?.code || "").trim();
-      const kind = ["frame", "glass", "ayna", "technical", "other"].includes(l?.kind)
-        ? l.kind
-        : "other";
-      let code = rawCode;
-      let matched = false;
-      if (kind === "frame") {
-        const p = findProfile(rawCode);
-        if (p) {
-          code = p.code;
-          matched = true;
+      const parsed = (toolUse?.input || {}) as { customer?: string; note?: string; lines?: any[] };
+      for (const l of (parsed.lines || []).slice(0, 60)) {
+        const rawCode = String(l?.code || "").trim();
+        const kind = ["frame", "glass", "ayna", "technical", "other"].includes(l?.kind) ? (l.kind as MetinSatir["kind"]) : "other";
+        const qty = Math.max(0, Number(l?.qty) || 0);
+        const unit = String(l?.unit || "metre");
+        const lnote = String(l?.note || "").slice(0, 200);
+        const conf = Math.min(1, Math.max(0, Number(l?.confidence) || 0.5));
+        if (kind === "frame") {
+          // Desen/renk eki korunur; ana kod katalogdan, stok listesindeki yazımla
+          const c = cerceveKodu(rawCode, FRAME_PROFILES);
+          lines.push({ kind, code: c.code, rawCode, matched: c.matched, unit, qty, note: [lnote, c.note].filter(Boolean).join(" · "), confidence: c.matched ? Math.max(conf, 0.7) : Math.min(conf, 0.5) });
+        } else if (kind === "technical") {
+          const t = teknikUrun(rawCode, TECHNICAL_PRODUCTS);
+          lines.push({ kind, code: t ? t.t.name + (t.kartonKodu ? ` (${t.kartonKodu})` : "") : rawCode, rawCode, matched: !!t, unit, qty, note: lnote, confidence: t ? Math.max(conf, 0.7) : conf, techCode: t?.t.code, kartonKodu: t?.kartonKodu });
+        } else {
+          lines.push({ kind, code: rawCode, rawCode, matched: false, unit, qty, note: lnote, confidence: conf });
         }
       }
-      return {
-        kind,
-        code,
-        rawCode,
-        matched,
-        unit: String(l?.unit || "metre"),
-        qty: Math.max(0, Number(l?.qty) || 0),
-        note: String(l?.note || "").slice(0, 200),
-        confidence: Math.min(1, Math.max(0, Number(l?.confidence) || 0.5)),
-      };
-    });
-
-    return NextResponse.json({
-      ok: true,
-      customer: String(parsed.customer || "").slice(0, 160),
-      note: String(parsed.note || "").slice(0, 400),
-      lines,
-    });
-  } catch (err: any) {
-    console.error("Sipariş metni çözümlenemedi:", err);
-    return NextResponse.json(
-      { ok: false, error: "Çözümleme sırasında hata oluştu: " + (err?.message || "bilinmiyor") },
-      { status: 500 }
-    );
+      if (!customer && parsed.customer) customer = String(parsed.customer).slice(0, 160);
+      if (parsed.note) note = [note, String(parsed.note).slice(0, 400)].filter(Boolean).join(" · ");
+    } catch (err: any) {
+      console.error("Sipariş metni yapay zekâ ile çözümlenemedi:", err);
+      okunamayan = det.kalan;
+    }
+  } else if (det.kalan.length) {
+    okunamayan = det.kalan;
   }
+
+  if (!lines.length && !okunamayan.length) {
+    return NextResponse.json({ ok: false, error: "Metinde ürün satırı bulunamadı." }, { status: 422 });
+  }
+  return NextResponse.json({
+    ok: true,
+    customer: customer.slice(0, 160),
+    note: note.slice(0, 400),
+    iskontoPct: det.iskontoPct,
+    kdv: det.kdv,
+    lines: lines.slice(0, 80),
+    okunamayan,
+    yapayZeka: Boolean(process.env.ANTHROPIC_API_KEY),
+  });
 }

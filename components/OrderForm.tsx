@@ -18,7 +18,7 @@ import type { StockItem } from "@/lib/stock-parse";
 import CustomerPicker from "@/components/CustomerPicker";
 import MikroCariKutusu from "@/components/MikroCariKutusu";
 import TechnicalPicker from "@/components/TechnicalPicker";
-import OrderTextImport, { type ParsedLine } from "@/components/OrderTextImport";
+import OrderTextImport, { type ParsedLine, type ParsedResult } from "@/components/OrderTextImport";
 import Icon from "@/components/shell/Icon";
 
 type Kind = "frame" | "glass" | "ayna" | "technical" | "other";
@@ -361,11 +361,7 @@ export default function OrderForm({
   const [importOpen, setImportOpen] = useState(false);
 
   /** Yapay zekanın çözümlediği satırları forma ekler. */
-  function applyParsed(data: {
-    lines: ParsedLine[];
-    customer: string;
-    note: string;
-  }) {
+  function applyParsed(data: ParsedResult) {
     const yeni: Row[] = data.lines.map((l) => {
       const r = emptyRow();
       if (l.kind === "frame") {
@@ -383,14 +379,16 @@ export default function OrderForm({
         r.plakaAdet = String(l.qty);
       } else if (l.kind === "technical") {
         r.kind = "technical";
-        // Yapay zeka ürün adı da döndürebilir: önce koda, sonra ada bakılır
+        // Çözümleyici ürün kodunu verir; vermediyse koda, sonra ada bakılır
         const t =
+          (l.techCode ? teknikBul(katalog.technical, l.techCode) : undefined) ||
           teknikBul(katalog.technical, l.code) ||
           findTechnicalByName(katalog.technical, l.code);
         if (t) {
           r.techCode = t.code;
           r.kutuPrice = String(t.priceTL ?? t.priceEUR ?? "");
         }
+        if (l.kartonKodu) r.kartonKodu = l.kartonKodu;
         r.kutuAdet = String(l.qty);
       } else {
         r.kind = "other";
@@ -410,6 +408,9 @@ export default function OrderForm({
     });
     if (data.customer && !customer.trim()) setCustomer(data.customer);
     if (data.note && !note.trim()) setNote(data.note);
+    // Metindeki "%40 isk + KDV" gibi başlıklar: iskonto boşsa yazılır, KDV işareti metne göre ayarlanır
+    if (data.iskontoPct !== undefined && data.iskontoPct > 0) setDiscountPct((prev) => prev || String(data.iskontoPct));
+    if (data.kdv !== undefined) setVat(data.kdv);
     setImportOpen(false);
   }
   const [note, setNote] = useState(initialOrder?.note ?? "");

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { bekleyenAl, bekleyenSil } from "@/lib/wa-bekleyen";
+import { dbConfigured } from "@/lib/mesaj/db";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -8,7 +9,8 @@ export const dynamic = "force-dynamic";
 // Meta WhatsApp webhook'u.
 //   GET  — Meta'nın doğrulama isteği (hub.verify_token = WHATSAPP_VERIFY_TOKEN)
 //   POST — teslim durumları: müşteriye giden fiş "failed" olursa SMS'e düşülür.
-// Gelen müşteri mesajları (messages) şimdilik yalnızca loglanır.
+// Gelen müşteri mesajları (messages) DATABASE_URL tanımlıysa gelen kutusuna
+// (lib/mesaj) yazılır; giden mesajların teslim/okundu durumu da oraya işlenir.
 //
 // Güvenlik: WHATSAPP_APP_SECRET tanımlıysa X-Hub-Signature-256 doğrulanır.
 // Tanımlı değilse yalnızca bizim yazdığımız (tahmin edilemez) wamid'lere
@@ -56,7 +58,26 @@ export async function POST(req: Request) {
     for (const ch of entry.changes || []) {
       const v = ch.value;
       if (!v) continue;
-      if (v.messages?.length) console.log(`WhatsApp: ${v.messages.length} gelen mesaj (yanıtlanmıyor).`);
+      if (v.messages?.length) {
+        if (dbConfigured()) {
+          try {
+            const { gelenWhatsapp } = await import("@/lib/mesaj/whatsapp");
+            await gelenWhatsapp(v as Parameters<typeof gelenWhatsapp>[0]);
+          } catch (err) {
+            console.error("WhatsApp gelen mesaj kaydedilemedi:", err);
+          }
+        } else {
+          console.log(`WhatsApp: ${v.messages.length} gelen mesaj (gelen kutusu kurulu değil).`);
+        }
+      }
+      if (v.statuses?.length && dbConfigured()) {
+        try {
+          const { whatsappDurumlar } = await import("@/lib/mesaj/whatsapp");
+          await whatsappDurumlar(v.statuses as Parameters<typeof whatsappDurumlar>[0]);
+        } catch (err) {
+          console.error("WhatsApp durum güncellenemedi:", err);
+        }
+      }
       for (const st of v.statuses || []) {
         if (!st.id) continue;
         if (st.status === "delivered" || st.status === "read") {

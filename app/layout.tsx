@@ -10,8 +10,9 @@ import "./styles/reports.css";
 import "./styles/modals.css";
 import "./styles/dashboard.css";
 import "./styles/customers.css";
+import "./styles/inbox.css";
 import { getSessionUser } from "@/lib/auth";
-import { isOwner, isFinance, finansAktif, isMaliyet, isKurYetkili } from "@/data/users";
+import { isOwner, isFinance, finansAktif, isMaliyet, isKurYetkili, isMesajci } from "@/data/users";
 import AppShell from "@/components/shell/AppShell";
 import { aktifDuyurular } from "@/lib/duyurular";
 import { istanbulDateKey } from "@/lib/orders";
@@ -63,6 +64,7 @@ export default async function RootLayout({
               maliyet: isMaliyet(user.username),
               kur: isKurYetkili(user.username),
               raporlar: isFinance(user.username),
+              mesaj: user.role === "staff" && isMesajci(user.username),
             }}
             duyurular={duyurular}
           >

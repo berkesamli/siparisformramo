@@ -39,6 +39,7 @@ export interface LiteStats {
   ayAdet: number;
   ayCiro?: number;
   blob: boolean;
+  mesajOkunmamis?: number;
 }
 
 export interface SeriGun {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
-import { isFinance, isKurYetkili, isOwner } from "@/data/users";
+import { isFinance, isKurYetkili, isOwner, isMesajci } from "@/data/users";
+import { dbConfigured, okunmamisSayisi } from "@/lib/mesaj/db";
 import { computeStaffDashboard, computeCustomerDashboard } from "@/lib/dashboard";
 import { memo } from "@/lib/server-cache";
 
@@ -28,7 +29,12 @@ export async function GET(req: NextRequest) {
     const key = `dash:staff:${flags.finance ? 1 : 0}${flags.kur ? 1 : 0}${flags.owner ? 1 : 0}`;
     const data = await memo(key, 45_000, () => computeStaffDashboard(flags));
     if (req.nextUrl.searchParams.get("lite") === "1") {
-      return NextResponse.json({ ok: true, lite: data.lite });
+      // Gelen kutusu rozeti: kısa önbellek, yalnızca mesaj yetkisi olanlara
+      let mesajOkunmamis: number | undefined;
+      if (isMesajci(user.username) && dbConfigured()) {
+        mesajOkunmamis = await memo("mesaj:okunmamis", 20_000, () => okunmamisSayisi()).catch(() => undefined);
+      }
+      return NextResponse.json({ ok: true, lite: { ...data.lite, mesajOkunmamis } });
     }
     return NextResponse.json({ ok: true, data });
   } catch (err) {

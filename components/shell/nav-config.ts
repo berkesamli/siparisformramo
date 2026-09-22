@@ -10,9 +10,10 @@ export interface NavFlags {
   maliyet?: boolean;  // alış fiyatları & kârlılık
   kur?: boolean;      // günlük kur belirleme
   raporlar?: boolean; // ciro/tahsilat raporları (finans yetkisi, FINANS_AKTIF'ten bağımsız)
+  mesaj?: boolean;    // gelen kutusu (WhatsApp / Instagram / e-posta) — MESAJ_USERNAMES
 }
 
-export type BadgeKey = "acik" | "kontrolsuz" | "perakendeAcik";
+export type BadgeKey = "acik" | "kontrolsuz" | "perakendeAcik" | "mesaj";
 
 export interface NavItem {
   href: string;
@@ -67,13 +68,15 @@ export function navGroups(f: NavFlags): NavGroup[] {
         { href: "/panel/perakende/musteriler", label: "Perakende Müşteriler", icon: "user", keywords: ["perakende müşteri defteri"] },
       ],
     });
-    groups.push({
-      title: "Müşteri & İletişim",
-      items: [
-        { href: "/etiket", label: "Kargo Etiketi", icon: "tag", keywords: ["etiket", "kargo etiketi", "150x100", "yazdır", "pdf"] },
-        { href: "/panel/sms", label: "SMS Gönder", icon: "message", keywords: ["sms", "mesaj", "netgsm"] },
-      ],
-    });
+    const iletisim: NavItem[] = [];
+    if (f.mesaj) {
+      iletisim.push({ href: "/panel/mesajlar", label: "Mesajlar", icon: "inbox", short: "Mesajlar", badge: "mesaj", keywords: ["gelen kutusu", "whatsapp", "instagram", "e-posta", "mail", "dm", "yanıt", "inbox"] });
+    }
+    iletisim.push(
+      { href: "/etiket", label: "Kargo Etiketi", icon: "tag", keywords: ["etiket", "kargo etiketi", "150x100", "yazdır", "pdf"] },
+      { href: "/panel/sms", label: "SMS Gönder", icon: "message", keywords: ["sms", "mesaj", "netgsm"] },
+    );
+    groups.push({ title: "Müşteri & İletişim", items: iletisim });
 
     const yonetim: NavItem[] = [
       { href: "/panel/stok", label: "Stok Yükle", icon: "upload", keywords: ["excel", "günlük stok", "yükle"] },

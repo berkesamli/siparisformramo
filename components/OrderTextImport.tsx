@@ -1,7 +1,9 @@
 "use client";
 
-// WhatsApp/telefon notundan gelen serbest sipariş metnini yapay zekayla
-// çözümleyip sipariş formuna satır olarak aktarır.
+// Sipariş metnini (WhatsApp notu, el yazısından geçirilmiş liste) satırlara
+// çevirip forma aktarır. Kod + desen/renk, miktar, birim ve iskonto/KDV
+// kural tabanlı okunur (lib/siparis-metin); okunamayan satırlar yapay zekâya
+// gider, o da yoksa kullanıcıya gösterilir.
 
 import { useState } from "react";
 import { createPortal } from "react-dom";
@@ -16,6 +18,16 @@ export interface ParsedLine {
   qty: number;
   note: string;
   confidence: number;
+  techCode?: string;
+  kartonKodu?: string;
+}
+
+export interface ParsedResult {
+  lines: ParsedLine[];
+  customer: string;
+  note: string;
+  iskontoPct?: number;
+  kdv?: boolean;
 }
 
 const KIND_LABEL: Record<string, string> = {
@@ -26,27 +38,28 @@ const KIND_LABEL: Record<string, string> = {
   other: "Diğer",
 };
 
-const ORNEK = `Merhaba, 3 koli ks2030 beyaz
-50 metre gc065-1473
-2 kutu 10luk agraf
-bir de 122x183 düz cam 4 plaka
-Yılmaz Çerçeve, cuma kargoya versin`;
+const ORNEK = `Yılmaz Çerçeve / Ankara
+%40 isk + KDV
+KS 3420-black 10 koli
+GB211-4110B 3 koli
+3127 S-A79 20 boy
+gc065 1473 50 mt
+NS 455 → 25 ad
+İthal 10'luk agraf 8 kutu
+Oluklu karton 50 ad
+Araç ile gidecek`;
 
 export default function OrderTextImport({
   onApply,
   onClose,
 }: {
-  onApply: (data: { lines: ParsedLine[]; customer: string; note: string }) => void;
+  onApply: (data: ParsedResult) => void;
   onClose: () => void;
 }) {
   const [text, setText] = useState("");
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
-  const [result, setResult] = useState<{
-    lines: ParsedLine[];
-    customer: string;
-    note: string;
-  } | null>(null);
+  const [result, setResult] = useState<(ParsedResult & { okunamayan?: string[] }) | null>(null);
   const [selected, setSelected] = useState<Set<number>>(new Set());
 
   async function parse() {
@@ -65,11 +78,11 @@ export default function OrderTextImport({
       });
       const d = await res.json();
       if (!res.ok || !d.ok) throw new Error(d.error || "Çözümlenemedi");
-      if (!d.lines?.length) {
+      if (!d.lines?.length && !d.okunamayan?.length) {
         setErr("Metinde ürün satırı bulunamadı.");
       } else {
-        setResult({ lines: d.lines, customer: d.customer, note: d.note });
-        setSelected(new Set(d.lines.map((_: unknown, i: number) => i)));
+        setResult({ lines: d.lines || [], customer: d.customer, note: d.note, iskontoPct: d.iskontoPct, kdv: d.kdv, okunamayan: d.okunamayan || [] });
+        setSelected(new Set((d.lines || []).map((_: unknown, i: number) => i)));
       }
     } catch (e: any) {
       setErr(e.message || "Bir hata oluştu");
@@ -93,6 +106,8 @@ export default function OrderTextImport({
       lines: result.lines.filter((_, i) => selected.has(i)),
       customer: result.customer,
       note: result.note,
+      iskontoPct: result.iskontoPct,
+      kdv: result.kdv,
     });
   }
 
@@ -117,8 +132,10 @@ export default function OrderTextImport({
 
         <div className="ti-body">
           <p style={{ fontSize: 13, color: "var(--text-2)", marginBottom: 10 }}>
-            Müşteriden gelen WhatsApp mesajını veya telefon notunu olduğu gibi
-            yapıştırın; satırlara ayrılıp forma eklenir.
+            Her satıra bir ürün: <code>kod miktar birim</code> (örn. <code>KS 3420-black 10 koli</code>,
+            <code>GB211-4110B 20 boy</code>, <code>NS 455 25 ad</code>). Renk/desen eki koda dahil edilir,
+            ilk satır müşteri adı, <code>%40 isk + KDV</code> ve teslimat notu da okunur.
+            WhatsApp mesajını olduğu gibi yapıştırmak da olur.
           </p>
 
           <textarea
@@ -155,11 +172,22 @@ export default function OrderTextImport({
               <h3 style={{ fontSize: 15, margin: "18px 0 8px" }}>
                 Bulunan Satırlar ({selected.size}/{result.lines.length} seçili)
               </h3>
-              {(result.customer || result.note) && (
+              {(result.customer || result.note || result.iskontoPct !== undefined || result.kdv !== undefined) && (
                 <div className="notice info" style={{ marginTop: 0 }}>
-                  {result.customer && <>Müşteri: <strong>{result.customer}</strong></>}
-                  {result.customer && result.note && " · "}
-                  {result.note && <>Not: {result.note}</>}
+                  {[
+                    result.customer ? <span key="m">Müşteri: <strong>{result.customer}</strong></span> : null,
+                    result.iskontoPct !== undefined ? <span key="i">İskonto: <strong>%{result.iskontoPct}</strong></span> : null,
+                    result.kdv !== undefined ? <span key="k">KDV: <strong>{result.kdv ? "var" : "yok"}</strong></span> : null,
+                    result.note ? <span key="n">Not: {result.note}</span> : null,
+                  ].filter(Boolean).map((el, i, arr) => <span key={i}>{el}{i < arr.length - 1 ? " · " : ""}</span>)}
+                </div>
+              )}
+              {result.okunamayan && result.okunamayan.length > 0 && (
+                <div className="notice warn" style={{ marginTop: 0 }}>
+                  <strong>Okunamayan satırlar</strong> (elle ekleyin):
+                  <ul style={{ margin: "4px 0 0 18px" }}>
+                    {result.okunamayan.map((s, i) => <li key={i}><code>{s}</code></li>)}
+                  </ul>
                 </div>
               )}
 
@@ -183,6 +211,7 @@ export default function OrderTextImport({
                     <span className="ti-qty">
                       {l.qty} {l.unit}
                     </span>
+                    {l.kartonKodu && <span className="ti-note">karton kodu {l.kartonKodu}</span>}
                     {l.note && <span className="ti-note">{l.note}</span>}
                   </label>
                 ))}
