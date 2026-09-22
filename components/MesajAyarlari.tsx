@@ -11,7 +11,7 @@ interface Durum {
   gmail: { kurulu: boolean; hesaplar: string[]; test: { adres: string; ok: boolean; inbox?: number; okunmamis?: number; hata?: string }[] | null };
   whatsapp: {
     kurulu: boolean; sablonlar: string[]; test: { ok: boolean; numara?: string; ad?: string; kalite?: string; uygulama?: { id: string; ad: string }; hata?: string } | null;
-    webhook: { url: string; verifyToken: boolean; appSecret: boolean; sonOlay: Iz | null; wabaId: boolean; abonelik: Abonelik | null };
+    webhook: { url: string; verifyToken: boolean; appSecret: boolean; secretIpucu: { uzunluk: number; bas: string; son: string; tirnak: boolean } | null; sonOlay: Iz | null; kabul: Iz | null; red: Iz | null; wabaId: boolean; abonelik: Abonelik | null };
   };
   instagram: { kurulu: boolean; test: { ok: boolean; ad?: string; hata?: string } | null; webhook: { url: string; sonOlay: Iz | null } };
   taslak: boolean;
@@ -19,7 +19,7 @@ interface Durum {
 }
 interface SenkSonuc { hesap: string; yeni: number; hata?: string; atlandi?: boolean }
 interface Iz { at: string; tur: string; ozet: string }
-interface Abonelik { ok: boolean; wabaId?: string; abone?: boolean; alanlar?: string[]; hata?: string }
+interface Abonelik { ok: boolean; wabaId?: string; abone?: boolean; alanlar?: string[]; uygulamalar?: { id: string; ad: string; alanlar: string[] }[]; hata?: string }
 
 const nekadar = (iso: string) => {
   const dk = Math.round((Date.now() - new Date(iso).getTime()) / 60_000);
@@ -83,13 +83,18 @@ export default function MesajAyarlari() {
   const canli = Boolean(d?.db.test || d?.gmail.test || d?.whatsapp.test || d?.instagram.test);
   const wh = d?.whatsapp.webhook;
   const sonOlay = wh?.sonOlay;
-  const webhookOk = sonOlay ? sonOlay.tur !== "imza-red" : null;
-  const webhookDetay = !wh ? "" : sonOlay
-    ? (sonOlay.tur === "imza-red"
-        ? `Meta'dan olay geldi (${nekadar(sonOlay.at)}) ama reddedildi: ${sonOlay.ozet}`
-        : `Meta'dan son olay ${nekadar(sonOlay.at)}: ${sonOlay.ozet}${sonOlay.tur !== "mesaj" ? " — mesaj içermiyor; gelen mesaj düşmüyorsa Meta'da \"messages\" alanına abonelik eksik olabilir." : ""}`)
+  const kabul = wh?.kabul, red = wh?.red;
+  // Kabul edilen olay varsa webhook çalışıyor demektir; yalnızca red varsa sorun var.
+  const webhookOk = kabul ? true : red ? false : null;
+  const webhookDetay = !wh ? "" : (kabul || red)
+    ? [
+        kabul ? `Kabul edilen son olay ${nekadar(kabul.at)}: ${kabul.ozet}${kabul.tur !== "mesaj" ? " — mesaj içermiyor; gelen mesaj düşmüyorsa Meta'da \"messages\" alanına abonelik eksik olabilir." : ""}` : "Şimdiye dek kabul edilen olay yok.",
+        red ? `Reddedilen son olay ${nekadar(red.at)}: ${red.ozet}` : "",
+      ].filter(Boolean).join(" ")
     : `Meta'dan henüz hiç olay gelmedi. Meta uygulaması → WhatsApp → Configuration → Webhook: Callback URL ${wh.url}, Verify token = WHATSAPP_VERIFY_TOKEN${wh.verifyToken ? "" : " (Vercel'de tanımlı DEĞİL)"} → "Verify and save"; Webhook fields → messages → Subscribe.`;
   const abonelik = wh?.abonelik;
+  const jetonUygulama = d?.whatsapp.test?.uygulama;
+  const yanlisAbone = abonelik?.ok && jetonUygulama && abonelik.uygulamalar?.length ? abonelik.uygulamalar.filter((u) => u.id !== jetonUygulama.id) : [];
 
   return (
     <section className="card" style={{ marginTop: 16 }}>
@@ -140,16 +145,24 @@ export default function MesajAyarlari() {
           />
           <Satir
             ok={webhookOk}
-            uyari={sonOlay ? sonOlay.tur !== "mesaj" : true}
+            uyari={!kabul || (sonOlay ? sonOlay.tur !== "mesaj" : true)}
             baslik="WhatsApp webhook'u (gelen mesajlar)"
             detay={
               <>
                 <div>{webhookDetay}</div>
                 {wh && !wh.appSecret && <div><strong>Zorunlu:</strong> WHATSAPP_APP_SECRET tanımlı değil; güvenlik için Meta'dan gelen bütün olaylar reddedilir. Meta uygulaması → App settings → Basic → App secret değerini Vercel'e girin.</div>}
+                {wh?.secretIpucu && (
+                  <div>Yayındaki WHATSAPP_APP_SECRET: {wh.secretIpucu.uzunluk} karakter, &quot;{wh.secretIpucu.bas}…{wh.secretIpucu.son}&quot;{wh.secretIpucu.tirnak ? " — başında/sonunda tırnak var, kaldırın!" : ""}{jetonUygulama ? ` — Meta'da karşılaştırın: developers.facebook.com/apps/${jetonUygulama.id}/settings/basic/ (App secret, Show).` : ""} Vercel'de değiştirdiyseniz Redeploy gerekir.</div>
+                )}
                 {abonelik && (
                   <div>
                     {abonelik.ok
-                      ? (abonelik.abone ? `Uygulama WhatsApp Business hesabına abone ✓${abonelik.alanlar?.length ? ` (alanlar: ${abonelik.alanlar.join(", ")})` : ""}${abonelik.alanlar && !abonelik.alanlar.includes("messages") ? " — \"messages\" alanı eksik!" : ""}` : "Uygulama WhatsApp Business hesabına ABONE DEĞİL → gelen mesajlar düşmez.")
+                      ? (abonelik.abone
+                          ? <>Abone uygulama(lar): {abonelik.uygulamalar?.map((u) => `${u.ad} (${u.id}${u.alanlar.length ? `; ${u.alanlar.join(", ")}` : ""})`).join(" · ")}{abonelik.alanlar && abonelik.alanlar.length > 0 && !abonelik.alanlar.includes("messages") ? " — \"messages\" alanı eksik!" : ""}
+                              {yanlisAbone.length > 0 && <div><strong>Dikkat:</strong> jetonun uygulaması ({jetonUygulama?.ad} {jetonUygulama?.id}) dışında {yanlisAbone.map((u) => `${u.ad} (${u.id})`).join(", ")} de bu WhatsApp hesabına abone; o uygulamanın olayları farklı App Secret ile imzalandığı için reddedilir. Jetonun uygulaması aboneler arasında yoksa &quot;Webhook aboneliğini onar&quot; deyin; fazladan uygulamayı kendi panelinden (WhatsApp → Configuration → webhook) kaldırın.</div>}
+                              {jetonUygulama && !abonelik.uygulamalar?.some((u) => u.id === jetonUygulama.id) && <div><strong>Jetonun uygulaması ({jetonUygulama.ad}) abone değil</strong> → &quot;Webhook aboneliğini onar&quot; deyin.</div>}
+                            </>
+                          : "Uygulama WhatsApp Business hesabına ABONE DEĞİL → gelen mesajlar düşmez.")
                       : `Abonelik sorgulanamadı: ${abonelik.hata}`}
                   </div>
                 )}

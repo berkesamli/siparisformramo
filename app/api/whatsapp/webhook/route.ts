@@ -49,10 +49,18 @@ function imzaGecerli(raw: string, header: string | null): boolean {
 
 export async function POST(req: Request) {
   const raw = await req.text();
-  if (!imzaGecerli(raw, req.headers.get("x-hub-signature-256"))) {
-    await izKaydet("whatsapp", "imza-red", appSecret()
-      ? "Meta'dan olay geldi ama imza doğrulanamadı: Vercel'deki WHATSAPP_APP_SECRET, Meta uygulamasının App Secret'ıyla aynı değil."
-      : "Meta'dan olay geldi ama WHATSAPP_APP_SECRET tanımlı olmadığı için reddedildi. Meta → App settings → Basic → App secret değerini Vercel'e girin.");
+  const imzaBasligi = req.headers.get("x-hub-signature-256");
+  if (!imzaGecerli(raw, imzaBasligi)) {
+    // Yalnızca teşhis için (işlenmez): olay hangi WhatsApp hesabından / numaradan geliyor?
+    let kaynak = "";
+    try {
+      const b = JSON.parse(raw) as { object?: string; entry?: { id?: string; changes?: { field?: string; value?: { metadata?: { phone_number_id?: string; display_phone_number?: string }; messages?: unknown[]; statuses?: unknown[] } }[] }[] };
+      const e = b?.entry?.[0]; const v = e?.changes?.[0]?.value;
+      kaynak = ` Kaynak: ${b?.object || "?"}, WhatsApp hesabı ${e?.id || "?"}, numara ${v?.metadata?.display_phone_number || v?.metadata?.phone_number_id || "?"}, ${v?.messages?.length || 0} mesaj / ${v?.statuses?.length || 0} durum.`;
+    } catch { /* gövde JSON değil */ }
+    await izKaydet("whatsapp", "imza-red", (appSecret()
+      ? (imzaBasligi ? "Meta'dan olay geldi ama imza doğrulanamadı: Vercel'deki WHATSAPP_APP_SECRET, olayı gönderen Meta uygulamasının App Secret'ıyla aynı değil (iki uygulama aboneyse diğerinin olayı olabilir)." : "Olay geldi ama X-Hub-Signature-256 başlığı yok: Meta'dan gelmiyor ya da bir vekil başlığı düşürüyor.")
+      : "Meta'dan olay geldi ama WHATSAPP_APP_SECRET tanımlı olmadığı için reddedildi. Meta → App settings → Basic → App secret değerini Vercel'e girin.") + kaynak);
     return NextResponse.json({ ok: false, error: "İmza geçersiz." }, { status: 401 });
   }
   let body: { entry?: { changes?: { field?: string; value?: { statuses?: Durum[]; messages?: unknown[] } }[] }[] } | null = null;

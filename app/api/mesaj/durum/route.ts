@@ -31,15 +31,18 @@ export async function GET(req: NextRequest) {
     canli && whatsappConfigured() && process.env.WHATSAPP_WABA_ID ? wabaAbonelik(false) : Promise.resolve(null),
   ]);
   const origin = req.nextUrl.origin;
+  // Yayındaki secret'ın kısa parmak izi (tamamı asla dönmez): Meta'daki değerle karşılaştırmak için.
+  const secret = (process.env.WHATSAPP_APP_SECRET || process.env.META_APP_SECRET || "").trim();
+  const secretIpucu = secret ? { uzunluk: secret.length, bas: secret.slice(0, 2), son: secret.slice(-2), tirnak: /^["']|["']$/.test(secret) } : null;
   return NextResponse.json({
     ok: true,
     db: { kurulu: dbConfigured(), test: db },
     gmail: { kurulu: gmailConfigured(), hesaplar: gmailHesaplar().map((h) => h.adres), test: gmail },
     whatsapp: {
       kurulu: whatsappConfigured(), sablonlar: serbestSablonAdlari(), test: wa,
-      webhook: { url: `${origin}/api/whatsapp/webhook`, verifyToken: Boolean((process.env.WHATSAPP_VERIFY_TOKEN || "").trim()), appSecret: Boolean((process.env.WHATSAPP_APP_SECRET || "").trim()), sonOlay: waIz, wabaId: Boolean((process.env.WHATSAPP_WABA_ID || "").trim()), abonelik },
+      webhook: { url: `${origin}/api/whatsapp/webhook`, verifyToken: Boolean((process.env.WHATSAPP_VERIFY_TOKEN || "").trim()), appSecret: Boolean(secret), secretIpucu, sonOlay: waIz.son, kabul: waIz.kabul, red: waIz.red, wabaId: Boolean((process.env.WHATSAPP_WABA_ID || "").trim()), abonelik },
     },
-    instagram: { kurulu: instagramConfigured(), test: ig, webhook: { url: `${origin}/api/mesaj/webhook`, sonOlay: igIz } },
+    instagram: { kurulu: instagramConfigured(), test: ig, webhook: { url: `${origin}/api/mesaj/webhook`, sonOlay: igIz.son } },
     taslak: taslakHazir(),
     gorebilenler: mesajUsernames(),
   });
