@@ -70,6 +70,7 @@ export default function Sidebar({
     if (it.badge === "acik") return stats.acik;
     if (it.badge === "perakendeAcik") return stats.perakendeAcik;
     if (it.badge === "kontrolsuz") return stats.kontrolsuz;
+    if (it.badge === "mesaj") return stats.mesajOkunmamis || 0;
     return 0;
   };
 

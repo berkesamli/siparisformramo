@@ -17,6 +17,7 @@ export interface ShellStats {
   ayAdet: number;         // bu ay toplam sipariş adedi (toptan + perakende)
   ayCiro?: number;        // bu ay toptan ciro (yalnızca finans yetkisi)
   blob: boolean;          // depo bağlı mı (değilse sayaçlar 0 gelir)
+  mesajOkunmamis?: number; // gelen kutusunda okunmamış mesaj (yalnızca mesaj yetkisi)
 }
 
 export const STATS_KEY = "olga-shell-stats";

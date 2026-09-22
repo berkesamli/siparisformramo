@@ -66,6 +66,10 @@ Eski Apps Script kodu `legacy-apps-script/` klasöründe korunmaktadır.
 | `MIKRO_DEPO_ANKARA`, `MIKRO_DEPO_ISTANBUL` | DEPOLAR'daki ada göre | Mikro'dan stok çekerken şubeye sayılacak depo numaraları (`1,3` gibi). Boşsa adında ANKARA / İSTANBUL geçen depolar |
 | `STOK_TAZELIK_DK` | 120 | Çalışan stok sorgularken yayındaki veri bu kadar dakikadan eskiyse Mikro'dan tazelenir; ayrıca cron her sabah 07:30'da çeker (`/api/stock/mikro`) |
 | `BOLGE_SORUMLULARI` | Ankara: Ramazan Kaypan, İstanbul: Alaattin Yıldız, Taşra: Murat Gündüz | Müşteri satış bölgeleriyle ilgilenen satışçılar: `ankara=…;istanbul=…;tasra=…` |
+| `DATABASE_URL` | Mesajlar için | Postgres (Vercel Storage → Neon). Gelen kutusu tabloları ilk açılışta kendiliğinden kurulur |
+| `MESAJ_USERNAMES` | sahipler | Gelen kutusunu (`/panel/mesajlar`) görüp yanıtlayabilen çalışanlar, virgülle |
+| `GMAIL_HESAPLAR` | — | `adres:uygulama-şifresi;adres2:şifre2` — bu Gmail hesaplarının gelen kutusu IMAP ile okunur, yanıt aynı hesaptan SMTP ile gider |
+| `INSTAGRAM_TOKEN`, `INSTAGRAM_PAGE_ID`, `INSTAGRAM_ACCOUNT_ID` | — | Instagram DM'leri (Meta Messenger Platform); webhook `/api/mesaj/webhook`. İsteğe bağlı `INSTAGRAM_VERIFY_TOKEN`, `META_APP_SECRET` |
 
 ## Kullanıcılar ve Roller
 
@@ -97,6 +101,34 @@ Her PDF, `/kataloglar` sayfasında otomatik listelenir ve dergi görünümünde
    - SMTP tanımlıysa **e-posta** gönderilir (tablo + toplamlar).
    - WhatsApp Cloud API tanımlıysa **WhatsApp mesajı** otomatik gider;
      değilse panelde hazır metinli **wa.me linki** çıkar.
+
+## Mesajlar (Gelen Kutusu)
+
+`/panel/mesajlar` — WhatsApp (Cloud API numarası), Instagram (olga.cerceve) ve
+Gmail hesaplarına gelen mesajlar tek listede toplanır; çalışan aynı ekrandan
+yanıtlar. Yalnızca `MESAJ_USERNAMES`'teki çalışanlar (ve sahipler) görür.
+
+- **Kayıt:** Postgres (`DATABASE_URL`). Konuşma = kanal + karşı taraf (numara / IGSID / e-posta adresi).
+  Telefon veya e-posta müşteri defterindeki (toptan `C…` ya da perakende `P…`) bir kartla
+  eşleşirse konuşma o karta bağlanır; eşleşmezse "kayıtsız" kalır, elle bağlanabilir.
+- **WhatsApp:** mevcut webhook (`/api/whatsapp/webhook`) gelen mesajları ve teslim/okundu
+  durumlarını da yazar. Serbest yanıt yalnızca müşterinin son mesajından itibaren **24 saat** içinde
+  gönderilebilir (Meta kuralı); ekran pencere kapalıysa uyarır.
+- **Instagram:** Meta uygulamasına *Instagram* ürünü eklenir, `instagram_manage_messages` izni için
+  App Review geçilir, webhook `https://<site>/api/mesaj/webhook` (alan: `messages`) tanımlanır.
+  Instagram uygulamasından atılan yanıtlar da (echo) konuşmada görünür. 24 saat kuralı burada da geçerlidir.
+- **Gmail:** hesap başına Google *uygulama şifresi* (2 adımlı doğrulama açık olmalı). Gelen kutusu
+  ekran açıkken 60 sn'de bir, ilk kurulumda son 7 gün okunur; `noreply`/bülten adresleri sessiz düşer.
+  Yanıt aynı hesaptan, aynı konu dizisine (In-Reply-To) gider. `/api/mesaj/senk` elle/cron ile de tetiklenebilir.
+- **Yapay zekâ:** "Taslak öner" düğmesi, konuşmayı + katalog/stok/kur/müşteri kartını okuyup yanıt
+  **taslağı** yazar (`ANTHROPIC_API_KEY`). Hiçbir şey kendiliğinden gönderilmez; çalışan okur, düzeltir, gönderir.
+  Taslaktan gönderilen mesajlar konuşmada "taslak" etiketiyle görünür.
+- **Ekler:** görsel/belge/ses Vercel Blob'a *özel* olarak kaydedilir ve yalnızca oturumlu, yetkili
+  kullanıcıya `/api/mesaj/ek` üzerinden gösterilir.
+
+> 0850 305 75 45 numarasındaki *WhatsApp Business uygulaması* bu kutuya bağlı değildir: Meta bir numarayı
+> ya telefondaki uygulamada ya da Cloud API'de çalıştırır. O numaranın yazışmalarını da burada görmek için
+> numara Cloud API'ye taşınmalıdır (taşınınca telefondaki uygulama o numara için kapanır).
 
 ## Günlük Stok Güncelleme (Excel)
 

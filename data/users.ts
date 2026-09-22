@@ -129,6 +129,19 @@ export function finansAktif(): boolean {
   return process.env.FINANS_AKTIF === "1";
 }
 
+// Mesajlar (gelen kutusu): WhatsApp / Instagram / e-posta mesajlarını görüp
+// yanıtlayabilenler. MESAJ_USERNAMES="berke,ayse" — boşsa yalnızca sahipler.
+export function mesajUsernames(): string[] {
+  const raw = process.env.MESAJ_USERNAMES || "";
+  const list = raw.split(",").map((s) => normalizeUsername(s)).filter(Boolean);
+  return list.length ? list : ownerUsernames();
+}
+export function isMesajci(username: string | undefined | null): boolean {
+  if (!username) return false;
+  const u = normalizeUsername(username);
+  return mesajUsernames().includes(u) || ownerUsernames().includes(u);
+}
+
 // Maliyet & kârlılık ekranı — alış fiyatları en dar çevrenin bilgisidir.
 // MALIYET_USERNAMES ile değiştirilebilir; varsayılan yalnızca Berke ve Özgür.
 const DEFAULT_MALIYET = ["berke", "özgür"];
