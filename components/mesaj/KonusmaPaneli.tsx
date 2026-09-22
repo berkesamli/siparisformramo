@@ -185,7 +185,7 @@ export default function KonusmaPaneli({ id, me, kullanicilar, taslakHazir, kanal
           <div className="notice warn"><Icon name="clock" size={14} /> {KANAL_ADI[k.kanal]} kuralı: müşteri son 24 saatte yazmadığı için serbest yanıt gönderilemez. Müşteri yeniden yazınca pencere açılır{k.kanal === "whatsapp" ? "; acil durumda telefon/SMS kullanın ya da onaylı şablon tanımlayın (WHATSAPP_TEMPLATE_SERBEST)" : ""}.</div>
         )}
         {sablonla && (
-          <div className="notice info"><Icon name="clock" size={14} /> Müşteri son 24 saatte yazmadı: mesajınız Meta onaylı şablonun içinde gider; müşteri yanıtlayınca serbest yazışma açılır.</div>
+          <div className="notice info"><Icon name="clock" size={14} /> Müşteri son 24 saatte yazmadı: mesajınız Meta onaylı şablonun içinde gider (satır sonları tek boşluk olur, en fazla 1000 karakter); müşteri yanıtlayınca serbest yazışma açılır.</div>
         )}
         {gonderNotu && <div className="notice ok" onClick={() => setGonderNotu("")}>{gonderNotu}</div>}
         {taslakAi && <div className="ib-taslak-not"><Icon name="sparkles" size={14} /> Yapay zekâ taslağı — göndermeden önce okuyup düzeltin. <button type="button" className="btn ghost xs" onClick={() => { setMetin(""); setTaslakAi(false); }}>Temizle</button></div>}
@@ -198,6 +198,7 @@ export default function KonusmaPaneli({ id, me, kullanicilar, taslakHazir, kanal
             onKeyDown={(e) => { if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { e.preventDefault(); void gonder(); } }}
             placeholder={k.kanal === "email" ? `E-posta yanıtı (konu: ${/^re:/i.test(k.baslik) ? k.baslik : "Re: " + (k.baslik || "")})` : `${KANAL_ADI[k.kanal]} yanıtı yazın… (Ctrl+Enter gönderir)`}
             rows={2}
+            maxLength={sablonla ? 1000 : k.kanal === "email" ? 20000 : 4000}
             disabled={gonderiliyor}
             aria-label="Yanıt"
           />
@@ -211,7 +212,7 @@ export default function KonusmaPaneli({ id, me, kullanicilar, taslakHazir, kanal
             <span className="muted" style={{ fontSize: 12 }}>Yapay zekâ taslağı için ANTHROPIC_API_KEY gerekir.</span>
           )}
           <span className="spacer" />
-          <span className="muted ib-count">{metin.length > 0 ? `${metin.length} karakter` : ""}</span>
+          <span className="muted ib-count">{metin.length > 0 ? `${metin.length}${sablonla ? "/1000" : ""} karakter` : ""}</span>
           <button type="button" className={`btn small ${k.kanal === "whatsapp" ? "wa" : ""}`} onClick={() => void gonder()} disabled={!metin.trim() || gonderiliyor || !gonderilebilir}>
             <Icon name="arrow-up-right" size={15} /> {gonderiliyor ? "Gönderiliyor…" : k.kanal === "email" ? "E-posta gönder" : "Gönder"}
           </button>

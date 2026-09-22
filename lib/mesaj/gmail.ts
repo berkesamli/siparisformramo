@@ -64,16 +64,19 @@ export function htmlToText(html: string): string {
     .trim();
 }
 
-/** Alıntılanmış eski yazışmayı (">" satırları, "… yazdı:" bloğu) kırpar. */
+/**
+ * Alıntılanmış eski yazışmayı kırpar: Outlook ayracından sonrası ve SONDAKİ ">" / "… yazdı:" bloğu atılır;
+ * satır arası (alıntının altına yazılan) yanıtlar korunur.
+ */
 export function alintiKirp(metin: string): string {
   const satirlar = String(metin || "").split("\n");
-  const out: string[] = [];
-  for (const s of satirlar) {
-    if (/^\s*>/.test(s)) break;
-    if (/^(On .+ wrote:|.+ tarihinde .+ yazdı:|-----\s*Original Message\s*-----|_{10,})\s*$/i.test(s.trim())) break;
-    out.push(s);
-  }
-  const k = out.join("\n").trim();
+  const ATIF = /^(On .+ wrote:|.+ tarihinde .+ yazdı:)\s*$/i;
+  const AYRAC = /^(-----\s*Original Message\s*-----|_{10,})\s*$/i;
+  let son = satirlar.length;
+  const ayrac = satirlar.findIndex((s) => AYRAC.test(s.trim()));
+  if (ayrac >= 0) son = ayrac;
+  while (son > 0 && (/^\s*$/.test(satirlar[son - 1]) || /^\s*>/.test(satirlar[son - 1]) || ATIF.test(satirlar[son - 1].trim()))) son--;
+  const k = satirlar.slice(0, son).join("\n").trim();
   return k || String(metin || "").trim();
 }
 
@@ -172,7 +175,9 @@ async function hesapSenk(h: GmailHesap, zorla: boolean): Promise<GmailSenkSonuc>
         uidler = Array.isArray(bulunan) ? bulunan : [];
       }
       uidler.sort((a, b) => a - b);
-      if (uidler.length > AZAMI_MESAJ) uidler = uidler.slice(-AZAMI_MESAJ);
+      // Artımlı senkron: en ESKİ AZAMI_MESAJ (imleç işlenen son UID'ye ilerler, kalanı sonraki tur alır).
+      // İlk senkron: son 7 günün en yeni AZAMI_MESAJ'ı (bilinçli başlangıç sınırı).
+      if (uidler.length > AZAMI_MESAJ) uidler = eskiUid > 0 ? uidler.slice(0, AZAMI_MESAJ) : uidler.slice(-AZAMI_MESAJ);
       if (uidler.length) {
         for await (const msg of client.fetch(uidler, { uid: true, source: true, threadId: true, internalDate: true }, { uid: true })) {
           if (msg.source) ham.push({ uid: msg.uid, source: msg.source, threadId: msg.threadId, internalDate: msg.internalDate instanceof Date ? msg.internalDate : undefined });
@@ -188,10 +193,15 @@ async function hesapSenk(h: GmailHesap, zorla: boolean): Promise<GmailSenkSonuc>
   const bizim = bizimAdresler();
   let yeni = 0;
   for (const m of ham) {
-    try {
-      if (await mesajIsle(h, m, uidValidity, bizim)) yeni++;
-    } catch (e) {
-      console.warn(`Gmail mesajı işlenemedi (${h.adres} uid ${m.uid}):`, (e as Error)?.message);
+    // Geçici hata (DB/Blob zaman aşımı) için bir kez daha dene; yine olmazsa atla ki bozuk bir e-posta hesabı kilitlemesin.
+    for (let deneme = 0; deneme < 2; deneme++) {
+      try {
+        if (await mesajIsle(h, m, uidValidity, bizim)) yeni++;
+        break;
+      } catch (e) {
+        if (deneme === 0) { await new Promise((r) => setTimeout(r, 500)); continue; }
+        console.warn(`Gmail mesajı işlenemedi, atlandı (${h.adres} uid ${m.uid}):`, (e as Error)?.message);
+      }
     }
     if (m.uid > sonUid) sonUid = m.uid;
   }

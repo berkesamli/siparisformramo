@@ -66,8 +66,10 @@ export function whatsappSablonHazir(): boolean {
   return whatsappConfigured() && serbestSablonAdlari().length > 0;
 }
 
+export const SABLON_METIN_AZAMI = 1000;
+
 /** Şablon değişkeni: satır sonu/sekme yasak, 4+ ardışık boşluk yasak, en çok ~1000 karakter. */
-export function sablonParam(s: string, max = 1000): string {
+export function sablonParam(s: string, max = SABLON_METIN_AZAMI): string {
   const t = String(s ?? "").replace(/[\r\n\t]+/g, " ").replace(/\s{2,}/g, " ").trim();
   return (t || "—").slice(0, max);
 }
@@ -256,6 +258,10 @@ export async function whatsappGonder(k: Konusma, metin: string): Promise<WaGonde
   }
   if (!whatsappSablonHazir()) {
     throw new Error("WhatsApp 24 saat penceresi kapalı: müşteri son 24 saatte yazmadığı için serbest mesaj gönderilemez. Müşteri tekrar yazınca yanıtlayabilirsiniz; ya da Meta onaylı bir şablon tanımlayın (WHATSAPP_TEMPLATE_SERBEST).");
+  }
+  const uzunluk = sablonParam(metin, Infinity).length;
+  if (uzunluk > SABLON_METIN_AZAMI) {
+    throw new Error(`Müşteri son 24 saatte yazmadığı için mesaj onaylı şablonla gidecek; şablon metni en fazla ${SABLON_METIN_AZAMI} karakter olabilir (şu an ${uzunluk}). Kısaltıp yeniden gönderin.`);
   }
   return sablonlaGonder(hesap, to, k.ad && !k.ad.startsWith("+") ? k.ad : "", metin);
 }
