@@ -77,6 +77,25 @@ export function alintiKirp(metin: string): string {
   return k || String(metin || "").trim();
 }
 
+/**
+ * imapflow hataları genel "Command failed" mesajıyla gelir; Google'ın asıl yanıtı responseText'tedir
+ * (örn. "[AUTHENTICATIONFAILED] Invalid credentials (Failure)"). Buradan anlaşılır Türkçe açıklama üretilir.
+ */
+export function imapHata(e: unknown): string {
+  const err = (e || {}) as { message?: string; responseText?: string; responseStatus?: string; serverResponseCode?: string; code?: string; authenticationFailed?: boolean };
+  const ham = [err.serverResponseCode, err.responseText].filter(Boolean).join(" ") || err.message || String(e);
+  const kod = String(err.code || "");
+  if (/AUTHENTICATIONFAILED|Invalid credentials|authenticationFailed/i.test(ham) || err.authenticationFailed) {
+    return `Google girişi reddetti: uygulama şifresi yanlış ya da bu hesapta 2 adımlı doğrulama kapalı. Normal Gmail şifresi çalışmaz; https://myaccount.google.com/apppasswords adresinden 16 harfli uygulama şifresi alın. (${ham})`;
+  }
+  if (/Application-specific password required/i.test(ham)) return `Google uygulama şifresi istiyor: normal şifre girilmiş. https://myaccount.google.com/apppasswords (${ham})`;
+  if (/Please log in via your web browser|Web login required/i.test(ham)) return `Google girişi engelledi (yeni konum). Hesaba tarayıcıdan girip https://accounts.google.com/DisplayUnlockCaptcha adresinde izin verin, birkaç dakika sonra tekrar deneyin. (${ham})`;
+  if (/IMAP access is disabled|IMAP is disabled/i.test(ham)) return `Bu hesapta IMAP kapalı: Gmail → Ayarlar → Yönlendirme ve POP/IMAP → IMAP'i etkinleştir. (${ham})`;
+  if (/Too many simultaneous connections|throttl|rate/i.test(ham)) return `Google geçici olarak sınırladı; birkaç dakika sonra tekrar deneyin. (${ham})`;
+  if (/ETIMEDOUT|timeout|ECONNRESET|ECONNREFUSED|ENOTFOUND|EAI_AGAIN/i.test(kod + " " + ham)) return `imap.gmail.com sunucusuna ulaşılamadı (ağ/zaman aşımı). (${kod || ham})`;
+  return ham.slice(0, 240);
+}
+
 /** Her hesap için IMAP girişi + INBOX sayısı (Ayarlar test kartı). Şifre asla dönmez. */
 export async function gmailTest(): Promise<{ adres: string; ok: boolean; inbox?: number; okunmamis?: number; hata?: string }[]> {
   const out: { adres: string; ok: boolean; inbox?: number; okunmamis?: number; hata?: string }[] = [];
@@ -92,8 +111,7 @@ export async function gmailTest(): Promise<{ adres: string; ok: boolean; inbox?:
         await client.logout().catch(() => {});
       }
     } catch (e) {
-      const m = (e as Error)?.message || String(e);
-      out.push({ adres: h.adres, ok: false, hata: /AUTHENTICATIONFAILED|Invalid credentials|535|Application-specific password/i.test(m) ? "Giriş reddedildi: uygulama şifresi yanlış ya da 2 adımlı doğrulama kapalı. (" + m.slice(0, 120) + ")" : m.slice(0, 200) });
+      out.push({ adres: h.adres, ok: false, hata: imapHata(e) });
     }
   }
   return out;
@@ -113,7 +131,7 @@ export async function gmailSenk(o: { zorla?: boolean; hesap?: string } = {}): Pr
     try {
       sonuc.push(await hesapSenk(h, Boolean(o.zorla)));
     } catch (e) {
-      const hata = (e as Error)?.message || String(e);
+      const hata = imapHata(e);
       console.error(`Gmail senkron hatası (${h.adres}):`, hata);
       sonuc.push({ hesap: h.adres, yeni: 0, hata });
     } finally {
