@@ -45,6 +45,33 @@ export async function instagramDurum(): Promise<{ ok: boolean; ad?: string; hata
   }
 }
 
+/**
+ * Facebook Login yolunda Instagram mesaj webhook'ları ancak uygulama SAYFAYA abone olunca gelir
+ * (POST /{page-id}/subscribed_apps, sayfa jetonuyla). Kontrol eder; onar=true ile abone yapar.
+ */
+export async function igSayfaAbonelik(onar = false): Promise<{ ok: boolean; abone?: boolean; uygulamalar?: { id: string; ad: string; alanlar: string[] }[]; hata?: string }> {
+  if (!pageId() || !token()) return { ok: false, hata: "INSTAGRAM_PAGE_ID ve INSTAGRAM_TOKEN gerekli (Instagram Login yolunda sayfa aboneliği yoktur)." };
+  try {
+    // Sayfa jetonu: sistem kullanıcısı / kullanıcı jetonuyla sayfanın kendi jetonu alınır (pages_manage_metadata).
+    let sayfaJetonu = token();
+    const rj = await fetch(`${FB}/${pageId()}?fields=access_token&access_token=${encodeURIComponent(token())}`, { signal: AbortSignal.timeout(10_000) });
+    const jj = (await rj.json().catch(() => ({}))) as { access_token?: string };
+    if (rj.ok && jj.access_token) sayfaJetonu = jj.access_token;
+    if (onar) {
+      const r = await fetch(`${FB}/${pageId()}/subscribed_apps?subscribed_fields=messages,messaging_postbacks&access_token=${encodeURIComponent(sayfaJetonu)}`, { method: "POST", signal: AbortSignal.timeout(10_000) });
+      const j = (await r.json().catch(() => ({}))) as { success?: boolean; error?: { message?: string; code?: number } };
+      if (!r.ok || !j.success) return { ok: false, hata: `Sayfaya abone olunamadı: ${j.error?.message || `HTTP ${r.status}`}${j.error?.code ? ` (kod ${j.error.code})` : ""}` };
+    }
+    const r = await fetch(`${FB}/${pageId()}/subscribed_apps?access_token=${encodeURIComponent(sayfaJetonu)}`, { signal: AbortSignal.timeout(10_000) });
+    const j = (await r.json().catch(() => ({}))) as { data?: { id?: string; name?: string; subscribed_fields?: string[] }[]; error?: { message?: string; code?: number } };
+    if (!r.ok) return { ok: false, hata: `${j.error?.message || `HTTP ${r.status}`}${j.error?.code ? ` (kod ${j.error.code})` : ""}` };
+    const uygulamalar = (j.data || []).map((d) => ({ id: d.id || "?", ad: d.name || "?", alanlar: d.subscribed_fields || [] }));
+    return { ok: true, abone: uygulamalar.length > 0, uygulamalar };
+  } catch (e) {
+    return { ok: false, hata: (e as Error)?.message || String(e) };
+  }
+}
+
 export interface IgEk { type?: string; payload?: { url?: string; title?: string; sticker_id?: number } }
 export interface IgOlay {
   sender?: { id?: string };
