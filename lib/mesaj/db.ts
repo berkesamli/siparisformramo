@@ -267,6 +267,21 @@ export async function konusmaGuncelle(id: string, degisiklik: { durum?: KonusmaD
   return konusma(id);
 }
 
+/** Bağlantı + tablo sayıları (Ayarlar sayfasındaki test kartı). */
+export async function dbSaglik(): Promise<{ ok: boolean; konusma: number; mesaj: number; hata?: string; sunucu?: string }> {
+  const url = dbUrl();
+  const sunucu = url ? (url.match(/@([^/:?]+)/)?.[1] || "") : "";
+  if (!dbConfigured()) return { ok: false, konusma: 0, mesaj: 0, hata: "DATABASE_URL tanımlı değil.", sunucu };
+  try {
+    const p = await db();
+    const a = await p.query("SELECT COUNT(*)::int AS n FROM mesaj_konusma");
+    const b = await p.query("SELECT COUNT(*)::int AS n FROM mesaj");
+    return { ok: true, konusma: Number(a.rows[0]?.n) || 0, mesaj: Number(b.rows[0]?.n) || 0, sunucu };
+  } catch (e) {
+    return { ok: false, konusma: 0, mesaj: 0, hata: (e as Error)?.message || String(e), sunucu };
+  }
+}
+
 export async function okunmamisSayisi(): Promise<number> {
   const p = await db();
   const r = await p.query("SELECT COALESCE(SUM(okunmamis), 0) AS n FROM mesaj_konusma WHERE durum <> 'kapali'");

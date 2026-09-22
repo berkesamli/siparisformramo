@@ -77,6 +77,28 @@ export function alintiKirp(metin: string): string {
   return k || String(metin || "").trim();
 }
 
+/** Her hesap için IMAP girişi + INBOX sayısı (Ayarlar test kartı). Şifre asla dönmez. */
+export async function gmailTest(): Promise<{ adres: string; ok: boolean; inbox?: number; okunmamis?: number; hata?: string }[]> {
+  const out: { adres: string; ok: boolean; inbox?: number; okunmamis?: number; hata?: string }[] = [];
+  for (const h of gmailHesaplar()) {
+    try {
+      const { ImapFlow } = await import("imapflow");
+      const client = new ImapFlow({ host: "imap.gmail.com", port: 993, secure: true, auth: { user: h.adres, pass: h.sifre }, logger: false, connectionTimeout: 12_000, greetingTimeout: 12_000, socketTimeout: 20_000 } as any);
+      await client.connect();
+      try {
+        const st = await client.status("INBOX", { messages: true, unseen: true });
+        out.push({ adres: h.adres, ok: true, inbox: Number(st.messages) || 0, okunmamis: Number(st.unseen) || 0 });
+      } finally {
+        await client.logout().catch(() => {});
+      }
+    } catch (e) {
+      const m = (e as Error)?.message || String(e);
+      out.push({ adres: h.adres, ok: false, hata: /AUTHENTICATIONFAILED|Invalid credentials|535|Application-specific password/i.test(m) ? "Giriş reddedildi: uygulama şifresi yanlış ya da 2 adımlı doğrulama kapalı. (" + m.slice(0, 120) + ")" : m.slice(0, 200) });
+    }
+  }
+  return out;
+}
+
 const senkSuruyor = new Set<string>();
 
 export interface GmailSenkSonuc { hesap: string; yeni: number; atlandi?: boolean; hata?: string }

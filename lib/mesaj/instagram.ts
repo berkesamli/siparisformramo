@@ -29,6 +29,22 @@ function taban(): { url: string; gonderim: string } {
   return { url: IG, gonderim: `${IG}/${accountId() || "me"}/messages` };
 }
 
+/** Jeton kontrolü (Ayarlar test kartı): sayfa/hesap adı. */
+export async function instagramDurum(): Promise<{ ok: boolean; ad?: string; hata?: string }> {
+  if (!instagramConfigured()) return { ok: false, hata: "INSTAGRAM_TOKEN ile INSTAGRAM_PAGE_ID (ya da INSTAGRAM_ACCOUNT_ID) tanımlı değil." };
+  try {
+    const kim = pageId() || accountId();
+    const alan = pageId() ? "name,instagram_business_account{username}" : "username";
+    const r = await fetch(`${taban().url}/${kim}?fields=${encodeURIComponent(alan)}&access_token=${encodeURIComponent(token())}`, { signal: AbortSignal.timeout(10_000) });
+    const j = (await r.json().catch(() => ({}))) as { name?: string; username?: string; instagram_business_account?: { username?: string }; error?: { message?: string; code?: number } };
+    if (!r.ok) return { ok: false, hata: `${j.error?.message || `HTTP ${r.status}`}${j.error?.code ? ` (kod ${j.error.code})` : ""}` };
+    const ig = j.instagram_business_account?.username || j.username;
+    return { ok: true, ad: [j.name, ig ? "@" + ig : ""].filter(Boolean).join(" · ") };
+  } catch (e) {
+    return { ok: false, hata: (e as Error)?.message || String(e) };
+  }
+}
+
 export interface IgEk { type?: string; payload?: { url?: string; title?: string; sticker_id?: number } }
 export interface IgOlay {
   sender?: { id?: string };

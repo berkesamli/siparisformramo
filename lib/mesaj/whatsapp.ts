@@ -100,6 +100,19 @@ async function grafGonder(hesap: string, body: Record<string, unknown>): Promise
   return { ok: false, kod, hata: `${e?.message || `HTTP ${r.status}`}${kod ? ` (kod ${kod})` : ""}${e?.error_data?.details ? " — " + e.error_data.details : ""}${ipucu}` };
 }
 
+/** Jeton + numara kontrolü: Graph'tan görünen numara ve doğrulanmış ad (Ayarlar test kartı). */
+export async function whatsappDurum(): Promise<{ ok: boolean; numara?: string; ad?: string; kalite?: string; hata?: string }> {
+  if (!whatsappConfigured()) return { ok: false, hata: "WHATSAPP_TOKEN / WHATSAPP_PHONE_ID tanımlı değil." };
+  try {
+    const r = await fetch(`${GRAPH}/${phoneId()}?fields=display_phone_number,verified_name,quality_rating`, { headers: { Authorization: `Bearer ${token()}` }, signal: AbortSignal.timeout(10_000) });
+    const j = (await r.json().catch(() => ({}))) as { display_phone_number?: string; verified_name?: string; quality_rating?: string; error?: { message?: string; code?: number } };
+    if (!r.ok) return { ok: false, hata: `${j.error?.message || `HTTP ${r.status}`}${j.error?.code ? ` (kod ${j.error.code})` : ""}${j.error?.code === 190 ? " → jeton geçersiz/süresi dolmuş" : ""}` };
+    return { ok: true, numara: j.display_phone_number, ad: j.verified_name, kalite: j.quality_rating };
+  } catch (e) {
+    return { ok: false, hata: (e as Error)?.message || String(e) };
+  }
+}
+
 export interface WaGonderim { disId: string; yontem: "serbest" | "sablon"; sablon?: string }
 
 async function sablonlaGonder(hesap: string, to: string, ad: string, metin: string): Promise<WaGonderim> {
