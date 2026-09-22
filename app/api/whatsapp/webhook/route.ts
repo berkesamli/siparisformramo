@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { bekleyenAl, bekleyenSil } from "@/lib/wa-bekleyen";
 import { dbConfigured } from "@/lib/mesaj/db";
+import { izKaydet } from "@/lib/mesaj/webhook-iz";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -48,10 +49,18 @@ function imzaGecerli(raw: string, header: string | null): boolean {
 export async function POST(req: Request) {
   const raw = await req.text();
   if (!imzaGecerli(raw, req.headers.get("x-hub-signature-256"))) {
+    await izKaydet("whatsapp", "imza-red", "Meta'dan olay geldi ama imza doğrulanamadı (WHATSAPP_APP_SECRET uyuşmuyor).");
     return NextResponse.json({ ok: false, error: "İmza geçersiz." }, { status: 401 });
   }
   let body: { entry?: { changes?: { field?: string; value?: { statuses?: Durum[]; messages?: unknown[] } }[] }[] } | null = null;
   try { body = JSON.parse(raw); } catch { return NextResponse.json({ ok: false }, { status: 400 }); }
+
+  // Kurulum teşhisi için son olayın özeti (mesaj / durum sayısı, alan adı)
+  {
+    let mesajSayisi = 0, durumSayisi = 0; const alanlar = new Set<string>();
+    for (const e of body?.entry || []) for (const ch of e.changes || []) { alanlar.add(ch.field || "?"); mesajSayisi += ch.value?.messages?.length || 0; durumSayisi += ch.value?.statuses?.length || 0; }
+    await izKaydet("whatsapp", mesajSayisi ? "mesaj" : durumSayisi ? "durum" : "diger", `alan: ${[...alanlar].join(",") || "-"} · ${mesajSayisi} mesaj · ${durumSayisi} durum${dbConfigured() ? "" : " · gelen kutusu kurulu değil (DATABASE_URL yok)"}`);
+  }
 
   let smsGonderilen = 0;
   for (const entry of body?.entry || []) {

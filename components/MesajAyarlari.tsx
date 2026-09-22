@@ -9,12 +9,23 @@ import Icon from "@/components/shell/Icon";
 interface Durum {
   db: { kurulu: boolean; test: { ok: boolean; konusma: number; mesaj: number; hata?: string; sunucu?: string } | null };
   gmail: { kurulu: boolean; hesaplar: string[]; test: { adres: string; ok: boolean; inbox?: number; okunmamis?: number; hata?: string }[] | null };
-  whatsapp: { kurulu: boolean; sablonlar: string[]; test: { ok: boolean; numara?: string; ad?: string; kalite?: string; hata?: string } | null };
-  instagram: { kurulu: boolean; test: { ok: boolean; ad?: string; hata?: string } | null };
+  whatsapp: {
+    kurulu: boolean; sablonlar: string[]; test: { ok: boolean; numara?: string; ad?: string; kalite?: string; hata?: string } | null;
+    webhook: { url: string; verifyToken: boolean; appSecret: boolean; sonOlay: Iz | null; wabaId: boolean; abonelik: Abonelik | null };
+  };
+  instagram: { kurulu: boolean; test: { ok: boolean; ad?: string; hata?: string } | null; webhook: { url: string; sonOlay: Iz | null } };
   taslak: boolean;
   gorebilenler: string[];
 }
 interface SenkSonuc { hesap: string; yeni: number; hata?: string; atlandi?: boolean }
+interface Iz { at: string; tur: string; ozet: string }
+interface Abonelik { ok: boolean; wabaId?: string; abone?: boolean; alanlar?: string[]; hata?: string }
+
+const nekadar = (iso: string) => {
+  const dk = Math.round((Date.now() - new Date(iso).getTime()) / 60_000);
+  if (dk < 1) return "az önce"; if (dk < 60) return `${dk} dk önce`; if (dk < 48 * 60) return `${Math.round(dk / 60)} saat önce`;
+  return new Date(iso).toLocaleString("tr-TR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+};
 
 function Satir({ ok, baslik, detay, uyari }: { ok: boolean | null; baslik: string; detay?: React.ReactNode; uyari?: boolean }) {
   return (
@@ -32,6 +43,8 @@ export default function MesajAyarlari() {
   const [cekiyor, setCekiyor] = useState(false);
   const [senk, setSenk] = useState<SenkSonuc[] | null>(null);
   const [senkHata, setSenkHata] = useState("");
+  const [aboneOluyor, setAboneOluyor] = useState(false);
+  const [aboneNotu, setAboneNotu] = useState("");
 
   async function yukle(test = false) {
     if (test) setTestEdiyor(true);
@@ -56,7 +69,27 @@ export default function MesajAyarlari() {
     finally { setCekiyor(false); }
   }
 
+  async function aboneOl() {
+    setAboneOluyor(true); setAboneNotu("");
+    try {
+      const r = await fetch("/api/mesaj/durum", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ islem: "wa-abone" }) });
+      const j = await r.json();
+      setAboneNotu(j.ok ? `Abone olundu (alanlar: ${(j.abonelik?.alanlar || []).join(", ") || "—"}). Şimdi numaraya bir mesaj atıp "Bağlantıları sına" ile son olayı kontrol edin.` : `Olmadı: ${j.error || "hata"}`);
+      if (j.ok) void yukle(true);
+    } catch { setAboneNotu("Sunucuya ulaşılamadı."); }
+    finally { setAboneOluyor(false); }
+  }
+
   const canli = Boolean(d?.db.test || d?.gmail.test || d?.whatsapp.test || d?.instagram.test);
+  const wh = d?.whatsapp.webhook;
+  const sonOlay = wh?.sonOlay;
+  const webhookOk = sonOlay ? sonOlay.tur !== "imza-red" : null;
+  const webhookDetay = !wh ? "" : sonOlay
+    ? (sonOlay.tur === "imza-red"
+        ? `Meta'dan olay geldi (${nekadar(sonOlay.at)}) ama imza reddedildi → Vercel'deki WHATSAPP_APP_SECRET, Meta uygulamasının App Secret'ıyla aynı olmalı.`
+        : `Meta'dan son olay ${nekadar(sonOlay.at)}: ${sonOlay.ozet}${sonOlay.tur !== "mesaj" ? " — mesaj içermiyor; gelen mesaj düşmüyorsa Meta'da \"messages\" alanına abonelik eksik olabilir." : ""}`)
+    : `Meta'dan henüz hiç olay gelmedi. Meta uygulaması → WhatsApp → Configuration → Webhook: Callback URL ${wh.url}, Verify token = WHATSAPP_VERIFY_TOKEN${wh.verifyToken ? "" : " (Vercel'de tanımlı DEĞİL)"} → "Verify and save"; Webhook fields → messages → Subscribe.`;
+  const abonelik = wh?.abonelik;
 
   return (
     <section className="card" style={{ marginTop: 16 }}>
@@ -104,10 +137,35 @@ export default function MesajAyarlari() {
             }
           />
           <Satir
+            ok={webhookOk}
+            uyari={sonOlay ? sonOlay.tur !== "mesaj" : true}
+            baslik="WhatsApp webhook'u (gelen mesajlar)"
+            detay={
+              <>
+                <div>{webhookDetay}</div>
+                {wh && !wh.appSecret && <div>İsteğe bağlı: WHATSAPP_APP_SECRET tanımlanırsa Meta'nın imzası doğrulanır.</div>}
+                {abonelik && (
+                  <div>
+                    {abonelik.ok
+                      ? (abonelik.abone ? `Uygulama WhatsApp Business hesabına abone ✓${abonelik.alanlar?.length ? ` (alanlar: ${abonelik.alanlar.join(", ")})` : ""}${abonelik.alanlar && !abonelik.alanlar.includes("messages") ? " — \"messages\" alanı eksik!" : ""}` : "Uygulama WhatsApp Business hesabına ABONE DEĞİL → gelen mesajlar düşmez.")
+                      : `Abonelik sorgulanamadı: ${abonelik.hata}`}
+                  </div>
+                )}
+                {wh && !wh.wabaId && <div>Aboneliği buradan kontrol edip onarmak için Vercel'e WHATSAPP_WABA_ID (WhatsApp Business Account ID) ekleyin.</div>}
+                {wh?.wabaId && (
+                  <div style={{ marginTop: 6, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                    <button type="button" className="btn secondary xs" onClick={() => void aboneOl()} disabled={aboneOluyor}><Icon name="zap" size={12} /> {aboneOluyor ? "Abone olunuyor…" : "Webhook aboneliğini onar"}</button>
+                    {aboneNotu && <span className={aboneNotu.startsWith("Olmadı") ? "" : ""} style={{ fontSize: 12.5 }}>{aboneNotu}</span>}
+                  </div>
+                )}
+              </>
+            }
+          />
+          <Satir
             ok={d.instagram.test ? d.instagram.test.ok : d.instagram.kurulu ? null : false}
             uyari={!d.instagram.kurulu}
             baslik={`Instagram ${d.instagram.kurulu ? "" : "(henüz bağlı değil)"}`}
-            detay={d.instagram.test ? (d.instagram.test.ok ? d.instagram.test.ad : d.instagram.test.hata) : d.instagram.kurulu ? "" : "Meta uygulamasında Instagram ürünü + instagram_manage_messages izni; INSTAGRAM_TOKEN, INSTAGRAM_PAGE_ID, INSTAGRAM_ACCOUNT_ID."}
+            detay={<>{d.instagram.test ? (d.instagram.test.ok ? d.instagram.test.ad : d.instagram.test.hata) : d.instagram.kurulu ? "" : "Meta uygulamasında Instagram ürünü + instagram_manage_messages izni; INSTAGRAM_TOKEN, INSTAGRAM_PAGE_ID, INSTAGRAM_ACCOUNT_ID."}{d.instagram.webhook.sonOlay && <div>Webhook son olay {nekadar(d.instagram.webhook.sonOlay.at)}: {d.instagram.webhook.sonOlay.ozet}</div>}<div>Webhook adresi: {d.instagram.webhook.url}</div></>}
           />
           <Satir ok={d.taslak} uyari baslik="Yapay zekâ taslağı" detay={d.taslak ? "ANTHROPIC_API_KEY tanımlı; \"Taslak öner\" çalışır." : "ANTHROPIC_API_KEY yok; taslak düğmesi kapalı."} />
           <Satir ok={true} baslik="Kimler görüyor" detay={d.gorebilenler.join(", ")} />

@@ -139,8 +139,10 @@ export async function konusmaBulVeyaOlustur(k: {
   kanal: Kanal; hesap: string; disKimlik: string; ad?: string; baslik?: string; meta?: Record<string, unknown>;
 }): Promise<Konusma> {
   const p = await db();
-  const r = await p.query("SELECT * FROM mesaj_konusma WHERE kanal = $1 AND hesap = $2 AND dis_kimlik = $3", [k.kanal, k.hesap, k.disKimlik]);
-  if (r.rows[0]) {
+  // Var olanı bulur ve yeni bilgiyle tazeler (yoksa null).
+  const bulVeTazele = async (): Promise<Konusma | null> => {
+    const r = await p.query("SELECT * FROM mesaj_konusma WHERE kanal = $1 AND hesap = $2 AND dis_kimlik = $3", [k.kanal, k.hesap, k.disKimlik]);
+    if (!r.rows[0]) return null;
     const eski = konusmaSatir(r.rows[0]);
     const ad = k.ad || eski.ad, baslik = k.baslik || eski.baslik;
     const meta = { ...eski.meta, ...(k.meta || {}) };
@@ -148,13 +150,25 @@ export async function konusmaBulVeyaOlustur(k: {
       await p.query("UPDATE mesaj_konusma SET ad = $2, baslik = $3, meta = $4 WHERE id = $1", [eski.id, ad, baslik, JSON.stringify(meta)]);
     }
     return { ...eski, ad, baslik, meta };
-  }
+  };
+  const var_ = await bulVeTazele();
+  if (var_) return var_;
   const id = yeniId("k");
   const now = new Date();
-  await p.query(
-    "INSERT INTO mesaj_konusma (id, kanal, hesap, dis_kimlik, ad, baslik, son_mesaj_at, meta) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)",
-    [id, k.kanal, k.hesap, k.disKimlik, k.ad || "", k.baslik || "", now, JSON.stringify(k.meta || {})]
-  );
+  try {
+    await p.query(
+      "INSERT INTO mesaj_konusma (id, kanal, hesap, dis_kimlik, ad, baslik, son_mesaj_at, meta) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)",
+      [id, k.kanal, k.hesap, k.disKimlik, k.ad || "", k.baslik || "", now, JSON.stringify(k.meta || {})]
+    );
+  } catch (e: any) {
+    // Aynı yeni gönderenden eş zamanlı iki webhook: ikisi de SELECT'te boş gördü, ikinci INSERT
+    // tekil kısıta (kanal, hesap, dis_kimlik) takıldı → ilkinin açtığı konuşmayı al (mesajEkle'deki desen).
+    if (e?.code === "23505" || /unique|duplicate/i.test(String(e?.message))) {
+      const yine = await bulVeTazele();
+      if (yine) return yine;
+    }
+    throw e;
+  }
   return { id, kanal: k.kanal, hesap: k.hesap, disKimlik: k.disKimlik, ad: k.ad || "", baslik: k.baslik || "", musteriId: null, musteriTur: null, durum: "acik", atanan: null, sonMesajAt: now.toISOString(), sonMesajOzet: "", sonGelenAt: null, okunmamis: 0, meta: k.meta || {}, createdAt: now.toISOString() };
 }
 
