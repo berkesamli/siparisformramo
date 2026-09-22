@@ -14,8 +14,27 @@ type Sorgu = { query: (text: string, params?: unknown[]) => Promise<{ rows: any[
 let havuz: Sorgu | null = null;
 let kuruldu: Promise<void> | null = null;
 
+/**
+ * Postgres bağlantı adresi. Vercel'in Neon entegrasyonu değişkeni seçilen ön eke göre adlandırır
+ * (DATABASE_URL, STORAGE_URL, POSTGRES_URL …); bilinen adlar sırayla, sonra "postgres://" ile
+ * başlayan herhangi bir *_URL değişkeni (havuzlu olan tercih edilir) bulunur.
+ */
+export function dbUrl(): string {
+  const bilinen = ["DATABASE_URL", "POSTGRES_URL", "STORAGE_URL", "DATABASE_POSTGRES_URL", "STORAGE_POSTGRES_URL", "NEON_DATABASE_URL"];
+  for (const k of bilinen) {
+    const v = (process.env[k] || "").trim();
+    if (v) return v;
+  }
+  // Sıra: havuzlu düz adres → havuzsuz (UNPOOLED / NON_POOLING) → Prisma / NO_SSL biçimleri
+  const derece = (k: string) => (/PRISMA|NO_SSL/.test(k) ? 2 : /UNPOOLED|NON_POOLING/.test(k) ? 1 : 0);
+  const adaylar = Object.entries(process.env)
+    .filter(([k, v]) => /(^|_)URL(_|$)/.test(k) && /^postgres(ql)?:\/\//i.test(String(v || "").trim()))
+    .sort(([a], [b]) => derece(a) - derece(b) || a.localeCompare(b));
+  return adaylar[0] ? String(adaylar[0][1]).trim() : "";
+}
+
 export function dbConfigured(): boolean {
-  return Boolean(havuz || process.env.DATABASE_URL || process.env.POSTGRES_URL);
+  return Boolean(havuz || dbUrl());
 }
 
 /** Testler / farklı sürücüler için havuzu dışarıdan ver. */
@@ -26,7 +45,7 @@ export function setDbPool(p: Sorgu | null, semaHazir = false) {
 
 async function pool(): Promise<Sorgu> {
   if (havuz) return havuz;
-  const url = process.env.DATABASE_URL || process.env.POSTGRES_URL;
+  const url = dbUrl();
   if (!url) throw new Error("Mesajlar için veri tabanı ayarlanmamış (DATABASE_URL).");
   const { Pool } = (await import("pg")) as { Pool: typeof PgPool };
   const ssl = /localhost|127\.0\.0\.1/.test(url) ? undefined : { rejectUnauthorized: false };

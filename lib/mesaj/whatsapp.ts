@@ -47,6 +47,77 @@ export interface WaDurum {
 
 const token = () => (process.env.WHATSAPP_TOKEN || "").trim();
 const phoneId = () => (process.env.WHATSAPP_PHONE_ID || "").trim();
+const sablonDili = () => (process.env.WHATSAPP_TEMPLATE_DIL || "tr").trim();
+
+/**
+ * Bizim başlattığımız / 24 saat penceresi dışındaki mesajlar için Meta onaylı şablon(lar):
+ * WHATSAPP_TEMPLATE_SERBEST="genel_mesaj,genel_mesaj_v2" (sırayla denenir). Gövdesinde
+ * {{1}} = mesaj metni; iki değişkenliyse {{1}} = müşteri adı, {{2}} = metin.
+ */
+export function serbestSablonAdlari(): string[] {
+  const out: string[] = [];
+  for (const p of (process.env.WHATSAPP_TEMPLATE_SERBEST || "").split(/[,;]+/)) {
+    const ad = p.trim();
+    if (ad && !out.includes(ad)) out.push(ad);
+  }
+  return out;
+}
+export function whatsappSablonHazir(): boolean {
+  return whatsappConfigured() && serbestSablonAdlari().length > 0;
+}
+
+/** Şablon değişkeni: satır sonu/sekme yasak, 4+ ardışık boşluk yasak, en çok ~1000 karakter. */
+export function sablonParam(s: string, max = 1000): string {
+  const t = String(s ?? "").replace(/[\r\n\t]+/g, " ").replace(/\s{2,}/g, " ").trim();
+  return (t || "—").slice(0, max);
+}
+
+const HATA_IPUCU: Record<number, string> = {
+  190: "token geçersiz ya da süresi dolmuş; WHATSAPP_TOKEN'ı yenileyin",
+  131047: "24 saat penceresi kapalı; müşteri önce yazmalı ya da onaylı şablon (WHATSAPP_TEMPLATE_SERBEST) kullanılmalı",
+  131026: "numara WhatsApp'ta kayıtlı olmayabilir",
+  131030: "alıcı Meta'daki izin listesinde değil (uygulama geliştirme modunda)",
+  132000: "şablondaki değişken sayısı uyuşmuyor",
+  132001: "şablon Meta'da yok ya da henüz onaylanmadı",
+  132015: "şablon Meta tarafından duraklatıldı",
+  132016: "şablon devre dışı",
+};
+
+type GrafSonuc = { ok: true; disId: string } | { ok: false; hata: string; kod?: number };
+
+async function grafGonder(hesap: string, body: Record<string, unknown>): Promise<GrafSonuc> {
+  const r = await fetch(`${GRAPH}/${hesap || phoneId()}/messages`, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token()}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ messaging_product: "whatsapp", recipient_type: "individual", ...body }),
+    signal: AbortSignal.timeout(15_000),
+  });
+  const j = (await r.json().catch(() => ({}))) as { messages?: { id: string }[]; error?: { message?: string; code?: number; error_data?: { details?: string } } };
+  if (r.ok && j.messages?.[0]?.id) return { ok: true, disId: j.messages[0].id };
+  const e = j.error;
+  const kod = typeof e?.code === "number" ? e.code : undefined;
+  const ipucu = kod && HATA_IPUCU[kod] ? ` → ${HATA_IPUCU[kod]}` : "";
+  return { ok: false, kod, hata: `${e?.message || `HTTP ${r.status}`}${kod ? ` (kod ${kod})` : ""}${e?.error_data?.details ? " — " + e.error_data.details : ""}${ipucu}` };
+}
+
+export interface WaGonderim { disId: string; yontem: "serbest" | "sablon"; sablon?: string }
+
+async function sablonlaGonder(hesap: string, to: string, ad: string, metin: string): Promise<WaGonderim> {
+  const hatalar: string[] = [];
+  for (const sablon of serbestSablonAdlari()) {
+    // Önce tek değişken ({{1}} = metin); Meta "değişken sayısı uyuşmuyor" derse ad + metin denenir.
+    for (const params of [[metin], [ad || "Sayın Müşterimiz", metin]]) {
+      const r = await grafGonder(hesap, {
+        to, type: "template",
+        template: { name: sablon, language: { code: sablonDili() }, components: [{ type: "body", parameters: params.map((t) => ({ type: "text", text: sablonParam(t) })) }] },
+      });
+      if (r.ok) return { disId: r.disId, yontem: "sablon", sablon };
+      hatalar.push(`${sablon}: ${r.hata}`);
+      if (r.kod !== 132000) break;
+    }
+  }
+  throw new Error(`WhatsApp şablonla gönderilemedi — ${hatalar.join("; ")}`);
+}
 
 /** Mesaj gövdesini türüne göre metne çevirir; medya kimliğini döner. */
 export function waGovde(m: WaMesaj): { metin: string; medya?: WaMedya & { tur: string } } {
@@ -133,21 +204,21 @@ export async function whatsappDurumlar(statuses: WaDurum[]): Promise<number> {
   return n;
 }
 
-/** Serbest metin yanıtı. Müşteri 24 saattir yazmadıysa Meta reddeder; önce pencere kontrol edilir. */
-export async function whatsappGonder(k: Konusma, metin: string): Promise<{ disId: string }> {
+/**
+ * Yanıt gönderir. Müşteri son 24 saatte yazdıysa serbest metin; yazmadıysa (ya da Meta 131047 ile
+ * reddederse) WHATSAPP_TEMPLATE_SERBEST şablonuyla gider. Şablon yoksa pencere kapalıyken hata verir.
+ */
+export async function whatsappGonder(k: Konusma, metin: string): Promise<WaGonderim> {
   if (!whatsappConfigured()) throw new Error("WhatsApp Cloud API ayarlı değil (WHATSAPP_TOKEN / WHATSAPP_PHONE_ID).");
-  if (!pencereAcik(k)) throw new Error("WhatsApp 24 saat penceresi kapalı: müşteri son 24 saatte yazmadığı için serbest mesaj gönderilemez. Müşteri tekrar yazınca yanıtlayabilirsiniz.");
   const to = normalizeWaNumber(k.disKimlik) || k.disKimlik;
-  const r = await fetch(`${GRAPH}/${k.hesap || phoneId()}/messages`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${token()}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ messaging_product: "whatsapp", recipient_type: "individual", to, type: "text", text: { preview_url: false, body: metin } }),
-    signal: AbortSignal.timeout(15_000),
-  });
-  const j = (await r.json().catch(() => ({}))) as { messages?: { id: string }[]; error?: { message?: string; code?: number; error_data?: { details?: string } } };
-  if (!r.ok || !j.messages?.[0]?.id) {
-    const e = j.error;
-    throw new Error(`WhatsApp gönderilemedi: ${e?.message || r.status}${e?.error_data?.details ? " — " + e.error_data.details : ""}`);
+  const hesap = k.hesap || phoneId();
+  if (pencereAcik(k)) {
+    const r = await grafGonder(hesap, { to, type: "text", text: { preview_url: false, body: metin } });
+    if (r.ok) return { disId: r.disId, yontem: "serbest" };
+    if (r.kod !== 131047 || !whatsappSablonHazir()) throw new Error(`WhatsApp gönderilemedi: ${r.hata}`);
   }
-  return { disId: j.messages[0].id };
+  if (!whatsappSablonHazir()) {
+    throw new Error("WhatsApp 24 saat penceresi kapalı: müşteri son 24 saatte yazmadığı için serbest mesaj gönderilemez. Müşteri tekrar yazınca yanıtlayabilirsiniz; ya da Meta onaylı bir şablon tanımlayın (WHATSAPP_TEMPLATE_SERBEST).");
+  }
+  return sablonlaGonder(hesap, to, k.ad && !k.ad.startsWith("+") ? k.ad : "", metin);
 }

@@ -28,7 +28,8 @@ export function gmailHesaplar(): GmailHesap[] {
     const i = p.indexOf(":");
     if (i < 1) continue;
     const adres = p.slice(0, i).trim().toLowerCase().replace(/^["']|["']$/g, "");
-    const sifre = p.slice(i + 1).trim().replace(/^["']|["']$/g, "");
+    // Google uygulama şifresi 4'lü gruplarla gösterilir ("abcd efgh …"); boşluklar atılır.
+    const sifre = p.slice(i + 1).trim().replace(/^["']|["']$/g, "").replace(/\s+/g, "");
     if (adres.includes("@") && sifre) out.push({ adres, sifre });
   }
   return out;

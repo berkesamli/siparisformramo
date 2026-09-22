@@ -7,7 +7,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Icon from "@/components/shell/Icon";
-import { KANAL_ADI, pencereAcik, type Kanal, type Konusma, type Mesaj } from "@/lib/mesaj/tur";
+import { KANAL_ADI, pencereAcik, type KanalDurumu, type Konusma, type Mesaj } from "@/lib/mesaj/tur";
 import type { Kullanici, Me } from "./Inbox";
 import MusteriBagla from "./MusteriBagla";
 import { KanalIkon, gunBasligi, zamanTam } from "./ortak";
@@ -16,12 +16,12 @@ interface MusteriOzeti {
   id: string; tur: "toptan" | "perakende"; ad: string; telefon: string; eposta: string; sehir?: string; bolge?: string;
   iskontoPct?: number; mikroBakiye?: number | null; mikroUnvan?: string; href: string;
 }
-interface Yanit { ok: boolean; error?: string; konusma?: Konusma; mesajlar?: Mesaj[]; musteri?: MusteriOzeti | null; pencere?: boolean; mesaj?: Mesaj; taslak?: string }
+interface Yanit { ok: boolean; error?: string; konusma?: Konusma; mesajlar?: Mesaj[]; musteri?: MusteriOzeti | null; pencere?: boolean; mesaj?: Mesaj; taslak?: string; yontem?: string; sablon?: string }
 
 const tl = (n: number) => n.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " ₺";
 
 export default function KonusmaPaneli({ id, me, kullanicilar, taslakHazir, kanallar, onBack, onChanged, onClosed }: {
-  id: string; me: Me; kullanicilar: Kullanici[]; taslakHazir: boolean; kanallar: Record<Kanal, boolean>;
+  id: string; me: Me; kullanicilar: Kullanici[]; taslakHazir: boolean; kanallar: KanalDurumu;
   onBack: () => void; onChanged: (k: Konusma) => void; onClosed: () => void;
 }) {
   const [k, setK] = useState<Konusma | null>(null);
@@ -33,6 +33,7 @@ export default function KonusmaPaneli({ id, me, kullanicilar, taslakHazir, kanal
   const [taslakYukleniyor, setTaslakYukleniyor] = useState(false);
   const [gonderiliyor, setGonderiliyor] = useState(false);
   const [gonderHata, setGonderHata] = useState("");
+  const [gonderNotu, setGonderNotu] = useState("");
   const [baglaAcik, setBaglaAcik] = useState(false);
   const [simdi, setSimdi] = useState(() => Date.now());
   const altRef = useRef<HTMLDivElement>(null);
@@ -101,6 +102,7 @@ export default function KonusmaPaneli({ id, me, kullanicilar, taslakHazir, kanal
       setMesajlar((m) => [...m, d.mesaj!]); sonSayi.current += 1;
       if (d.konusma) { setK(d.konusma); onChanged({ ...d.konusma, okunmamis: 0 }); }
       setMetin(""); setTaslakAi(false);
+      setGonderNotu(d.yontem === "sablon" ? `Müşteri 24 saattir yazmadığı için mesaj onaylı şablonla gitti (${d.sablon}).` : "");
       setTimeout(() => altRef.current?.scrollIntoView({ block: "end", behavior: "smooth" }), 30);
     } catch { setGonderHata("Sunucuya ulaşılamadı."); }
     finally { setGonderiliyor(false); }
@@ -111,7 +113,8 @@ export default function KonusmaPaneli({ id, me, kullanicilar, taslakHazir, kanal
 
   const pencere = pencereAcik(k, simdi);
   const kanalHazir = kanallar[k.kanal];
-  const gonderilebilir = kanalHazir && (k.kanal === "email" || pencere);
+  const sablonla = k.kanal === "whatsapp" && !pencere && kanallar.whatsappSablon;
+  const gonderilebilir = kanalHazir && (k.kanal === "email" || pencere || sablonla);
   const kimlik = k.kanal === "email" ? k.disKimlik : k.kanal === "instagram" ? (k.baslik || `Instagram ${k.disKimlik.slice(-6)}`) : `+${k.disKimlik}`;
   const iletisim = k.kanal === "whatsapp" ? `https://wa.me/${k.disKimlik}` : k.kanal === "email" ? `mailto:${k.disKimlik}` : k.baslik ? `https://instagram.com/${k.baslik.replace(/^@/, "")}` : "";
 
@@ -178,9 +181,13 @@ export default function KonusmaPaneli({ id, me, kullanicilar, taslakHazir, kanal
 
       <footer className="ib-compose">
         {!kanalHazir && <div className="notice warn">{KANAL_ADI[k.kanal]} gönderimi için kanal ayarları eksik; bu konuşmaya buradan yanıt verilemez.</div>}
-        {kanalHazir && k.kanal !== "email" && !pencere && (
-          <div className="notice warn"><Icon name="clock" size={14} /> {KANAL_ADI[k.kanal]} kuralı: müşteri son 24 saatte yazmadığı için serbest yanıt gönderilemez. Müşteri yeniden yazınca pencere açılır{k.kanal === "whatsapp" ? "; acil durumda telefon/SMS kullanın" : ""}.</div>
+        {kanalHazir && k.kanal !== "email" && !pencere && !sablonla && (
+          <div className="notice warn"><Icon name="clock" size={14} /> {KANAL_ADI[k.kanal]} kuralı: müşteri son 24 saatte yazmadığı için serbest yanıt gönderilemez. Müşteri yeniden yazınca pencere açılır{k.kanal === "whatsapp" ? "; acil durumda telefon/SMS kullanın ya da onaylı şablon tanımlayın (WHATSAPP_TEMPLATE_SERBEST)" : ""}.</div>
         )}
+        {sablonla && (
+          <div className="notice info"><Icon name="clock" size={14} /> Müşteri son 24 saatte yazmadı: mesajınız Meta onaylı şablonun içinde gider; müşteri yanıtlayınca serbest yazışma açılır.</div>
+        )}
+        {gonderNotu && <div className="notice ok" onClick={() => setGonderNotu("")}>{gonderNotu}</div>}
         {taslakAi && <div className="ib-taslak-not"><Icon name="sparkles" size={14} /> Yapay zekâ taslağı — göndermeden önce okuyup düzeltin. <button type="button" className="btn ghost xs" onClick={() => { setMetin(""); setTaslakAi(false); }}>Temizle</button></div>}
         {gonderHata && <div className="notice err">{gonderHata}</div>}
         <div className="ib-compose-row">
