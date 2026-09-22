@@ -25,9 +25,11 @@ export function dbUrl(): string {
     const v = (process.env[k] || "").trim();
     if (v) return v;
   }
+  // Sıra: havuzlu düz adres → havuzsuz (UNPOOLED / NON_POOLING) → Prisma / NO_SSL biçimleri
+  const derece = (k: string) => (/PRISMA|NO_SSL/.test(k) ? 2 : /UNPOOLED|NON_POOLING/.test(k) ? 1 : 0);
   const adaylar = Object.entries(process.env)
-    .filter(([k, v]) => /_URL$/.test(k) && /^postgres(ql)?:\/\//i.test(String(v || "").trim()))
-    .sort(([a], [b]) => Number(/UNPOOLED|NON_POOLING|PRISMA|NO_SSL/.test(a)) - Number(/UNPOOLED|NON_POOLING|PRISMA|NO_SSL/.test(b)));
+    .filter(([k, v]) => /(^|_)URL(_|$)/.test(k) && /^postgres(ql)?:\/\//i.test(String(v || "").trim()))
+    .sort(([a], [b]) => derece(a) - derece(b) || a.localeCompare(b));
   return adaylar[0] ? String(adaylar[0][1]).trim() : "";
 }
 
