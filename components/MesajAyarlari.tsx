@@ -13,7 +13,7 @@ interface Durum {
     kurulu: boolean; sablonlar: string[]; test: { ok: boolean; numara?: string; ad?: string; kalite?: string; uygulama?: { id: string; ad: string }; hata?: string } | null;
     webhook: { url: string; verifyToken: boolean; appSecret: boolean; secretIpucu: { uzunluk: number; bas: string; son: string; tirnak: boolean } | null; sonOlay: Iz | null; kabul: Iz | null; red: Iz | null; wabaId: boolean; abonelik: Abonelik | null };
   };
-  instagram: { kurulu: boolean; test: { ok: boolean; ad?: string; hata?: string } | null; webhook: { url: string; sonOlay: Iz | null } };
+  instagram: { kurulu: boolean; test: { ok: boolean; ad?: string; hata?: string } | null; webhook: { url: string; sonOlay: Iz | null; kabul: Iz | null; red: Iz | null; abonelik: Abonelik | null; sayfa: boolean } };
   taslak: boolean;
   gorebilenler: string[];
 }
@@ -45,6 +45,8 @@ export default function MesajAyarlari() {
   const [senkHata, setSenkHata] = useState("");
   const [aboneOluyor, setAboneOluyor] = useState(false);
   const [aboneNotu, setAboneNotu] = useState("");
+  const [igAboneOluyor, setIgAboneOluyor] = useState(false);
+  const [igAboneNotu, setIgAboneNotu] = useState("");
 
   async function yukle(test = false) {
     if (test) setTestEdiyor(true);
@@ -78,6 +80,17 @@ export default function MesajAyarlari() {
       if (j.ok) void yukle(true);
     } catch { setAboneNotu("Sunucuya ulaşılamadı."); }
     finally { setAboneOluyor(false); }
+  }
+
+  async function igAboneOl() {
+    setIgAboneOluyor(true); setIgAboneNotu("");
+    try {
+      const r = await fetch("/api/mesaj/durum", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ islem: "ig-abone" }) });
+      const j = await r.json();
+      setIgAboneNotu(j.ok ? "Sayfaya abone olundu. Instagram'dan bir DM atıp \"Bağlantıları sına\" ile son olayı kontrol edin." : `Olmadı: ${j.error || "hata"}`);
+      if (j.ok) void yukle(true);
+    } catch { setIgAboneNotu("Sunucuya ulaşılamadı."); }
+    finally { setIgAboneOluyor(false); }
   }
 
   const canli = Boolean(d?.db.test || d?.gmail.test || d?.whatsapp.test || d?.instagram.test);
@@ -180,7 +193,27 @@ export default function MesajAyarlari() {
             ok={d.instagram.test ? d.instagram.test.ok : d.instagram.kurulu ? null : false}
             uyari={!d.instagram.kurulu}
             baslik={`Instagram ${d.instagram.kurulu ? "" : "(henüz bağlı değil)"}`}
-            detay={<>{d.instagram.test ? (d.instagram.test.ok ? d.instagram.test.ad : d.instagram.test.hata) : d.instagram.kurulu ? "" : "Meta uygulamasında Instagram ürünü + instagram_manage_messages izni; INSTAGRAM_TOKEN, INSTAGRAM_PAGE_ID, INSTAGRAM_ACCOUNT_ID."}{d.instagram.webhook.sonOlay && <div>Webhook son olay {nekadar(d.instagram.webhook.sonOlay.at)}: {d.instagram.webhook.sonOlay.ozet}</div>}<div>Webhook adresi: {d.instagram.webhook.url}</div></>}
+            detay={
+              <>
+                {d.instagram.test ? (d.instagram.test.ok ? d.instagram.test.ad : d.instagram.test.hata) : d.instagram.kurulu ? "" : "Meta uygulamasında Instagram ürünü + instagram_manage_messages izni; INSTAGRAM_TOKEN, INSTAGRAM_PAGE_ID, INSTAGRAM_ACCOUNT_ID."}
+                {d.instagram.webhook.kabul && <div>Kabul edilen son olay {nekadar(d.instagram.webhook.kabul.at)}: {d.instagram.webhook.kabul.ozet}</div>}
+                {d.instagram.webhook.red && <div>Reddedilen son olay {nekadar(d.instagram.webhook.red.at)}: {d.instagram.webhook.red.ozet}</div>}
+                {d.instagram.webhook.abonelik && (
+                  <div>
+                    {d.instagram.webhook.abonelik.ok
+                      ? (d.instagram.webhook.abonelik.abone ? `Uygulama Facebook sayfasına abone ✓ (${d.instagram.webhook.abonelik.uygulamalar?.map((u) => `${u.ad}${u.alanlar.length ? ": " + u.alanlar.join(", ") : ""}`).join(" · ")})` : "Uygulama Facebook sayfasına ABONE DEĞİL → Instagram mesajları düşmez.")
+                      : `Sayfa aboneliği sorgulanamadı: ${d.instagram.webhook.abonelik.hata}`}
+                  </div>
+                )}
+                {d.instagram.kurulu && d.instagram.webhook.sayfa && (
+                  <div style={{ marginTop: 6, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                    <button type="button" className="btn secondary xs" onClick={() => void igAboneOl()} disabled={igAboneOluyor}><Icon name="zap" size={12} /> {igAboneOluyor ? "Abone olunuyor…" : "Sayfa aboneliğini onar"}</button>
+                    {igAboneNotu && <span style={{ fontSize: 12.5 }}>{igAboneNotu}</span>}
+                  </div>
+                )}
+                <div>Webhook adresi: {d.instagram.webhook.url}</div>
+              </>
+            }
           />
           <Satir ok={d.taslak} uyari baslik="Yapay zekâ taslağı" detay={d.taslak ? "ANTHROPIC_API_KEY tanımlı; \"Taslak öner\" çalışır." : "ANTHROPIC_API_KEY yok; taslak düğmesi kapalı."} />
           <Satir ok={true} baslik="Kimler görüyor" detay={d.gorebilenler.join(", ")} />
