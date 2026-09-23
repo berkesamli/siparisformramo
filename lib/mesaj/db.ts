@@ -7,7 +7,7 @@
 // mesaj (tek tek mesajlar), mesaj_senk (kanal/hesap başına son senkron).
 
 import type { Pool as PgPool } from "pg";
-import type { Ek, Kanal, Konusma, KonusmaDurum, KonusmaFiltre, Mesaj, Yon } from "./tur";
+import { ozetTemizle, type Ek, type Kanal, type Konusma, type KonusmaDurum, type KonusmaFiltre, type Mesaj, type Yon } from "./tur";
 
 type Sorgu = { query: (text: string, params?: unknown[]) => Promise<{ rows: any[]; rowCount: number | null }> };
 
@@ -89,6 +89,7 @@ CREATE TABLE IF NOT EXISTS mesaj (
 );
 CREATE INDEX IF NOT EXISTS mesaj_konusma_at ON mesaj (konusma_id, at);
 CREATE UNIQUE INDEX IF NOT EXISTS mesaj_dis_id ON mesaj (konusma_id, dis_id) WHERE dis_id IS NOT NULL;
+ALTER TABLE mesaj ADD COLUMN IF NOT EXISTS html TEXT;
 CREATE TABLE IF NOT EXISTS mesaj_senk (
   anahtar TEXT PRIMARY KEY,
   deger TEXT NOT NULL DEFAULT '',
@@ -120,7 +121,7 @@ function konusmaSatir(r: any): Konusma {
 }
 function mesajSatir(r: any): Mesaj {
   return {
-    id: r.id, konusmaId: r.konusma_id, yon: r.yon, govde: r.govde || "",
+    id: r.id, konusmaId: r.konusma_id, yon: r.yon, govde: r.govde || "", html: r.html || undefined,
     ekler: typeof r.ekler === "string" ? JSON.parse(r.ekler || "[]") : r.ekler || [],
     disId: r.dis_id || null, gonderen: r.gonderen || "", taslakAi: Boolean(r.taslak_ai), durum: r.durum || "",
     hata: r.hata || null, at: iso(r.at) || "",
@@ -174,7 +175,7 @@ export async function konusmaBulVeyaOlustur(k: {
 
 /** Mesaj ekler; aynı dis_id ikinci kez gelirse eklemez (webhook tekrarları). Konuşma özetini günceller. */
 export async function mesajEkle(m: {
-  konusmaId: string; yon: Yon; govde: string; ekler?: Ek[]; disId?: string | null; gonderen?: string;
+  konusmaId: string; yon: Yon; govde: string; html?: string; ekler?: Ek[]; disId?: string | null; gonderen?: string;
   taslakAi?: boolean; durum?: string; hata?: string | null; at?: Date;
   /** Sessiz gelen: okunmamış sayacını artırmaz, kapalı konuşmayı açmaz (otomatik e-postalar). */
   sessiz?: boolean;
@@ -191,8 +192,8 @@ export async function mesajEkle(m: {
   const at = m.at || new Date();
   try {
     await p.query(
-      "INSERT INTO mesaj (id, konusma_id, yon, govde, ekler, dis_id, gonderen, taslak_ai, durum, hata, at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)",
-      [id, m.konusmaId, m.yon, m.govde, JSON.stringify(m.ekler || []), m.disId || null, m.gonderen || "", Boolean(m.taslakAi), m.durum || "", m.hata || null, at]
+      "INSERT INTO mesaj (id, konusma_id, yon, govde, ekler, dis_id, gonderen, taslak_ai, durum, hata, at, html) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)",
+      [id, m.konusmaId, m.yon, m.govde, JSON.stringify(m.ekler || []), m.disId || null, m.gonderen || "", Boolean(m.taslakAi), m.durum || "", m.hata || null, at, m.html || null]
     );
   } catch (e: any) {
     // Aynı dış kimlik eş zamanlı iki webhook'tan geldi (tekil indeks): ilkini döndür.
@@ -202,7 +203,8 @@ export async function mesajEkle(m: {
     }
     throw e;
   }
-  const ozet = (m.govde || (m.ekler?.length ? `[${m.ekler[0].tur === "image" ? "Görsel" : "Dosya"}]` : "")).slice(0, 140);
+  // Liste önizlemesi: bağlantı/görsel kalıntıları ayıklanmış kısa metin; metin yoksa ekin türü
+  const ozet = ozetTemizle(m.govde, 140) || (m.ekler?.length ? `[${m.ekler[0].tur === "image" ? "Görsel" : "Dosya"}]` : "");
   if (m.yon === "gelen" && m.sessiz) {
     await p.query(
       "UPDATE mesaj_konusma SET son_mesaj_at = $2, son_mesaj_ozet = $3, son_gelen_at = $2 WHERE id = $1",
@@ -273,7 +275,8 @@ export async function mesajlar(konusmaId: string, limit = 200): Promise<Mesaj[]>
   const p = await db();
   const n = Math.min(500, Math.max(1, limit));
   const r = await p.query(`SELECT * FROM mesaj WHERE konusma_id = $1 ORDER BY at DESC, id DESC LIMIT ${n}`, [konusmaId]);
-  return r.rows.map(mesajSatir).reverse();
+  // HTML gövde (e-posta) yalnızca son 20 mesajda taşınır; daha eskiler düz metinle gösterilir (yanıt boyutu)
+  return r.rows.map((row, i) => { const m = mesajSatir(row); if (i >= 20) delete m.html; return m; }).reverse();
 }
 
 export async function okunduIsaretle(konusmaId: string): Promise<void> {

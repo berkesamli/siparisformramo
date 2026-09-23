@@ -5,7 +5,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Icon from "@/components/shell/Icon";
-import { KANAL_ADI, hesapKisa, type Kanal, type KanalDurumu, type Konusma, type KonusmaDurum } from "@/lib/mesaj/tur";
+import { KANAL_ADI, hesapHarf, hesapKisa, ozetTemizle, type Kanal, type KanalDurumu, type Konusma, type KonusmaDurum } from "@/lib/mesaj/tur";
 import KonusmaPaneli from "./KonusmaPaneli";
 import YeniMesaj from "./YeniMesaj";
 import { KanalIkon, zamanKisa } from "./ortak";
@@ -17,11 +17,11 @@ interface ListeYaniti {
   ok: boolean; error?: string; kurulum?: boolean;
   konusmalar?: Konusma[]; okunmamis?: number; kanallar?: Record<Kanal, boolean>; taslak?: boolean; kullanicilar?: Kullanici[];
   hesaplar?: { email: string[] };
-  senk?: { hesap: string; yeni: number; hata?: string; atlandi?: boolean }[];
+  senk?: { hesap: string; yeni: number; hata?: string; atlandi?: boolean; sessiz?: boolean }[];
 }
 
 const DURUMLAR: { v: KonusmaDurum | ""; ad: string }[] = [
-  { v: "", ad: "Tümü" }, { v: "acik", ad: "Açık" }, { v: "yanitlandi", ad: "Yanıtlandı" }, { v: "kapali", ad: "Kapalı" },
+  { v: "", ad: "Tüm durumlar" }, { v: "acik", ad: "Açık" }, { v: "yanitlandi", ad: "Yanıtlandı" }, { v: "kapali", ad: "Kapalı" },
 ];
 const KANALLAR: Kanal[] = ["whatsapp", "instagram", "email"];
 
@@ -66,7 +66,8 @@ export default function Inbox({ me, dbHazir, kanallar, taslak, ilkKonusma }: {
       if (d.kullanicilar) setKullanicilar(d.kullanicilar);
       if (d.hesaplar?.email) setEpostaHesaplar(d.hesaplar.email);
       if (d.senk?.length) {
-        const hatali = d.senk.filter((s) => s.hata);
+        // Beklenen hatalar (örn. Instagram Standard erişim zaman aşımı) listeyi kirletmesin; Ayarlar kartı gösterir
+        const hatali = d.senk.filter((s) => s.hata && !s.sessiz);
         const yeni = d.senk.reduce((n, s) => n + (s.yeni || 0), 0);
         setSenkNotu(hatali.length ? `Okunamadı: ${hatali.map((s) => `${s.hesap} — ${s.hata}`).join("; ")}` : yeni ? `${yeni} yeni mesaj alındı (${d.senk.filter((s) => s.yeni).map((s) => `${s.hesap === "Instagram" ? "Instagram" : hesapKisa(s.hesap)}: ${s.yeni}`).join(", ")}).` : "");
       }
@@ -130,34 +131,36 @@ export default function Inbox({ me, dbHazir, kanallar, taslak, ilkKonusma }: {
             <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Ad, numara, e-posta, konu…" aria-label="Konuşma ara" />
             {q && <button type="button" className="ib-search-clear" aria-label="Temizle" onClick={() => setQ("")}><Icon name="x" size={14} /></button>}
           </div>
-          <div className="ib-chips">
-            <button type="button" className={`chip ${kanal === "" ? "sel" : ""}`} onClick={() => setKanal("")}>Tümü</button>
+          <div className="seg ib-kanal-seg" role="group" aria-label="Kanal">
+            <button type="button" className={kanal === "" ? "active" : ""} onClick={() => { setKanal(""); setHesap(""); }}>Tümü</button>
             {KANALLAR.map((k) => (
-              <button key={k} type="button" className={`chip ib-chip-${k} ${kanal === k ? "sel" : ""}`} onClick={() => setKanal(kanal === k ? "" : k)} title={kanallar[k] ? undefined : "Bu kanal henüz bağlı değil"}>
-                <KanalIkon kanal={k} size={13} /> {KANAL_ADI[k]}{!kanallar[k] && <span className="ib-chip-off" aria-label="bağlı değil" />}
+              <button key={k} type="button" className={`ib-kanal-${k} ${kanal === k ? "active" : ""}`} onClick={() => { setKanal(k); if (k !== "email") setHesap(""); }} title={kanallar[k] ? KANAL_ADI[k] : `${KANAL_ADI[k]} (henüz bağlı değil)`}>
+                <KanalIkon kanal={k} size={14} /><span className="ib-kanal-ad">{KANAL_ADI[k]}</span>{!kanallar[k] && <span className="ib-chip-off" aria-label="bağlı değil" />}
               </button>
             ))}
           </div>
-          {kanal === "email" && epostaHesaplar.length > 1 && (
-            <div className="ib-chips ib-hesaplar" aria-label="E-posta hesabı">
-              <button type="button" className={`chip ${hesap === "" ? "sel" : ""}`} onClick={() => setHesap("")}>Tüm hesaplar</button>
-              {epostaHesaplar.map((h, i) => (
-                <button key={h} type="button" className={`chip ib-hesap-${i % 3} ${hesap === h ? "sel" : ""}`} onClick={() => setHesap(hesap === h ? "" : h)} title={h}>
-                  <Icon name="mail" size={12} /> {hesapKisa(h)}
-                </button>
-              ))}
-            </div>
-          )}
-          <div className="ib-filters">
-            <div className="seg ib-seg">
-              {DURUMLAR.map((d) => <button key={d.v} type="button" className={durum === d.v ? "active" : ""} onClick={() => setDurum(d.v)}>{d.ad}</button>)}
-            </div>
-            <button type="button" className={`chip ${bana ? "sel" : ""}`} onClick={() => setBana(!bana)}><Icon name="user" size={13} /> Bana atanan</button>
+          <div className={`ib-filters ${kanal === "email" && epostaHesaplar.length > 1 ? "uclu" : ""}`}>
+            <label className={`ib-sel ${durum ? "on" : ""}`} title="Konuşma durumu">
+              <Icon name="check-circle" size={13} />
+              <select value={durum} onChange={(e) => setDurum(e.target.value as KonusmaDurum | "")} aria-label="Durum">
+                {DURUMLAR.map((d) => <option key={d.v} value={d.v}>{d.ad}</option>)}
+              </select>
+            </label>
+            {kanal === "email" && epostaHesaplar.length > 1 && (
+              <label className={`ib-sel ${hesap ? "on" : ""}`} title="E-posta hesabı">
+                <Icon name="mail" size={13} />
+                <select value={hesap} onChange={(e) => setHesap(e.target.value)} aria-label="E-posta hesabı">
+                  <option value="">Tüm hesaplar</option>
+                  {epostaHesaplar.map((h) => <option key={h} value={h}>{hesapKisa(h, 26)}</option>)}
+                </select>
+              </label>
+            )}
+            <button type="button" className={`chip ib-bana ${bana ? "sel" : ""}`} onClick={() => setBana(!bana)} title="Yalnızca bana atanan konuşmalar" aria-pressed={bana}><Icon name="user" size={13} /> <span>Bana atanan</span></button>
           </div>
         </div>
 
         {hata && <div className="notice err" style={{ margin: "8px 12px" }}>{hata}</div>}
-        {senkNotu && <div className={`notice ${/okunamadı/.test(senkNotu) ? "warn" : "ok"} ib-senk`} onClick={() => setSenkNotu("")}>{senkNotu}</div>}
+        {senkNotu && <div className={`notice ${/okunamadı/.test(senkNotu) ? "warn" : "ok"} ib-senk`} title={`${senkNotu} (kapatmak için tıklayın)`} onClick={() => setSenkNotu("")}>{senkNotu}</div>}
         {bilgi && <div className="notice ok ib-senk" onClick={() => setBilgi("")}>{bilgi}</div>}
         {hicKanalYok && !hata && (
           <div className="notice warn" style={{ margin: "8px 12px" }}>Henüz hiçbir kanal bağlı değil. Bildirim Ayarları / Vercel ortam değişkenleriyle WhatsApp, Instagram ve Gmail bağlanınca mesajlar burada toplanır.</div>
@@ -173,7 +176,7 @@ export default function Inbox({ me, dbHazir, kanallar, taslak, ilkKonusma }: {
             </div>
           )}
           {liste.map((k) => (
-            <KonusmaSatiri key={k.id} k={k} secili={k.id === secili} kullanicilar={kullanicilar} hesapSira={k.kanal === "email" ? Math.max(0, epostaHesaplar.indexOf(k.hesap)) % 3 : 0} onClick={() => setSecili(k.id)} />
+            <KonusmaSatiri key={k.id} k={k} secili={k.id === secili} kullanicilar={kullanicilar} hesapSira={k.kanal === "email" ? Math.max(0, epostaHesaplar.indexOf(k.hesap)) % 3 : 0} hesapEtiket={k.kanal === "email" && k.hesap && epostaHesaplar.length > 1 ? hesapHarf(k.hesap, epostaHesaplar) : ""} onClick={() => setSecili(k.id)} />
           ))}
         </div>
       </aside>
@@ -217,12 +220,13 @@ export default function Inbox({ me, dbHazir, kanallar, taslak, ilkKonusma }: {
   );
 }
 
-function KonusmaSatiri({ k, secili, kullanicilar, hesapSira, onClick }: { k: Konusma; secili: boolean; kullanicilar: Kullanici[]; hesapSira: number; onClick: () => void }) {
+function KonusmaSatiri({ k, secili, kullanicilar, hesapSira, hesapEtiket, onClick }: { k: Konusma; secili: boolean; kullanicilar: Kullanici[]; hesapSira: number; hesapEtiket: string; onClick: () => void }) {
   const atananAd = k.atanan ? (kullanicilar.find((u) => u.username === k.atanan)?.name || k.atanan) : "";
   const altBilgi = k.kanal === "email" ? (k.baslik || "(konu yok)") : k.kanal === "instagram" ? (k.baslik || "Instagram") : `+${k.disKimlik}`;
-  const ozet = (k.sonMesajOzet || "").replace(/^Konu: .*\n+/, "").replace(/\s+/g, " ").trim() || "—";
+  // Eski kayıtlarda özet ham saklanmış olabilir; bağlantı/görsel kalıntıları burada da ayıklanır
+  const ozet = ozetTemizle(k.sonMesajOzet) || "—";
   return (
-    <button type="button" role="listitem" className={`ib-row ${secili ? "sel" : ""} ${k.okunmamis ? "unread" : ""} ${k.durum}`} onClick={onClick}>
+    <button type="button" role="listitem" className={`ib-row ${k.kanal} ${secili ? "sel" : ""} ${k.okunmamis ? "unread" : ""} ${k.durum}`} onClick={onClick}>
       <span className={`ib-av ${k.kanal}`}><KanalIkon kanal={k.kanal} size={17} /></span>
       <span className="ib-row-main">
         <span className="ib-row-top">
@@ -231,7 +235,7 @@ function KonusmaSatiri({ k, secili, kullanicilar, hesapSira, onClick }: { k: Kon
           <span className="ib-row-time">{zamanKisa(k.sonMesajAt)}</span>
         </span>
         <span className="ib-row-sub">
-          {k.kanal === "email" && k.hesap && <span className={`ib-hesap-nokta ib-hesap-${hesapSira}`} title={`Hesap: ${k.hesap}`}>{hesapKisa(k.hesap, 14)}</span>}
+          {hesapEtiket && <span className={`ib-hesap-harf ib-hesap-${hesapSira}`} title={`Hesap: ${k.hesap}`} aria-label={`Hesap: ${k.hesap}`}>{hesapEtiket}</span>}
           <span className="ib-row-sub-text">{altBilgi}</span>
         </span>
         <span className="ib-row-ozet">
