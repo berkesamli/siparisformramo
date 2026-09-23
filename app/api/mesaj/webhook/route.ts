@@ -12,10 +12,12 @@ export const maxDuration = 60;
 // Meta webhook'u — Instagram mesajları (object: "instagram"). Aynı Meta
 // uygulamasındaki WhatsApp olayları da buraya yönlendirilirse işlenir.
 //   GET  — doğrulama (hub.verify_token = INSTAGRAM_VERIFY_TOKEN ya da WHATSAPP_VERIFY_TOKEN)
-//   POST — olaylar; META_APP_SECRET / WHATSAPP_APP_SECRET ZORUNLU: imza doğrulanmadan işlenmez (yoksa 401).
+//   POST — olaylar; imza ZORUNLU: INSTAGRAM_APP_SECRET (Instagram login yolu), META_APP_SECRET ya da
+//          WHATSAPP_APP_SECRET ile doğrulanır (tanımlı olanların hepsi denenir); hiçbiri yoksa 401.
 
 const verifyToken = () => (process.env.INSTAGRAM_VERIFY_TOKEN || process.env.WHATSAPP_VERIFY_TOKEN || "").trim();
-const appSecret = () => (process.env.META_APP_SECRET || process.env.WHATSAPP_APP_SECRET || "").trim();
+const secretler = () => [...new Set([process.env.INSTAGRAM_APP_SECRET, process.env.META_APP_SECRET, process.env.WHATSAPP_APP_SECRET].map((s) => (s || "").trim()).filter(Boolean))];
+const appSecret = () => secretler()[0] || "";
 
 export async function GET(req: Request) {
   const u = new URL(req.url);
@@ -27,11 +29,12 @@ export async function GET(req: Request) {
 }
 
 function imzaGecerli(raw: string, header: string | null): boolean {
-  const secret = appSecret();
-  if (!secret) return false; // gizli anahtar girilmeden POST kabul edilmez (fail-closed)
+  const liste = secretler();
+  if (!liste.length) return false; // gizli anahtar girilmeden POST kabul edilmez (fail-closed)
   if (!header || !/^sha256=[0-9a-f]{64}$/i.test(header)) return false;
-  const beklenen = createHmac("sha256", secret).update(raw, "utf8").digest();
-  return timingSafeEqual(Buffer.from(header.slice(7), "hex"), beklenen);
+  const gelen = Buffer.from(header.slice(7), "hex");
+  // Aynı uygulamada Instagram login (Instagram app secret) ve WhatsApp (Facebook app secret) farklı anahtarla imzalar.
+  return liste.some((s) => timingSafeEqual(gelen, createHmac("sha256", s).update(raw, "utf8").digest()));
 }
 
 interface Govde {
@@ -43,8 +46,8 @@ export async function POST(req: Request) {
   const raw = await req.text();
   if (!imzaGecerli(raw, req.headers.get("x-hub-signature-256"))) {
     await izKaydet("instagram", "imza-red", appSecret()
-      ? "Meta'dan olay geldi ama imza doğrulanamadı: META_APP_SECRET / WHATSAPP_APP_SECRET, Meta uygulamasının App Secret'ıyla aynı değil."
-      : "Meta'dan olay geldi ama META_APP_SECRET / WHATSAPP_APP_SECRET tanımlı olmadığı için reddedildi. Meta → App settings → Basic → App secret değerini Vercel'e girin.");
+      ? "Meta'dan olay geldi ama imza doğrulanamadı: Instagram login yolunda Instagram uygulama gizli anahtarı (INSTAGRAM_APP_SECRET; Instagram API → Instagram app secret) gerekir; Facebook sayfası yolunda META_APP_SECRET / WHATSAPP_APP_SECRET."
+      : "Meta'dan olay geldi ama hiçbir gizli anahtar (INSTAGRAM_APP_SECRET / META_APP_SECRET / WHATSAPP_APP_SECRET) tanımlı olmadığı için reddedildi.");
     return NextResponse.json({ ok: false, error: "İmza geçersiz." }, { status: 401 });
   }
   let body: Govde | null = null;

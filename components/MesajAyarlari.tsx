@@ -13,7 +13,11 @@ interface Durum {
     kurulu: boolean; sablonlar: string[]; test: { ok: boolean; numara?: string; ad?: string; kalite?: string; uygulama?: { id: string; ad: string }; hata?: string } | null;
     webhook: { url: string; verifyToken: boolean; appSecret: boolean; secretIpucu: { uzunluk: number; bas: string; son: string; tirnak: boolean } | null; sonOlay: Iz | null; kabul: Iz | null; red: Iz | null; wabaId: boolean; abonelik: Abonelik | null };
   };
-  instagram: { kurulu: boolean; test: { ok: boolean; ad?: string; hata?: string } | null; webhook: { url: string; sonOlay: Iz | null; kabul: Iz | null; red: Iz | null; abonelik: Abonelik | null; sayfa: boolean } };
+  instagram: {
+    kurulu: boolean; yol: "facebook" | "instagram-login"; igSecret: boolean;
+    test: { ok: boolean; ad?: string; hata?: string; jeton?: { yol: string; kaynak: string; tazelendi: string | null; bitis: string | null }; tazeleme?: { ok: boolean; tazelendi?: boolean; bitis?: string | null; atlandi?: string; hata?: string } } | null;
+    webhook: { url: string; sonOlay: Iz | null; kabul: Iz | null; red: Iz | null; abonelik: Abonelik | null; sayfa: boolean };
+  };
   taslak: boolean;
   gorebilenler: string[];
 }
@@ -195,7 +199,18 @@ export default function MesajAyarlari() {
             baslik={`Instagram ${d.instagram.kurulu ? "" : "(henüz bağlı değil)"}`}
             detay={
               <>
-                {d.instagram.test ? (d.instagram.test.ok ? d.instagram.test.ad : d.instagram.test.hata) : d.instagram.kurulu ? "" : "Meta uygulamasında Instagram ürünü + instagram_manage_messages izni; INSTAGRAM_TOKEN, INSTAGRAM_PAGE_ID, INSTAGRAM_ACCOUNT_ID."}
+                {d.instagram.test ? (d.instagram.test.ok ? d.instagram.test.ad : d.instagram.test.hata) : d.instagram.kurulu ? `Yol: ${d.instagram.yol === "facebook" ? "Facebook sayfası" : "Instagram login"}` : "Meta uygulamasında Instagram kullanım durumu; INSTAGRAM_TOKEN + INSTAGRAM_ACCOUNT_ID (+ Instagram login yolunda INSTAGRAM_APP_SECRET; Facebook yolunda INSTAGRAM_PAGE_ID)."}
+                {d.instagram.test?.ok && d.instagram.test.jeton && (
+                  <div>
+                    Jeton: {d.instagram.test.jeton.yol === "instagram-login" ? "Instagram login (60 günlük, kendiliğinden tazelenir)" : "Facebook sayfası (süresiz)"}
+                    {d.instagram.test.jeton.tazelendi ? ` · son tazeleme ${nekadar(d.instagram.test.jeton.tazelendi)}` : ""}
+                    {d.instagram.test.jeton.bitis ? ` · geçerlilik ${new Date(d.instagram.test.jeton.bitis).toLocaleDateString("tr-TR")}` : ""}
+                    {d.instagram.test.tazeleme && !d.instagram.test.tazeleme.ok ? ` · tazeleme başarısız: ${d.instagram.test.tazeleme.hata}` : ""}
+                  </div>
+                )}
+                {d.instagram.kurulu && d.instagram.yol === "instagram-login" && !d.instagram.igSecret && (
+                  <div><strong>Eksik:</strong> INSTAGRAM_APP_SECRET tanımlı değil. Instagram login yolunda webhook imzası Instagram uygulama gizli anahtarıyla atılır (Instagram API → "Instagram app secret" → Show); girilmezse Instagram olayları reddedilir.</div>
+                )}
                 {d.instagram.webhook.kabul && <div>Kabul edilen son olay {nekadar(d.instagram.webhook.kabul.at)}: {d.instagram.webhook.kabul.ozet}</div>}
                 {d.instagram.webhook.red && <div>Reddedilen son olay {nekadar(d.instagram.webhook.red.at)}: {d.instagram.webhook.red.ozet}</div>}
                 {d.instagram.webhook.abonelik && (

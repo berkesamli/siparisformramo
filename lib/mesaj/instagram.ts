@@ -1,26 +1,85 @@
-// Instagram DM bağlayıcısı (olga.cerceve profesyonel hesabı).
-// Meta "Messenger Platform for Instagram": webhook object="instagram",
-// entry[].messaging[] olayları; gönderim POST /{page-id}/messages.
-//
-// Ortam değişkenleri:
-//   INSTAGRAM_TOKEN        — sayfa erişim jetonu (instagram_manage_messages izniyle)
-//   INSTAGRAM_PAGE_ID      — Instagram hesabının bağlı olduğu Facebook sayfası
-//   INSTAGRAM_ACCOUNT_ID   — Instagram işletme hesabı kimliği (webhook entry.id)
-// Sayfa kimliği yoksa "Instagram Login" API'si (graph.instagram.com) kullanılır.
+// Instagram DM bağlayıcısı (olga.cerceve profesyonel hesabı). İki yol:
+//   • Instagram login (graph.instagram.com): INSTAGRAM_TOKEN (Instagram kullanıcı jetonu, 60 gün;
+//     burada kendiliğinden tazelenir) + INSTAGRAM_ACCOUNT_ID + INSTAGRAM_APP_SECRET (webhook imzası).
+//   • Facebook sayfası (graph.facebook.com): INSTAGRAM_TOKEN (sistem kullanıcısı jetonu, süresiz) +
+//     INSTAGRAM_PAGE_ID + INSTAGRAM_ACCOUNT_ID; imza WhatsApp/META app secret ile.
+// Webhook object="instagram", entry[].messaging[] olayları her iki yolda aynıdır.
 
-import { konusmaBulVeyaOlustur, konusmaGuncelle, mesajEkle } from "./db";
+import { createHash } from "node:crypto";
+import { dbConfigured, konusmaBulVeyaOlustur, konusmaGuncelle, mesajEkle, senkOku, senkYaz } from "./db";
 import { ekIndir, ekKaydet, ekTuru, ekUrl, mimeUzanti } from "./ek";
 import { pencereAcik, type Ek, type Konusma } from "./tur";
 
 const FB = "https://graph.facebook.com/v20.0";
 const IG = "https://graph.instagram.com/v21.0";
+const IG_KOK = "https://graph.instagram.com";
 
-const token = () => (process.env.INSTAGRAM_TOKEN || process.env.INSTAGRAM_PAGE_TOKEN || "").trim();
+const envJeton = () => (process.env.INSTAGRAM_TOKEN || process.env.INSTAGRAM_PAGE_TOKEN || "").trim();
 const pageId = () => (process.env.INSTAGRAM_PAGE_ID || "").trim();
 const accountId = () => (process.env.INSTAGRAM_ACCOUNT_ID || "").trim();
+const parmakIzi = (s: string) => createHash("sha256").update(s).digest("hex").slice(0, 16);
 
 export function instagramConfigured(): boolean {
-  return Boolean(token() && (pageId() || accountId()));
+  return Boolean(envJeton() && (pageId() || accountId()));
+}
+/** Sayfa kimliği yoksa Instagram login yolu (jeton 60 günlük, tazelenir). */
+export function instagramLoginYolu(): boolean {
+  return !pageId() && Boolean(accountId());
+}
+
+// ---- Jeton: tazelenmiş sürüm veri tabanında (mesaj_senk "ig:jeton"); env jetonu değişirse geçersiz sayılır.
+interface SakliJeton { jeton: string; at: string; bitis: string | null; envIz: string }
+let sakli: SakliJeton | null | undefined; // undefined: henüz okunmadı
+
+async function sakliOku(): Promise<SakliJeton | null> {
+  if (sakli !== undefined) return sakli;
+  sakli = null;
+  if (!dbConfigured()) return null;
+  try {
+    const r = await senkOku("ig:jeton");
+    if (r?.deger) {
+      const j = JSON.parse(r.deger) as SakliJeton;
+      if (j?.jeton && j.envIz === parmakIzi(envJeton())) sakli = j;
+    }
+  } catch { /* env jetonuna düş */ }
+  return sakli;
+}
+/** Testler için: jeton önbelleğini sıfırla. */
+export function igJetonOnbellekSifirla() { sakli = undefined; }
+
+/** Etkin jeton: aynı env jetonundan tazelenmiş sürüm varsa o, yoksa env. */
+export async function jeton(): Promise<string> {
+  const s = await sakliOku();
+  return s?.jeton || envJeton();
+}
+
+/**
+ * Instagram login jetonu 60 gün geçerlidir; 7 günde bir tazelenir (Meta 24 saatten yeni jetonu tazelemez).
+ * Facebook sayfası yolunda jeton süresizdir, hiçbir şey yapılmaz.
+ */
+export async function igJetonTazele(zorla = false): Promise<{ ok: boolean; tazelendi?: boolean; bitis?: string | null; atlandi?: string; hata?: string }> {
+  if (!instagramConfigured()) return { ok: false, hata: "Instagram ayarlı değil." };
+  if (!instagramLoginYolu()) return { ok: true, tazelendi: false, atlandi: "Facebook sayfası yolunda jeton süresizdir." };
+  if (!dbConfigured()) return { ok: false, hata: "Tazelenen jetonu saklamak için veri tabanı (DATABASE_URL) gerekli." };
+  const s = await sakliOku();
+  if (!zorla && s && Date.now() - new Date(s.at).getTime() < 7 * 86400_000) return { ok: true, tazelendi: false, bitis: s.bitis, atlandi: "7 gün dolmadı" };
+  const mevcut = s?.jeton || envJeton();
+  try {
+    const r = await fetch(`${IG_KOK}/refresh_access_token?grant_type=ig_refresh_token&access_token=${encodeURIComponent(mevcut)}`, { signal: AbortSignal.timeout(10_000) });
+    const j = (await r.json().catch(() => ({}))) as { access_token?: string; expires_in?: number; error?: { message?: string; code?: number } };
+    if (!r.ok || !j.access_token) return { ok: false, bitis: s?.bitis, hata: `${j.error?.message || `HTTP ${r.status}`}${j.error?.code ? ` (kod ${j.error.code})` : ""}` };
+    const yeni: SakliJeton = { jeton: j.access_token, at: new Date().toISOString(), bitis: j.expires_in ? new Date(Date.now() + j.expires_in * 1000).toISOString() : null, envIz: parmakIzi(envJeton()) };
+    await senkYaz("ig:jeton", JSON.stringify(yeni));
+    sakli = yeni;
+    return { ok: true, tazelendi: true, bitis: yeni.bitis };
+  } catch (e) {
+    return { ok: false, hata: (e as Error)?.message || String(e) };
+  }
+}
+
+export async function igJetonDurumu(): Promise<{ yol: "instagram-login" | "facebook"; kaynak: "env" | "tazelenmis"; tazelendi: string | null; bitis: string | null }> {
+  const s = await sakliOku();
+  return { yol: instagramLoginYolu() ? "instagram-login" : "facebook", kaynak: s ? "tazelenmis" : "env", tazelendi: s?.at || null, bitis: s?.bitis || null };
 }
 
 /** Gönderim / profil tabanı: Facebook sayfası üzerinden ya da doğrudan Instagram API. */
@@ -30,16 +89,18 @@ function taban(): { url: string; gonderim: string } {
 }
 
 /** Jeton kontrolü (Ayarlar test kartı): sayfa/hesap adı. */
-export async function instagramDurum(): Promise<{ ok: boolean; ad?: string; hata?: string }> {
+export async function instagramDurum(): Promise<{ ok: boolean; ad?: string; hata?: string; jeton?: Awaited<ReturnType<typeof igJetonDurumu>>; tazeleme?: Awaited<ReturnType<typeof igJetonTazele>> }> {
   if (!instagramConfigured()) return { ok: false, hata: "INSTAGRAM_TOKEN ile INSTAGRAM_PAGE_ID (ya da INSTAGRAM_ACCOUNT_ID) tanımlı değil." };
   try {
+    // Sınama sırasında vadesi gelmişse jeton tazelenir (Instagram login yolu).
+    const tazeleme = await igJetonTazele(false);
     const kim = pageId() || accountId();
     const alan = pageId() ? "name,instagram_business_account{username}" : "username";
-    const r = await fetch(`${taban().url}/${kim}?fields=${encodeURIComponent(alan)}&access_token=${encodeURIComponent(token())}`, { signal: AbortSignal.timeout(10_000) });
+    const r = await fetch(`${taban().url}/${kim}?fields=${encodeURIComponent(alan)}&access_token=${encodeURIComponent(await jeton())}`, { signal: AbortSignal.timeout(10_000) });
     const j = (await r.json().catch(() => ({}))) as { name?: string; username?: string; instagram_business_account?: { username?: string }; error?: { message?: string; code?: number } };
     if (!r.ok) return { ok: false, hata: `${j.error?.message || `HTTP ${r.status}`}${j.error?.code ? ` (kod ${j.error.code})` : ""}` };
     const ig = j.instagram_business_account?.username || j.username;
-    return { ok: true, ad: [j.name, ig ? "@" + ig : ""].filter(Boolean).join(" · ") };
+    return { ok: true, ad: [j.name, ig ? "@" + ig : ""].filter(Boolean).join(" · "), jeton: await igJetonDurumu(), tazeleme };
   } catch (e) {
     return { ok: false, hata: (e as Error)?.message || String(e) };
   }
@@ -50,11 +111,12 @@ export async function instagramDurum(): Promise<{ ok: boolean; ad?: string; hata
  * (POST /{page-id}/subscribed_apps, sayfa jetonuyla). Kontrol eder; onar=true ile abone yapar.
  */
 export async function igSayfaAbonelik(onar = false): Promise<{ ok: boolean; abone?: boolean; uygulamalar?: { id: string; ad: string; alanlar: string[] }[]; hata?: string }> {
-  if (!pageId() || !token()) return { ok: false, hata: "INSTAGRAM_PAGE_ID ve INSTAGRAM_TOKEN gerekli (Instagram Login yolunda sayfa aboneliği yoktur)." };
+  if (!pageId() || !envJeton()) return { ok: false, hata: "INSTAGRAM_PAGE_ID ve INSTAGRAM_TOKEN gerekli (Instagram Login yolunda sayfa aboneliği yoktur)." };
   try {
     // Sayfa jetonu: sistem kullanıcısı / kullanıcı jetonuyla sayfanın kendi jetonu alınır (pages_manage_metadata).
-    let sayfaJetonu = token();
-    const rj = await fetch(`${FB}/${pageId()}?fields=access_token&access_token=${encodeURIComponent(token())}`, { signal: AbortSignal.timeout(10_000) });
+    const t = await jeton();
+    let sayfaJetonu = t;
+    const rj = await fetch(`${FB}/${pageId()}?fields=access_token&access_token=${encodeURIComponent(t)}`, { signal: AbortSignal.timeout(10_000) });
     const jj = (await rj.json().catch(() => ({}))) as { access_token?: string };
     if (rj.ok && jj.access_token) sayfaJetonu = jj.access_token;
     if (onar) {
@@ -99,9 +161,10 @@ export async function igProfil(igsid: string): Promise<{ ad: string; kullanici: 
   const c = profilOnbellek.get(igsid);
   if (c && Date.now() - c.at < 6 * 3600_000) return c;
   let ad = "", kullanici = "";
-  if (token()) {
+  const t = await jeton();
+  if (t) {
     try {
-      const r = await fetch(`${taban().url}/${igsid}?fields=name,username&access_token=${encodeURIComponent(token())}`, { signal: AbortSignal.timeout(8_000) });
+      const r = await fetch(`${taban().url}/${igsid}?fields=name,username&access_token=${encodeURIComponent(t)}`, { signal: AbortSignal.timeout(8_000) });
       if (r.ok) {
         const j = (await r.json()) as { name?: string; username?: string };
         ad = j.name || ""; kullanici = j.username || "";
@@ -178,7 +241,7 @@ export async function instagramGonder(k: Konusma, metin: string): Promise<{ disI
   if (!pencereAcik(k)) throw new Error("Instagram 24 saat penceresi kapalı: müşteri son 24 saatte yazmadığı için yanıt gönderilemez.");
   const r = await fetch(taban().gonderim, {
     method: "POST",
-    headers: { Authorization: `Bearer ${token()}`, "Content-Type": "application/json" },
+    headers: { Authorization: `Bearer ${await jeton()}`, "Content-Type": "application/json" },
     body: JSON.stringify({ recipient: { id: k.disKimlik }, messaging_type: "RESPONSE", message: { text: metin } }),
     signal: AbortSignal.timeout(15_000),
   });
