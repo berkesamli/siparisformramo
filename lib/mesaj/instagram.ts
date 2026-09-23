@@ -11,6 +11,12 @@ import { ekIndir, ekKaydet, ekTuru, ekUrl, mimeUzanti } from "./ek";
 import { pencereAcik, type Ek, type Konusma } from "./tur";
 
 const FB = "https://graph.facebook.com/v20.0";
+/**
+ * Abone olunan webhook alanları. "standby" şart: müşteri Instagram uygulamasından (gelen kutusundan)
+ * yanıtlanınca Meta konuşmanın kontrolünü Instagram gelen kutusuna verir (Handover Protocol) ve
+ * sonraki mesajları "messaging" yerine "standby" altında gönderir; abone olunmazsa mesajlar hiç gelmez.
+ */
+export const IG_WEBHOOK_ALANLARI = "messages,messaging_postbacks,standby";
 const IG = "https://graph.instagram.com/v21.0";
 const IG_KOK = "https://graph.instagram.com";
 
@@ -140,7 +146,7 @@ export async function igSayfaAbonelik(onar = false): Promise<{ ok: boolean; abon
     // Sayfa jetonu: sistem kullanıcısı / kullanıcı jetonuyla sayfanın kendi jetonu alınır (pages_manage_metadata).
     const sj = await sayfaJetonu();
     if (onar) {
-      const r = await fetch(`${FB}/${pageId()}/subscribed_apps?subscribed_fields=messages,messaging_postbacks&access_token=${encodeURIComponent(sj)}`, { method: "POST", signal: AbortSignal.timeout(10_000) });
+      const r = await fetch(`${FB}/${pageId()}/subscribed_apps?subscribed_fields=${IG_WEBHOOK_ALANLARI}&access_token=${encodeURIComponent(sj)}`, { method: "POST", signal: AbortSignal.timeout(10_000) });
       const j = (await r.json().catch(() => ({}))) as { success?: boolean; error?: { message?: string; code?: number } };
       if (!r.ok || !j.success) return { ok: false, hata: `Sayfaya abone olunamadı: ${j.error?.message || `HTTP ${r.status}`}${j.error?.code ? ` (kod ${j.error.code})` : ""}` };
     }
@@ -227,7 +233,13 @@ async function ekleriIndir(konusmaId: string, ekler: IgEk[]): Promise<Ek[]> {
 export async function gelenInstagram(entry: IgEntry): Promise<number> {
   const hesap = entry.id || accountId() || "instagram";
   let yeni = 0;
-  for (const ev of entry.messaging || []) {
+  // messaging: konuşma bizim uygulamada; standby: kontrol başka uygulamada (Instagram gelen kutusu) —
+  // mesaj yine kaydedilir, yanıt gönderilirken kontrol geri alınır (take_thread_control).
+  const olaylar = [
+    ...(entry.messaging || []).map((ev) => ({ ev, standby: false })),
+    ...(entry.standby || []).map((ev) => ({ ev, standby: true })),
+  ];
+  for (const { ev, standby } of olaylar) {
     const m = ev.message;
     if (!m?.mid || m.is_deleted) continue;
     const echo = Boolean(m.is_echo);
@@ -241,6 +253,12 @@ export async function gelenInstagram(entry: IgEntry): Promise<number> {
     if ((profil.ad || profil.kullanici) && /^Instagram \d+$/.test(k.ad || "") && k.ad !== ad) {
       await konusmaGuncelle(k.id, { ad, meta: { ...k.meta, kullanici: profil.kullanici } });
       k.ad = ad;
+    }
+    // Kontrol durumu değiştiyse konuşmaya işle (standby → başka uygulamada; messaging → bizde).
+    if (Boolean(k.meta.standby) !== standby) {
+      const meta = { ...k.meta, standby, standbyAt: standby ? new Date().toISOString() : undefined };
+      await konusmaGuncelle(k.id, { meta });
+      k.meta = meta;
     }
     let metin = m.text || "";
     if (m.is_unsupported && !metin) metin = "[Desteklenmeyen mesaj türü]";
@@ -262,19 +280,79 @@ export async function igProfilTazele(k: Konusma): Promise<void> {
   if (p.ad || p.kullanici) await konusmaGuncelle(k.id, { ad: p.ad || k.ad, meta: { ...k.meta, kullanici: p.kullanici } });
 }
 
-export async function instagramGonder(k: Konusma, metin: string): Promise<{ disId: string }> {
+// ---- Handover Protocol (Facebook sayfası yolu): konuşmanın kontrolü hangi uygulamada?
+export interface ThreadSahibi { ok: boolean; appId?: string; ad?: string; bizde?: boolean; hata?: string }
+
+/** Konuşmanın (IGSID) kontrolünü elinde tutan uygulama; bizim uygulama mı diye jetonun uygulamasıyla kıyaslar. */
+export async function igThreadSahibi(igsid: string): Promise<ThreadSahibi> {
+  if (!pageId()) return { ok: false, hata: "Instagram login yolunda thread sahibi sorgulanamaz." };
+  try {
+    const sj = await sayfaJetonu();
+    const [r, ra] = await Promise.all([
+      fetch(`${FB}/${pageId()}/thread_owner?recipient=${encodeURIComponent(igsid)}&access_token=${encodeURIComponent(sj)}`, { signal: AbortSignal.timeout(10_000) }),
+      fetch(`${FB}/app?fields=id&access_token=${encodeURIComponent(await jeton())}`, { signal: AbortSignal.timeout(10_000) }).catch(() => null),
+    ]);
+    const j = (await r.json().catch(() => ({}))) as { data?: { thread_owner?: { app_id?: string } }[]; error?: { message?: string; code?: number } };
+    if (!r.ok) return { ok: false, hata: `${j.error?.message || `HTTP ${r.status}`}${j.error?.code ? ` (kod ${j.error.code})` : ""}` };
+    const appId = j.data?.[0]?.thread_owner?.app_id || "";
+    const bizimId = ra && ra.ok ? ((await ra.json().catch(() => ({}))) as { id?: string }).id || "" : "";
+    let ad = "";
+    if (appId) {
+      const rn = await fetch(`${FB}/${appId}?fields=name&access_token=${encodeURIComponent(sj)}`, { signal: AbortSignal.timeout(8_000) }).catch(() => null);
+      if (rn && rn.ok) ad = ((await rn.json().catch(() => ({}))) as { name?: string }).name || "";
+    }
+    return { ok: true, appId, ad, bizde: Boolean(appId && bizimId && appId === bizimId) };
+  } catch (e) {
+    return { ok: false, hata: (e as Error)?.message || String(e) };
+  }
+}
+
+/** Konuşmanın kontrolünü bizim uygulamaya alır (uygulama sayfa ayarlarında "birincil alıcı" olmalı). */
+export async function igThreadAl(igsid: string): Promise<{ ok: boolean; hata?: string }> {
+  if (!pageId()) return { ok: false, hata: "Instagram login yolunda thread kontrolü yoktur." };
+  try {
+    const r = await fetch(`${FB}/${pageId()}/take_thread_control?access_token=${encodeURIComponent(await sayfaJetonu())}`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ recipient: { id: igsid }, metadata: "olgasiparis" }),
+      signal: AbortSignal.timeout(10_000),
+    });
+    const j = (await r.json().catch(() => ({}))) as { success?: boolean; error?: { message?: string; code?: number } };
+    if (!r.ok || !j.success) return { ok: false, hata: `${j.error?.message || `HTTP ${r.status}`}${j.error?.code ? ` (kod ${j.error.code})` : ""}` };
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, hata: (e as Error)?.message || String(e) };
+  }
+}
+
+const HANDOVER_HATA = /thread|handover|control|owner/i;
+
+export async function instagramGonder(k: Konusma, metin: string): Promise<{ disId: string; kontrolAlindi?: boolean }> {
   if (!instagramConfigured()) throw new Error("Instagram mesajlaşma ayarlı değil (INSTAGRAM_TOKEN + INSTAGRAM_PAGE_ID).");
   if (!pencereAcik(k)) throw new Error("Instagram 24 saat penceresi kapalı: müşteri son 24 saatte yazmadığı için yanıt gönderilemez.");
-  const r = await fetch(taban().gonderim, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${await sayfaJetonu()}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ recipient: { id: k.disKimlik }, messaging_type: "RESPONSE", message: { text: metin } }),
-    signal: AbortSignal.timeout(15_000),
-  });
-  const j = (await r.json().catch(() => ({}))) as { message_id?: string; recipient_id?: string; error?: { message?: string; code?: number; error_subcode?: number } };
+  // Konuşma başka uygulamada (Instagram gelen kutusu) ise önce kontrolü al; alınamazsa yine de dene.
+  let kontrolAlindi = false, kontrolDenendi = false, kontrolHatasi = "";
+  const kontrolAl = async () => { kontrolDenendi = true; const r = await igThreadAl(k.disKimlik); kontrolAlindi = r.ok; kontrolHatasi = r.hata || ""; };
+  if (k.meta?.standby && pageId()) await kontrolAl();
+  const gonder = async () => {
+    const r = await fetch(taban().gonderim, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${await sayfaJetonu()}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ recipient: { id: k.disKimlik }, messaging_type: "RESPONSE", message: { text: metin } }),
+      signal: AbortSignal.timeout(15_000),
+    });
+    const j = (await r.json().catch(() => ({}))) as { message_id?: string; recipient_id?: string; error?: { message?: string; code?: number; error_subcode?: number } };
+    return { r, j };
+  };
+  let { r, j } = await gonder();
+  if ((!r.ok || !j.message_id) && pageId() && !kontrolDenendi && HANDOVER_HATA.test(j.error?.message || "")) {
+    // Kontrol başka uygulamadaymış: geri alıp bir kez daha dene.
+    await kontrolAl();
+    if (kontrolAlindi) ({ r, j } = await gonder());
+  }
   if (!r.ok || !j.message_id) {
     if (j.error?.code === 190) igSayfaJetonuSifirla(); // jeton geçersiz/yanlış türde: bir sonraki denemede yeniden al
-    throw new Error(`Instagram gönderilemedi: ${j.error?.message || r.status}${j.error?.code ? ` (kod ${j.error.code})` : ""}`);
+    const ipucu = kontrolHatasi ? ` — konuşma kontrolü alınamadı: ${kontrolHatasi} (Facebook sayfası ayarları → Gelişmiş mesajlaşma → Handover Protocol'de birincil alıcı bu uygulama olmalı)` : "";
+    throw new Error(`Instagram gönderilemedi: ${j.error?.message || r.status}${j.error?.code ? ` (kod ${j.error.code})` : ""}${ipucu}`);
   }
-  return { disId: j.message_id };
+  return { disId: j.message_id, kontrolAlindi };
 }

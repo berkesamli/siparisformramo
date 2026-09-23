@@ -58,7 +58,7 @@ function olayDokumu(body: Govde | null): { n: number; ozet: string } {
   }
   const parcalar = Object.entries(say).map(([t, c]) => `${t} ${c}`).join(", ");
   let ozet = `object: ${body?.object || "?"} · ${n} olay${parcalar ? ` (${parcalar})` : ""}`;
-  if (standby) ozet += ` · standby ${standby}: Meta bu mesajları başka bir uygulamaya "birincil alıcı" olarak veriyor; Meta uygulaması → Messenger ayarları → Handover'da bu uygulamayı birincil yapın ya da diğer uygulamanın sayfa aboneliğini kaldırın`;
+  if (standby) ozet += ` · standby ${standby}: konuşmanın kontrolü Instagram gelen kutusunda (Instagram uygulamasından yanıtlanmış); mesajlar yine kaydedilir, siteden yanıt gönderilince kontrol geri alınır`;
   return { n, ozet };
 }
 

@@ -25,7 +25,10 @@ async function gonderVeKaydet(k: Konusma, govde: string, kullanici: Kullanici, t
     const g = await whatsappGonder(k, govde);
     disId = g.disId; yontem = g.yontem; sablon = g.sablon;
   } else if (k.kanal === "instagram") {
-    disId = (await instagramGonder(k, govde)).disId; yontem = "instagram";
+    const g = await instagramGonder(k, govde);
+    disId = g.disId; yontem = "instagram";
+    // Yanıt bizden gittiyse konuşma artık bizim uygulamada (standby işareti kalkar).
+    if (k.meta?.standby) await konusmaGuncelle(k.id, { meta: { ...k.meta, standby: false, standbyAt: undefined } });
   } else {
     const r = await gmailGonder(k, govde);
     disId = r.disId; yontem = "eposta";
