@@ -14,7 +14,7 @@ const fmt = (n: number) =>
 
 // Durum rozeti rengi (fişte de basılır — açık zemin, koyu yazı olarak çıkar)
 const durumRozet = (s: OrderStatus) =>
-  s === "tamamlandi" ? "ok" : s === "iptal" ? "err" : s === "hazirlaniyor" ? "warn" : "info";
+  s === "tamamlandi" ? "ok" : s === "iptal" ? "err" : s === "hazirlaniyor" ? "warn" : s === "yarim" ? "brand" : "info";
 
 export const dynamic = "force-dynamic";
 

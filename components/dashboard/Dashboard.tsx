@@ -24,7 +24,7 @@ const BOS: StaffDashboard = {
   role: "staff", blob: false, today: "", hesaplandi: "",
   lite: { bugun: 0, bugunToptan: 0, bugunPerakende: 0, dun: 0, acik: 0, perakendeAcik: 0, kontrolsuz: 0, ayAdet: 0, blob: false },
   kpi: { bugun: { toptan: 0, perakende: 0, toplam: 0, dun: 0 }, acik: { toptan: 0, perakende: 0 }, kontrolsuz: 0, ay: { toptanAdet: 0, perakendeAdet: 0, toptanCiro: 0, perakendeCiro: 0 }, gun14: { toptan: 0, perakende: 0, toptanCiro: 0, perakendeCiro: 0 } },
-  seri14: [], durum14: { toptan: { olusturuldu: 0, hazirlaniyor: 0, tamamlandi: 0, iptal: 0 }, perakende: { Beklemede: 0, "Hazırlanıyor": 0, "Hazır": 0, "Teslim Edildi": 0, "İptal": 0 } },
+  seri14: [], durum14: { toptan: { olusturuldu: 0, hazirlaniyor: 0, yarim: 0, tamamlandi: 0, iptal: 0 }, perakende: { Beklemede: 0, "Hazırlanıyor": 0, "Hazır": 0, "Teslim Edildi": 0, "İptal": 0 } },
   sonToptan: [], sonPerakende: [], uyarilar: [], stok: null, kur: null,
 };
 

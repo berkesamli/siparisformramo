@@ -9,7 +9,7 @@ const tl = (n: number) => "₺" + (Number(n) || 0).toLocaleString("tr-TR", { min
 const saat = (iso: string) => new Date(iso).toLocaleTimeString("tr-TR", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Istanbul" });
 const gun = (k: string) => { const [, m, d] = k.split("-"); return `${Number(d)}.${m}`; };
 
-const TOPTAN_BADGE: Record<string, string> = { olusturuldu: "warn", hazirlaniyor: "info", tamamlandi: "ok", iptal: "err" };
+const TOPTAN_BADGE: Record<string, string> = { olusturuldu: "warn", hazirlaniyor: "info", yarim: "brand", tamamlandi: "ok", iptal: "err" };
 const PERAKENDE_BADGE: Record<string, string> = { Beklemede: "warn", "Hazırlanıyor": "info", "Hazır": "ok", "Teslim Edildi": "", "İptal": "err" };
 
 export function RecentWholesale({ orders, loading, blob }: { orders: OrderIndexEntry[]; loading?: boolean; blob: boolean }) {

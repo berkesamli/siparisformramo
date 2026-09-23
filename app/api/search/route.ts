@@ -34,6 +34,7 @@ const tl = (n: number) => "₺" + (Number(n) || 0).toLocaleString("tr-TR", { max
 const TOPTAN_KIND: Record<string, Hit["metaKind"]> = {
   olusturuldu: "warn",
   hazirlaniyor: "info",
+  yarim: "brand",
   tamamlandi: "ok",
   iptal: "err",
 };

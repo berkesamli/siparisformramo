@@ -102,6 +102,7 @@ a.rg-tile:hover { background: var(--surface-3); border-color: var(--border-stron
 .swatch.perakende { background: var(--s-perakende); }
 .swatch.st-olusturuldu { background: var(--st-olusturuldu); }
 .swatch.st-hazirlaniyor { background: var(--st-hazirlaniyor); }
+.swatch.st-yarim { background: var(--st-yarim); }
 .swatch.st-tamamlandi { background: var(--st-tamamlandi); }
 .swatch.st-iptal { background: var(--st-iptal); }
 .swatch.st-teslim { background: var(--muted); }
@@ -138,6 +139,7 @@ a.rg-tile:hover { background: var(--surface-3); border-color: var(--border-stron
 .donut-arc { fill: none; transition: stroke-dasharray 0.5s ease; }
 .donut-arc.st-olusturuldu { stroke: var(--st-olusturuldu); }
 .donut-arc.st-hazirlaniyor { stroke: var(--st-hazirlaniyor); }
+.donut-arc.st-yarim { stroke: var(--st-yarim); }
 .donut-arc.st-tamamlandi { stroke: var(--st-tamamlandi); }
 .donut-arc.st-iptal { stroke: var(--st-iptal); }
 .donut-arc.st-teslim { stroke: var(--muted); }

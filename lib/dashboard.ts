@@ -116,7 +116,7 @@ function gunEtiketi(dateKey: string): { label: string; gun: string } {
   return { label: `${d} ${AY_KISA[m - 1]}`, gun: GUN_KISA[dt.getUTCDay()] };
 }
 
-const TOPTAN_ACIK: OrderStatus[] = ["olusturuldu", "hazirlaniyor"];
+const TOPTAN_ACIK: OrderStatus[] = ["olusturuldu", "hazirlaniyor", "yarim"];
 const PERAKENDE_ACIK: RetailStatus[] = ["Beklemede", "Hazırlanıyor", "Hazır"];
 
 async function toptanIndeks(): Promise<OrderIndexEntry[]> {
@@ -192,7 +192,7 @@ export async function computeStaffDashboard(flags: DashFlags): Promise<StaffDash
     { toptan: 0, perakende: 0, toptanCiro: 0, perakendeCiro: 0 }
   );
 
-  const durumT: Record<OrderStatus, number> = { olusturuldu: 0, hazirlaniyor: 0, tamamlandi: 0, iptal: 0 };
+  const durumT: Record<OrderStatus, number> = { olusturuldu: 0, hazirlaniyor: 0, yarim: 0, tamamlandi: 0, iptal: 0 };
   for (const o of tIdx) if (set14.has(o.dateKey)) durumT[o.status] = (durumT[o.status] || 0) + 1;
   const durumP: Record<RetailStatus, number> = { Beklemede: 0, "Hazırlanıyor": 0, "Hazır": 0, "Teslim Edildi": 0, "İptal": 0 };
   for (const o of pIdx) if (set14.has(o.dateKey)) durumP[o.status] = (durumP[o.status] || 0) + 1;
