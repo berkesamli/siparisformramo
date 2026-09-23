@@ -52,21 +52,48 @@
 .ord-table-wrap thead th {
   background: linear-gradient(var(--surface-2), var(--surface-2)), var(--surface-solid);
 }
-.ord-table-wrap td.ord-actions > * + * { margin-left: 6px; }
+.ord-table-wrap td.ord-actions > * + * { margin-left: 4px; }
+/* Hücre iç boşluğu biraz dar: 7 sütun 1280 px dizüstünde kaydırmadan sığar */
+.ord-table-wrap th, .ord-table-wrap td { padding-left: 10px; padding-right: 10px; }
 /* Satır üzerine gelindiğinde sabit sütun da satırla aynı vurguyu alsın */
 .ord-table-wrap tbody tr:hover td.ord-actions {
   background: linear-gradient(var(--surface-2), var(--surface-2)), var(--surface-solid);
 }
+/* Sipariş no + tarih ve müşteri + çalışan: ikişer satırlık hücreler (tablo dizüstünde sığsın) */
+.ord-no { white-space: nowrap; }
+.ord-no strong { display: block; font-weight: 600; }
+.ord-no .muted { display: block; font-size: 12px; margin-top: 2px; font-variant-numeric: tabular-nums; }
 /* Müşteri adı gereksiz yere 4-5 satıra bölünmesin */
-.ord-table-wrap td:nth-child(3) { min-width: 170px; }
+.ord-musteri { min-width: 170px; }
+.ord-calisan { display: block; font-size: 12px; color: var(--muted); margin-top: 2px; }
+/* İşlemler: ikon düğmeler (ipucu etiketi), 1600 px üstü geniş ekranda yazılar da görünür */
+.ord-actions .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; vertical-align: middle; }
+.ord-lbl { display: none; }
+@media (min-width: 1600px) {
+  .ord-actions .btn.icon.small { width: auto; padding: 0 10px; }
+  .ord-lbl { display: inline; }
+}
 
 /* 1280-1400 arası dizüstü ekranlarda tablo hiç kaydırmadan sığsın */
 @media (min-width: 901px) and (max-width: 1400px) {
   .ord-table-wrap th,
   .ord-table-wrap td { padding-left: 7px; padding-right: 7px; }
-  .ord-table-wrap td:nth-child(3) { min-width: 150px; }
-  .ord-table-wrap .btn.small { padding: 6px 9px; }
+  .ord-musteri { min-width: 136px; }
+  .ord-table-wrap .btn.small:not(.icon) { padding: 6px 9px; }
 }
+
+/* Ekranın altında sabit duran yatay kaydırma çubuğu (tablo taşıp alt kenarı görünmüyorsa; YatayKaydirma) */
+.ord-kaydirma {
+  position: fixed; bottom: 0; z-index: 40; height: 16px;
+  overflow-x: auto; overflow-y: hidden;
+  background: var(--surface-solid); border-top: 1px solid var(--border);
+  box-shadow: 0 -6px 14px -8px rgba(0, 0, 0, 0.35);
+  scrollbar-width: thin; scrollbar-color: var(--brand) transparent;
+}
+.ord-kaydirma::-webkit-scrollbar { height: 12px; }
+.ord-kaydirma::-webkit-scrollbar-track { background: var(--brand-soft); }
+.ord-kaydirma::-webkit-scrollbar-thumb { background: var(--brand-ring); border-radius: 999px; border: 2px solid var(--surface-solid); }
+.ord-kaydirma::-webkit-scrollbar-thumb:hover { background: var(--brand); }
 
 /* Telefonda sabit sütun ekranın yarısını kaplardı — orada normal
    yatay kaydırma daha kullanışlı. */
@@ -161,6 +188,7 @@ select.status-select:focus {
   .ord-table-wrap th.ord-actions,
   .ord-table-wrap td.ord-actions { position: static; box-shadow: none; }
   .ord-table-wrap td.ord-actions { background: var(--surface-solid); }
+  .ord-kaydirma { display: none; }
   .status-select, .pay-select {
     color: var(--text);
     background-color: var(--surface-solid);
