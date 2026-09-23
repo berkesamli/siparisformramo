@@ -131,7 +131,10 @@ yanıtlar. Yalnızca `MESAJ_USERNAMES`'teki çalışanlar (ve sahipler) görür.
   4. Alternatif "API setup with Facebook login" yolu: sistem kullanıcısı jetonu (süresiz; izinler `instagram_basic`,
      `instagram_manage_messages`, `pages_manage_metadata`, `pages_messaging`, `pages_show_list`) + `INSTAGRAM_PAGE_ID`;
      imza `META_APP_SECRET` / `WHATSAPP_APP_SECRET`; Ayarlar kartındaki "Sayfa aboneliğini onar" gerekir.
-  5. Ayarlar → Mesajlar kartı → "Bağlantıları sına": @olga.cerceve ve jeton durumu görünmeli.
+  5. Ayarlar → Mesajlar kartı → "Bağlantıları sına": @olga.cerceve ve jeton durumu görünmeli. Kart, Meta
+     uygulamasının kendi webhook aboneliğini de (`/{app-id}/subscriptions`, "instagram" nesnesi → `messages`) sorgular;
+     eksik ya da adres farklıysa **"Uygulama webhook'unu onar"** düğmesi bizim adresimizle abone yapar (Meta bu sırada
+     callback'i `INSTAGRAM_VERIFY_TOKEN` ile doğrular). Sayfa aboneliği tek başına yetmez; ikisi de ✓ olmalı.
   6. Development modunda yalnızca uygulamada rolü olan Instagram hesaplarının (Instagram testers) DM'leri gelir; bütün
      müşteriler için `instagram_business_manage_messages` iznine **App Review** alınıp uygulama **Live** yapılır.
   Instagram uygulamasından atılan yanıtlar da (echo) konuşmada görünür. 24 saat kuralı burada da geçerlidir.
