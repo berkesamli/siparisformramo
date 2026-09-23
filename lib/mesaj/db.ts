@@ -279,6 +279,19 @@ export async function mesajlar(konusmaId: string, limit = 200): Promise<Mesaj[]>
   return r.rows.map((row, i) => { const m = mesajSatir(row); if (i >= 20) delete m.html; return m; }).reverse();
 }
 
+/** HTML gövdesi hiç okunmamış (NULL), Message-ID'si bilinen gelen mesajlar, yeniden eskiye (geriye dönük tamamlama için). */
+export async function htmlEksikMesajlar(konusmaId: string, adet = 3): Promise<{ id: string; disId: string | null }[]> {
+  const p = await db();
+  const r = await p.query(`SELECT id, dis_id FROM mesaj WHERE konusma_id = $1 AND yon = 'gelen' AND html IS NULL AND dis_id LIKE '%@%' ORDER BY at DESC, id DESC LIMIT ${Math.min(20, Math.max(1, adet))}`, [konusmaId]);
+  return r.rows.map((x: any) => ({ id: x.id, disId: x.dis_id || null }));
+}
+
+/** Mesajın HTML gövdesini yazar; boş dize "bakıldı, HTML yok" demektir (tekrar denenmez). */
+export async function mesajHtmlYaz(id: string, html: string): Promise<void> {
+  const p = await db();
+  await p.query("UPDATE mesaj SET html = $2 WHERE id = $1", [id, html]);
+}
+
 export async function okunduIsaretle(konusmaId: string): Promise<void> {
   const p = await db();
   await p.query("UPDATE mesaj_konusma SET okunmamis = 0 WHERE id = $1", [konusmaId]);

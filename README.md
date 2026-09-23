@@ -158,7 +158,9 @@ yanıtlar. Yalnızca `MESAJ_USERNAMES`'teki çalışanlar (ve sahipler) görür.
   HTML e-postalar (sipariş bildirimi, bülten…) temizlenip (`lib/mesaj/eposta-html.ts`: betik/form/olay
   öznitelikleri atılır, gömülü görseller ek deposuna alınır) `mesaj.html` sütununda saklanır ve konuşmada
   betiksiz, kum havuzlu bir çerçevede **asıl görünümüyle** gösterilir; düz metin (`govde`) yedek ve yapay zekâ
-  taslağı için kalır. Liste önizlemesi bağlantı/görsel kalıntılarını ayıklar (`ozetTemizle`).
+  taslağı için kalır. Liste önizlemesi bağlantı/görsel kalıntılarını ayıklar (`ozetTemizle`). Bu özellikten
+  önce gelen e-postaların HTML'i konuşma ilk açıldığında Gmail'den Message-ID ile geriye dönük okunur
+  (`gmailHtmlTamamla`: en çok 3 mesaj, ~9 sn; "Tüm Postalar" klasöründe aranır, HTML'i olmayana boş yazılır).
 - **Yapay zekâ:** "Taslak öner" düğmesi, konuşmayı + katalog/stok/kur/müşteri kartını okuyup yanıt
   **taslağı** yazar (`ANTHROPIC_API_KEY`). Hiçbir şey kendiliğinden gönderilmez; çalışan okur, düzeltir, gönderir.
   Taslaktan gönderilen mesajlar konuşmada "taslak" etiketiyle görünür.

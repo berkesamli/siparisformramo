@@ -83,12 +83,12 @@ export function hesapHarf(hesap: string, hepsi: string[] = []): string {
  */
 export function ozetTemizle(metin: string, max = 140): string {
   const ham = String(metin || "").replace(/^Konu: .*\n+/, "");
+  // Kayıtlı özet 140 karakterde kesilmiş olabilir: kapanmamış "[image: …" / "[https://…" de atılır
   const s = ham
-    .replace(/\[(image|cid):[^\]]*\]/gi, " ")
-    .replace(/\[https?:\/\/[^\]\s]*\]/gi, " ")
-    .replace(/<?https?:\/\/\S+>?/gi, " ")
+    .replace(/\[(image|cid):[^\]]*(\]|$)/gi, " ")
+    .replace(/\[?<?https?:\/\/[^\s\]>]*[\]>]?/gi, " ")
     .replace(/\s+/g, " ")
-    .replace(/^[\s|•·>*_=-]+/, "")
+    .replace(/^[\s|•·>*_=\[\]-]+|[\s\[\]<>]+$/g, "")
     .trim();
   if (!s) {
     if (/\[image:|\.(jpe?g|png|gif|webp)\b/i.test(ham)) return "Görsel";

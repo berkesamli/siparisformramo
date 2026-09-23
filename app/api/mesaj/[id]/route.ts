@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { isMesajci } from "@/data/users";
 import { konusma, konusmaGuncelle, mesajlar, okunduIsaretle } from "@/lib/mesaj/db";
 import { yanitGonder } from "@/lib/mesaj/gonder";
+import { gmailConfigured, gmailHtmlTamamla } from "@/lib/mesaj/gmail";
 import { hataYaniti, mesajKullanici } from "@/lib/mesaj/yetki";
 import { pencereAcik, type KonusmaDurum } from "@/lib/mesaj/tur";
 import { getCustomer, customerTitle, musteriBolgesi, bolgeler } from "@/lib/customers";
@@ -45,6 +46,8 @@ export async function GET(req: NextRequest, { params }: { params: { id: string }
     const k = await konusma(params.id);
     if (!k) return NextResponse.json({ ok: false, error: "Konuşma bulunamadı." }, { status: 404 });
     if (req.nextUrl.searchParams.get("oku") !== "0" && k.okunmamis > 0) { await okunduIsaretle(k.id); k.okunmamis = 0; }
+    // Bu özellikten önce gelen e-postaların HTML'i ilk açılışta Gmail'den geriye dönük tamamlanır (hızlı DB denetimi; eksik yoksa maliyeti yok)
+    if (k.kanal === "email" && gmailConfigured()) await gmailHtmlTamamla(k).catch(() => 0);
     const [ms, musteri] = await Promise.all([mesajlar(k.id), musteriOzeti(k.musteriId, k.musteriTur)]);
     return NextResponse.json({ ok: true, konusma: k, mesajlar: ms, musteri, pencere: pencereAcik(k) });
   } catch (e) {
