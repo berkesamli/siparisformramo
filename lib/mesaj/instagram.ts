@@ -283,7 +283,20 @@ export async function igProfilTazele(k: Konusma): Promise<void> {
 // ---- Yedek yol: Meta Conversations API. Webhook gelmese de son Instagram konuşmaları çekilir,
 // veri tabanında olmayan mesajlar işlenir (Gmail senkronu gibi: 45 sn'de en çok bir kez; zorla ile hemen).
 const IG_SENK_ARALIK_MS = 45_000;
+/** Hata sonrası bekleme: 5 dk'dan başlar, her ardışık hatada ikiye katlanır, en çok 60 dk. */
+const IG_SENK_HATA_BEKLEME_MS = [5, 10, 20, 40, 60].map((dk) => dk * 60_000);
 let igSenkSuruyor = false;
+interface IgSenkKayit { konusma?: number; yeni?: number; hata?: string; ardisikHata?: number; tekrar?: string }
+
+/** Meta'nın Conversations hatasını Türkçe açıklar (Standard erişim zaman aşımı dahil). */
+function igSenkHataMetni(j: { error?: { message?: string; code?: number; error_subcode?: number; error_user_msg?: string } }, status: number): string {
+  const e = j.error;
+  if (!e) return `HTTP ${status}`;
+  if (e.error_subcode === 2534084 || /timeout/i.test(e.message || "")) {
+    return "Meta isteği zaman aşımına düşürdü: uygulamada rolü olmayan kullanıcılarla konuşmalar Standard erişimde okunamıyor (instagram_manage_messages için Uygulama İncelemesi onaylanınca bu yol da çalışır).";
+  }
+  return `${e.error_user_msg || e.message || `HTTP ${status}`}${e.code ? ` (kod ${e.code}${e.error_subcode ? `/${e.error_subcode}` : ""})` : ""}`;
+}
 export interface IgSenkSonuc {
   hesap: string; yeni: number; konusma?: number; hata?: string; atlandi?: boolean;
   /** Teşhis için: API'de görünen son mesajlar (ad, zaman, yön, kısa metin). */
@@ -306,16 +319,22 @@ export async function instagramSenk(o: { zorla?: boolean } = {}): Promise<IgSenk
   if (!dbConfigured()) return { hesap: hesapAdi, yeni: 0, hata: "DATABASE_URL tanımlı değil." };
   if (igSenkSuruyor) return { hesap: hesapAdi, yeni: 0, atlandi: true };
   igSenkSuruyor = true;
+  let kayit: IgSenkKayit = {};
   try {
     const onceki = await senkOku("ig:senk");
+    try { kayit = onceki?.deger ? (JSON.parse(onceki.deger) as IgSenkKayit) : {}; } catch { kayit = {}; }
     if (!o.zorla && onceki && Date.now() - new Date(onceki.at).getTime() < IG_SENK_ARALIK_MS) return { hesap: hesapAdi, yeni: 0, atlandi: true };
-    // İlk çekimde son 7 gün; sonra son senkrondan 1 saat öncesine kadar (geç kalan webhook boşlukları kapanır).
-    const esik = onceki ? new Date(onceki.at).getTime() - 3600_000 : Date.now() - 7 * 86400_000;
+    // Son deneme hata verdiyse (örn. Standard erişim zaman aşımı) gelen kutusunu her yenilemede bekletme: geri çekil.
+    if (!o.zorla && kayit.tekrar && Date.now() < new Date(kayit.tekrar).getTime()) return { hesap: hesapAdi, yeni: 0, atlandi: true, hata: kayit.hata };
+    // İlk çekimde son 7 gün; sonra son başarılı senkrondan 1 saat öncesine kadar (geç kalan webhook boşlukları kapanır).
+    const sonBasarili = onceki && !kayit.hata ? new Date(onceki.at).getTime() : 0;
+    const esik = sonBasarili ? sonBasarili - 3600_000 : Date.now() - 7 * 86400_000;
     const sj = await sayfaJetonu();
     const alanlar = "id,updated_time,participants,messages.limit(20){id,created_time,message,from,attachments}";
-    const r = await fetch(`${FB}/${pageId()}/conversations?platform=instagram&fields=${encodeURIComponent(alanlar)}&limit=25&access_token=${encodeURIComponent(sj)}`, { signal: AbortSignal.timeout(20_000) });
-    const j = (await r.json().catch(() => ({}))) as { data?: ApiKonusma[]; error?: { message?: string; code?: number } };
-    if (!r.ok) return { hesap: hesapAdi, yeni: 0, hata: `${j.error?.message || `HTTP ${r.status}`}${j.error?.code ? ` (kod ${j.error.code})` : ""}` };
+    // Meta bu isteği Standard erişimde ~30 sn sonra zaman aşımına düşürüyor; kutuyu bekletmemek için kısa süre.
+    const r = await fetch(`${FB}/${pageId()}/conversations?platform=instagram&fields=${encodeURIComponent(alanlar)}&limit=25&access_token=${encodeURIComponent(sj)}`, { signal: AbortSignal.timeout(o.zorla ? 10_000 : 6_000) });
+    const j = (await r.json().catch(() => ({}))) as { data?: ApiKonusma[]; error?: { message?: string; code?: number; error_subcode?: number; error_user_msg?: string } };
+    if (!r.ok) throw new Error(igSenkHataMetni(j, r.status));
     const bizim = new Set([accountId(), pageId()].filter(Boolean));
     let yeni = 0, konusmaSayisi = 0;
     const son: NonNullable<IgSenkSonuc["son"]> = [];
@@ -348,10 +367,17 @@ export async function instagramSenk(o: { zorla?: boolean } = {}): Promise<IgSenk
         if (e.yeni) yeni++;
       }
     }
-    await senkYaz("ig:senk", JSON.stringify({ konusma: konusmaSayisi, yeni }));
+    await senkYaz("ig:senk", JSON.stringify({ konusma: konusmaSayisi, yeni } satisfies IgSenkKayit));
     return { hesap: hesapAdi, yeni, konusma: konusmaSayisi, son };
   } catch (e) {
-    return { hesap: hesapAdi, yeni: 0, hata: (e as Error)?.message || String(e) };
+    const ham = (e as Error)?.message || String(e);
+    const hata = /abort|timeout/i.test((e as Error)?.name || "") || /aborted|timeout/i.test(ham)
+      ? "Meta yanıt vermedi (zaman aşımı): uygulamada rolü olmayan kullanıcılarla konuşmalar Standard erişimde okunamıyor; Uygulama İncelemesi onaylanınca bu yol da çalışır."
+      : ham;
+    const n = (kayit.ardisikHata || 0) + 1;
+    const bekle = IG_SENK_HATA_BEKLEME_MS[Math.min(n, IG_SENK_HATA_BEKLEME_MS.length) - 1];
+    await senkYaz("ig:senk", JSON.stringify({ hata, ardisikHata: n, tekrar: new Date(Date.now() + bekle).toISOString() } satisfies IgSenkKayit)).catch(() => undefined);
+    return { hesap: hesapAdi, yeni: 0, hata };
   } finally {
     igSenkSuruyor = false;
   }
