@@ -3,7 +3,7 @@ import { getSessionUser } from "@/lib/auth";
 import { isOwner, mesajUsernames } from "@/data/users";
 import { dbConfigured, dbSaglik, konusmalar } from "@/lib/mesaj/db";
 import { gmailConfigured, gmailHesaplar, gmailSenk, gmailTest } from "@/lib/mesaj/gmail";
-import { igJetonTazele, igSayfaAbonelik, igThreadSahibi, instagramConfigured, instagramDurum } from "@/lib/mesaj/instagram";
+import { igJetonTazele, igSayfaAbonelik, igThreadSahibi, instagramConfigured, instagramDurum, instagramSenk } from "@/lib/mesaj/instagram";
 import { igUygulamaWebhookOnar, uygulamaWebhookDurumu } from "@/lib/mesaj/meta-uygulama";
 import { SABLON_GOVDE, SABLON_VARSAYILAN, sablonListesi, sablonOlustur, serbestSablonAdlari, wabaAbonelik, whatsappConfigured, whatsappDurum, type SablonBilgi } from "@/lib/mesaj/whatsapp";
 import { taslakHazir } from "@/lib/mesaj/taslak";
@@ -42,6 +42,8 @@ export async function GET(req: NextRequest) {
         } catch { return null; }
       })()
     : null;
+  // Sınamada Conversations API'den de çekilir: webhook gelmiyorsa mesajlar yine düşer, API'de ne göründüğü kartta yazar.
+  const igSenk = canli && instagramConfigured() && (process.env.INSTAGRAM_PAGE_ID || "").trim() && dbConfigured() ? await instagramSenk({ zorla: true }) : null;
   const [igAbonelik, igUygulama, sablonlar] = await Promise.all([
     canli && instagramConfigured() && (process.env.INSTAGRAM_PAGE_ID || "").trim() ? igSayfaAbonelik(false) : Promise.resolve(null),
     canli && instagramConfigured() ? uygulamaWebhookDurumu(igCallback) : Promise.resolve(null),
@@ -68,7 +70,7 @@ export async function GET(req: NextRequest) {
       kurulu: instagramConfigured(), test: ig,
       yol: (process.env.INSTAGRAM_PAGE_ID || "").trim() ? "facebook" : "instagram-login",
       igSecret: Boolean((process.env.INSTAGRAM_APP_SECRET || "").trim()),
-      webhook: { url: igCallback, sonOlay: igIz.son, kabul: igIz.kabul, red: igIz.red, islem: igIz.islem, abonelik: igAbonelik, uygulama: igUygulama, thread: igThread, sayfa: Boolean((process.env.INSTAGRAM_PAGE_ID || "").trim()) },
+      webhook: { url: igCallback, sonOlay: igIz.son, kabul: igIz.kabul, red: igIz.red, islem: igIz.islem, abonelik: igAbonelik, uygulama: igUygulama, thread: igThread, senk: igSenk, sayfa: Boolean((process.env.INSTAGRAM_PAGE_ID || "").trim()) },
     },
     taslak: taslakHazir(),
     gorebilenler: mesajUsernames(),

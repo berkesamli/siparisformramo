@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getUsers, isMesajci } from "@/data/users";
 import { epostaHesaplari, konusmalar, okunmamisSayisi } from "@/lib/mesaj/db";
 import { gmailConfigured, gmailHesaplar, gmailSenk } from "@/lib/mesaj/gmail";
-import { igJetonTazele, instagramConfigured } from "@/lib/mesaj/instagram";
+import { igJetonTazele, instagramConfigured, instagramSenk } from "@/lib/mesaj/instagram";
 import { kanalDurumu } from "@/lib/mesaj/gonder";
 import { taslakHazir } from "@/lib/mesaj/taslak";
 import { hataYaniti, mesajKullanici } from "@/lib/mesaj/yetki";
@@ -20,8 +20,13 @@ export async function GET(req: NextRequest) {
   try {
     let senk: Awaited<ReturnType<typeof gmailSenk>> | undefined;
     if (q.get("senk") === "1" && gmailConfigured()) senk = await gmailSenk({ zorla: q.get("zorla") === "1" });
-    // Instagram login jetonu vadesi geldiyse tazelenir (7 günde bir; hızlı, önbellekli)
-    if (q.get("senk") === "1" && instagramConfigured()) await igJetonTazele(false).catch(() => undefined);
+    if (q.get("senk") === "1" && instagramConfigured()) {
+      // Instagram login jetonu vadesi geldiyse tazelenir (7 günde bir; hızlı, önbellekli)
+      await igJetonTazele(false).catch(() => undefined);
+      // Webhook gelmese de son konuşmalar Conversations API'den çekilir (45 sn'de en çok bir kez)
+      const ig = await instagramSenk({ zorla: q.get("zorla") === "1" });
+      if (!ig.atlandi) senk = [...(senk || []), { hesap: ig.hesap, yeni: ig.yeni, hata: ig.hata }];
+    }
     const liste = await konusmalar({
       kanal: (q.get("kanal") || "") as Kanal | "",
       hesap: (q.get("hesap") || "").trim().toLowerCase().slice(0, 120),

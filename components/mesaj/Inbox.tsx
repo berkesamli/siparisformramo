@@ -68,7 +68,7 @@ export default function Inbox({ me, dbHazir, kanallar, taslak, ilkKonusma }: {
       if (d.senk?.length) {
         const hatali = d.senk.filter((s) => s.hata);
         const yeni = d.senk.reduce((n, s) => n + (s.yeni || 0), 0);
-        setSenkNotu(hatali.length ? `E-posta okunamadı: ${hatali.map((s) => `${s.hesap} — ${s.hata}`).join("; ")}` : yeni ? `${yeni} yeni e-posta alındı.` : "");
+        setSenkNotu(hatali.length ? `Okunamadı: ${hatali.map((s) => `${s.hesap} — ${s.hata}`).join("; ")}` : yeni ? `${yeni} yeni mesaj alındı (${d.senk.filter((s) => s.yeni).map((s) => `${s.hesap === "Instagram" ? "Instagram" : hesapKisa(s.hesap)}: ${s.yeni}`).join(", ")}).` : "");
       }
     } catch {
       setHata("Sunucuya ulaşılamadı.");

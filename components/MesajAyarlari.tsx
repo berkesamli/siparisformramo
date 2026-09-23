@@ -17,7 +17,7 @@ interface Durum {
   instagram: {
     kurulu: boolean; yol: "facebook" | "instagram-login"; igSecret: boolean;
     test: { ok: boolean; ad?: string; hata?: string; jeton?: { yol: string; kaynak: string; tazelendi: string | null; bitis: string | null }; tazeleme?: { ok: boolean; tazelendi?: boolean; bitis?: string | null; atlandi?: string; hata?: string } } | null;
-    webhook: { url: string; sonOlay: Iz | null; kabul: Iz | null; red: Iz | null; islem: Iz | null; abonelik: Abonelik | null; uygulama: UygulamaWebhook | null; thread: ThreadBilgi[] | null; sayfa: boolean };
+    webhook: { url: string; sonOlay: Iz | null; kabul: Iz | null; red: Iz | null; islem: Iz | null; abonelik: Abonelik | null; uygulama: UygulamaWebhook | null; thread: ThreadBilgi[] | null; senk: IgSenk | null; sayfa: boolean };
   };
   taslak: boolean;
   gorebilenler: string[];
@@ -31,6 +31,7 @@ interface UygulamaWebhook {
   instagram?: { abone: boolean; adresBizim: boolean; standby?: boolean; alanlar: string[]; url?: string };
   hata?: string;
 }
+interface IgSenk { hesap: string; yeni: number; konusma?: number; hata?: string; atlandi?: boolean; son?: { ad: string; at: string; yon: string; ozet: string }[] }
 interface ThreadBilgi { ad: string; disKimlik: string; standby: boolean; sahip: { ok: boolean; appId?: string; ad?: string; bizde?: boolean; hata?: string } }
 
 const nekadar = (iso: string) => {
@@ -323,11 +324,20 @@ export default function MesajAyarlari() {
                     </div>
                   );
                 })()}
+                {d.instagram.webhook.senk && (
+                  <div style={{ marginTop: 4 }}>
+                    {d.instagram.webhook.senk.hata
+                      ? <><strong>Conversations API okunamadı:</strong> {d.instagram.webhook.senk.hata}</>
+                      : <>Conversations API (webhook yedeği): {d.instagram.webhook.senk.konusma ?? 0} konuşma okundu, {d.instagram.webhook.senk.yeni} yeni mesaj işlendi.
+                          {d.instagram.webhook.senk.son?.length ? ` Son: ${d.instagram.webhook.senk.son.map((m) => `${m.ad} (${m.yon === "gelen" ? "müşteri" : "biz"}, ${nekadar(m.at)}): "${m.ozet}"`).join(" · ")}` : " Son 7 günde API'de konuşma görünmüyor."}
+                          {" "}Gelen kutusu açıkken 60 sn'de bir kendiliğinden çekilir.</>}
+                  </div>
+                )}
                 {d.instagram.webhook.thread && d.instagram.webhook.thread.length > 0 && (
                   <div style={{ marginTop: 4 }}>
                     <div>Konuşma kontrolü (Handover): </div>
                     {d.instagram.webhook.thread.map((t) => (
-                      <div key={t.disKimlik} style={!t.sahip.ok || t.sahip.bizde === false ? { color: "var(--warn, var(--error))" } : undefined}>
+                      <div key={t.disKimlik} style={!t.sahip.ok || (t.sahip.appId && !t.sahip.bizde) ? { color: "var(--error)" } : undefined}>
                         · {t.ad}: {t.sahip.ok
                           ? (t.sahip.bizde ? "bizim uygulamada ✓" : t.sahip.appId ? `başka uygulamada (${t.sahip.ad || t.sahip.appId}${t.sahip.ad && /inbox|gelen kutusu/i.test(t.sahip.ad) ? ", yani Instagram uygulamasından yanıtlanmış" : ""}) — siteden yanıt gönderilince kontrol geri alınır; alınamazsa Facebook sayfası → Ayarlar → Gelişmiş mesajlaşma → Handover Protocol'de birincil alıcı = siparisformramo` : "sahip yok (serbest)")
                           : `sorgulanamadı: ${t.sahip.hata}`}
