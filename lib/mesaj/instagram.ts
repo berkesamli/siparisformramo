@@ -82,6 +82,30 @@ export async function igJetonDurumu(): Promise<{ yol: "instagram-login" | "faceb
   return { yol: instagramLoginYolu() ? "instagram-login" : "facebook", kaynak: s ? "tazelenmis" : "env", tazelendi: s?.at || null, bitis: s?.bitis || null };
 }
 
+// ---- Sayfa jetonu (Facebook yolu): Meta, mesaj gönderme ve profil sorgusunda sistem kullanıcısı jetonunu
+// kabul etmez ("(#190) This method must be called with a Page Access Token"); sayfanın kendi jetonu
+// /{page-id}?fields=access_token ile alınır (sistem kullanıcısından türeyen sayfa jetonu süresizdir).
+let sayfaJetonuOnbellek: { jeton: string; iz: string } | null = null;
+/** Testler için: sayfa jetonu önbelleğini sıfırla. */
+export function igSayfaJetonuSifirla() { sayfaJetonuOnbellek = null; }
+
+/** Facebook yolunda sayfa erişim jetonu (alınamazsa sistem jetonuna düşer); Instagram login yolunda etkin jeton. */
+async function sayfaJetonu(): Promise<string> {
+  const t = await jeton();
+  if (!pageId() || !t) return t;
+  const iz = parmakIzi(t);
+  if (sayfaJetonuOnbellek?.iz === iz) return sayfaJetonuOnbellek.jeton;
+  try {
+    const r = await fetch(`${FB}/${pageId()}?fields=access_token&access_token=${encodeURIComponent(t)}`, { signal: AbortSignal.timeout(10_000) });
+    const j = (await r.json().catch(() => ({}))) as { access_token?: string };
+    if (r.ok && j.access_token) {
+      sayfaJetonuOnbellek = { jeton: j.access_token, iz };
+      return j.access_token;
+    }
+  } catch { /* sistem jetonuna düş */ }
+  return t;
+}
+
 /** Gönderim / profil tabanı: Facebook sayfası üzerinden ya da doğrudan Instagram API. */
 function taban(): { url: string; gonderim: string } {
   if (pageId()) return { url: FB, gonderim: `${FB}/${pageId()}/messages` };
@@ -114,17 +138,13 @@ export async function igSayfaAbonelik(onar = false): Promise<{ ok: boolean; abon
   if (!pageId() || !envJeton()) return { ok: false, hata: "INSTAGRAM_PAGE_ID ve INSTAGRAM_TOKEN gerekli (Instagram Login yolunda sayfa aboneliği yoktur)." };
   try {
     // Sayfa jetonu: sistem kullanıcısı / kullanıcı jetonuyla sayfanın kendi jetonu alınır (pages_manage_metadata).
-    const t = await jeton();
-    let sayfaJetonu = t;
-    const rj = await fetch(`${FB}/${pageId()}?fields=access_token&access_token=${encodeURIComponent(t)}`, { signal: AbortSignal.timeout(10_000) });
-    const jj = (await rj.json().catch(() => ({}))) as { access_token?: string };
-    if (rj.ok && jj.access_token) sayfaJetonu = jj.access_token;
+    const sj = await sayfaJetonu();
     if (onar) {
-      const r = await fetch(`${FB}/${pageId()}/subscribed_apps?subscribed_fields=messages,messaging_postbacks&access_token=${encodeURIComponent(sayfaJetonu)}`, { method: "POST", signal: AbortSignal.timeout(10_000) });
+      const r = await fetch(`${FB}/${pageId()}/subscribed_apps?subscribed_fields=messages,messaging_postbacks&access_token=${encodeURIComponent(sj)}`, { method: "POST", signal: AbortSignal.timeout(10_000) });
       const j = (await r.json().catch(() => ({}))) as { success?: boolean; error?: { message?: string; code?: number } };
       if (!r.ok || !j.success) return { ok: false, hata: `Sayfaya abone olunamadı: ${j.error?.message || `HTTP ${r.status}`}${j.error?.code ? ` (kod ${j.error.code})` : ""}` };
     }
-    const r = await fetch(`${FB}/${pageId()}/subscribed_apps?access_token=${encodeURIComponent(sayfaJetonu)}`, { signal: AbortSignal.timeout(10_000) });
+    const r = await fetch(`${FB}/${pageId()}/subscribed_apps?access_token=${encodeURIComponent(sj)}`, { signal: AbortSignal.timeout(10_000) });
     const j = (await r.json().catch(() => ({}))) as { data?: { id?: string; name?: string; subscribed_fields?: string[] }[]; error?: { message?: string; code?: number } };
     if (!r.ok) return { ok: false, hata: `${j.error?.message || `HTTP ${r.status}`}${j.error?.code ? ` (kod ${j.error.code})` : ""}` };
     const uygulamalar = (j.data || []).map((d) => ({ id: d.id || "?", ad: d.name || "?", alanlar: d.subscribed_fields || [] }));
@@ -160,19 +180,20 @@ const profilOnbellek = new Map<string, { at: number; ad: string; kullanici: stri
 export async function igProfil(igsid: string): Promise<{ ad: string; kullanici: string }> {
   const c = profilOnbellek.get(igsid);
   if (c && Date.now() - c.at < 6 * 3600_000) return c;
-  let ad = "", kullanici = "";
-  const t = await jeton();
+  let ad = "", kullanici = "", alindi = false;
+  const t = await sayfaJetonu();
   if (t) {
     try {
       const r = await fetch(`${taban().url}/${igsid}?fields=name,username&access_token=${encodeURIComponent(t)}`, { signal: AbortSignal.timeout(8_000) });
       if (r.ok) {
         const j = (await r.json()) as { name?: string; username?: string };
-        ad = j.name || ""; kullanici = j.username || "";
+        ad = j.name || ""; kullanici = j.username || ""; alindi = true;
       }
     } catch { /* profil alınamadı */ }
   }
   const v = { at: Date.now(), ad, kullanici };
-  profilOnbellek.set(igsid, v);
+  // Başarısız sorgu kısa süre (10 dk) önbelleklenir ki jeton/izin düzelince ad hemen gelsin.
+  profilOnbellek.set(igsid, alindi ? v : { ...v, at: Date.now() - 6 * 3600_000 + 10 * 60_000 });
   return v;
 }
 
@@ -216,6 +237,11 @@ export async function gelenInstagram(entry: IgEntry): Promise<number> {
     const profil = await igProfil(karsi);
     const ad = profil.ad || (profil.kullanici ? "@" + profil.kullanici : `Instagram ${karsi.slice(-6)}`);
     const k = await konusmaBulVeyaOlustur({ kanal: "instagram", hesap, disKimlik: karsi, ad, baslik: profil.kullanici ? "@" + profil.kullanici : "", meta: profil.kullanici ? { kullanici: profil.kullanici } : undefined });
+    // Konuşma daha önce "Instagram 123456" gibi yer tutucu adla açıldıysa ve profil artık alınabiliyorsa adı düzelt.
+    if ((profil.ad || profil.kullanici) && /^Instagram \d+$/.test(k.ad || "") && k.ad !== ad) {
+      await konusmaGuncelle(k.id, { ad, meta: { ...k.meta, kullanici: profil.kullanici } });
+      k.ad = ad;
+    }
     let metin = m.text || "";
     if (m.is_unsupported && !metin) metin = "[Desteklenmeyen mesaj türü]";
     if (m.reply_to?.story?.url) metin = `(Hikâyeye yanıt) ${metin}`.trim();
@@ -241,12 +267,13 @@ export async function instagramGonder(k: Konusma, metin: string): Promise<{ disI
   if (!pencereAcik(k)) throw new Error("Instagram 24 saat penceresi kapalı: müşteri son 24 saatte yazmadığı için yanıt gönderilemez.");
   const r = await fetch(taban().gonderim, {
     method: "POST",
-    headers: { Authorization: `Bearer ${await jeton()}`, "Content-Type": "application/json" },
+    headers: { Authorization: `Bearer ${await sayfaJetonu()}`, "Content-Type": "application/json" },
     body: JSON.stringify({ recipient: { id: k.disKimlik }, messaging_type: "RESPONSE", message: { text: metin } }),
     signal: AbortSignal.timeout(15_000),
   });
   const j = (await r.json().catch(() => ({}))) as { message_id?: string; recipient_id?: string; error?: { message?: string; code?: number; error_subcode?: number } };
   if (!r.ok || !j.message_id) {
+    if (j.error?.code === 190) igSayfaJetonuSifirla(); // jeton geçersiz/yanlış türde: bir sonraki denemede yeniden al
     throw new Error(`Instagram gönderilemedi: ${j.error?.message || r.status}${j.error?.code ? ` (kod ${j.error.code})` : ""}`);
   }
   return { disId: j.message_id };
