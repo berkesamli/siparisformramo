@@ -147,6 +147,11 @@ yanıtlar. Yalnızca `MESAJ_USERNAMES`'teki çalışanlar (ve sahipler) görür.
      siteden yanıt gönderilirken `take_thread_control` ile kontrol geri alınır. Bunun çalışması için Facebook
      sayfası → Ayarlar → Gelişmiş mesajlaşma → **Handover Protocol**'de birincil alıcı bu uygulama olmalıdır.
      Kart, son Instagram konuşmalarının kontrolünün hangi uygulamada olduğunu gösterir.
+  8. **Webhook yedeği (Conversations API):** Gelen kutusu açıkken 60 sn'de bir ve Ayarlar sınamasında
+     `GET /{page-id}/conversations?platform=instagram` ile son 7 günün (sonra son senkrondan 1 saat öncesine
+     kadar) konuşmaları okunur; veri tabanında olmayan mesajlar (kimlik ya da aynı metin ±3 dk ile eşleşmeyenler)
+     işlenir. Meta webhook göndermese de mesajlar en geç bir dakika içinde düşer. Kart, API'de görünen son
+     mesajı da yazar (webhook mu yoksa Meta tarafı mı sorunlu, oradan anlaşılır).
 - **Gmail:** hesap başına Google *uygulama şifresi* (2 adımlı doğrulama açık olmalı). Gelen kutusu
   ekran açıkken 60 sn'de bir, ilk kurulumda son 7 gün okunur; `noreply`/bülten adresleri sessiz düşer.
   Yanıt aynı hesaptan, aynı konu dizisine (In-Reply-To) gider. `/api/mesaj/senk` elle/cron ile de tetiklenebilir.

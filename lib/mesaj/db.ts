@@ -259,6 +259,16 @@ export async function konusma(id: string): Promise<Konusma | null> {
 }
 
 /** Konuşmanın en YENİ n mesajı, kronolojik (eski → yeni) sırayla. */
+/** Aynı konuşmada aynı yön + gövdeyle ±3 dk içinde mesaj var mı (dış kimlik eşleşmese de tekrar önlemek için). */
+export async function mesajBenzerVar(konusmaId: string, yon: Yon, govde: string, at: Date): Promise<boolean> {
+  const p = await db();
+  const r = await p.query(
+    "SELECT 1 FROM mesaj WHERE konusma_id = $1 AND yon = $2 AND govde = $3 AND at >= $4 AND at <= $5 LIMIT 1",
+    [konusmaId, yon, govde, new Date(at.getTime() - 180_000), new Date(at.getTime() + 180_000)]
+  );
+  return r.rows.length > 0;
+}
+
 export async function mesajlar(konusmaId: string, limit = 200): Promise<Mesaj[]> {
   const p = await db();
   const n = Math.min(500, Math.max(1, limit));

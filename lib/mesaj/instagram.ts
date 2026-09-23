@@ -6,9 +6,9 @@
 // Webhook object="instagram", entry[].messaging[] olayları her iki yolda aynıdır.
 
 import { createHash } from "node:crypto";
-import { dbConfigured, konusmaBulVeyaOlustur, konusmaGuncelle, mesajEkle, senkOku, senkYaz } from "./db";
+import { dbConfigured, konusmaBulVeyaOlustur, konusmaGuncelle, mesajBenzerVar, mesajEkle, senkOku, senkYaz } from "./db";
 import { ekIndir, ekKaydet, ekTuru, ekUrl, mimeUzanti } from "./ek";
-import { pencereAcik, type Ek, type Konusma } from "./tur";
+import { pencereAcik, type Ek, type Konusma, type Yon } from "./tur";
 
 const FB = "https://graph.facebook.com/v20.0";
 /**
@@ -278,6 +278,83 @@ export async function gelenInstagram(entry: IgEntry): Promise<number> {
 export async function igProfilTazele(k: Konusma): Promise<void> {
   const p = await igProfil(k.disKimlik);
   if (p.ad || p.kullanici) await konusmaGuncelle(k.id, { ad: p.ad || k.ad, meta: { ...k.meta, kullanici: p.kullanici } });
+}
+
+// ---- Yedek yol: Meta Conversations API. Webhook gelmese de son Instagram konuşmaları çekilir,
+// veri tabanında olmayan mesajlar işlenir (Gmail senkronu gibi: 45 sn'de en çok bir kez; zorla ile hemen).
+const IG_SENK_ARALIK_MS = 45_000;
+let igSenkSuruyor = false;
+export interface IgSenkSonuc {
+  hesap: string; yeni: number; konusma?: number; hata?: string; atlandi?: boolean;
+  /** Teşhis için: API'de görünen son mesajlar (ad, zaman, yön, kısa metin). */
+  son?: { ad: string; at: string; yon: Yon; ozet: string }[];
+}
+interface ApiKatilimci { id?: string; username?: string }
+interface ApiEk { id?: string; name?: string; mime_type?: string; file_url?: string; image_data?: { url?: string; preview_url?: string }; video_data?: { url?: string } }
+interface ApiMesaj { id?: string; created_time?: string; message?: string; from?: ApiKatilimci; attachments?: { data?: ApiEk[] } }
+interface ApiKonusma { id?: string; updated_time?: string; participants?: { data?: ApiKatilimci[] }; messages?: { data?: ApiMesaj[] } }
+
+function apiEkToIgEk(e: ApiEk): IgEk {
+  if (e.image_data?.url) return { type: "image", payload: { url: e.image_data.url, title: e.name } };
+  if (e.video_data?.url) return { type: "video", payload: { url: e.video_data.url, title: e.name } };
+  return { type: (e.mime_type || "").startsWith("audio/") ? "audio" : "file", payload: { url: e.file_url, title: e.name } };
+}
+
+export async function instagramSenk(o: { zorla?: boolean } = {}): Promise<IgSenkSonuc> {
+  const hesapAdi = "Instagram";
+  if (!instagramConfigured() || !pageId()) return { hesap: hesapAdi, yeni: 0, atlandi: true };
+  if (!dbConfigured()) return { hesap: hesapAdi, yeni: 0, hata: "DATABASE_URL tanımlı değil." };
+  if (igSenkSuruyor) return { hesap: hesapAdi, yeni: 0, atlandi: true };
+  igSenkSuruyor = true;
+  try {
+    const onceki = await senkOku("ig:senk");
+    if (!o.zorla && onceki && Date.now() - new Date(onceki.at).getTime() < IG_SENK_ARALIK_MS) return { hesap: hesapAdi, yeni: 0, atlandi: true };
+    // İlk çekimde son 7 gün; sonra son senkrondan 1 saat öncesine kadar (geç kalan webhook boşlukları kapanır).
+    const esik = onceki ? new Date(onceki.at).getTime() - 3600_000 : Date.now() - 7 * 86400_000;
+    const sj = await sayfaJetonu();
+    const alanlar = "id,updated_time,participants,messages.limit(20){id,created_time,message,from,attachments}";
+    const r = await fetch(`${FB}/${pageId()}/conversations?platform=instagram&fields=${encodeURIComponent(alanlar)}&limit=25&access_token=${encodeURIComponent(sj)}`, { signal: AbortSignal.timeout(20_000) });
+    const j = (await r.json().catch(() => ({}))) as { data?: ApiKonusma[]; error?: { message?: string; code?: number } };
+    if (!r.ok) return { hesap: hesapAdi, yeni: 0, hata: `${j.error?.message || `HTTP ${r.status}`}${j.error?.code ? ` (kod ${j.error.code})` : ""}` };
+    const bizim = new Set([accountId(), pageId()].filter(Boolean));
+    let yeni = 0, konusmaSayisi = 0;
+    const son: NonNullable<IgSenkSonuc["son"]> = [];
+    for (const c of j.data || []) {
+      if (c.updated_time && new Date(c.updated_time).getTime() < esik) continue;
+      const karsi = (c.participants?.data || []).find((p) => p.id && !bizim.has(p.id));
+      if (!karsi?.id) continue;
+      konusmaSayisi++;
+      const profil = await igProfil(karsi.id);
+      const kullanici = profil.kullanici || karsi.username || "";
+      const ad = profil.ad || (kullanici ? "@" + kullanici : `Instagram ${karsi.id.slice(-6)}`);
+      const k = await konusmaBulVeyaOlustur({ kanal: "instagram", hesap: accountId() || pageId(), disKimlik: karsi.id, ad, baslik: kullanici ? "@" + kullanici : "", meta: { ...(kullanici ? { kullanici } : {}), apiKonusmaId: c.id } });
+      if ((profil.ad || kullanici) && /^Instagram \d+$/.test(k.ad || "") && k.ad !== ad) { await konusmaGuncelle(k.id, { ad }); k.ad = ad; }
+      const liste = [...(c.messages?.data || [])].sort((a, b) => new Date(a.created_time || 0).getTime() - new Date(b.created_time || 0).getTime());
+      for (const m of liste) {
+        if (!m.id || !m.from?.id) continue;
+        const gelen = !bizim.has(m.from.id);
+        const at = m.created_time ? new Date(m.created_time) : new Date();
+        if (isNaN(at.getTime()) || at.getTime() < esik) continue;
+        const govde = m.message || "";
+        if (son.length < 3 && m === liste[liste.length - 1]) son.push({ ad: k.ad || karsi.id, at: at.toISOString(), yon: gelen ? "gelen" : "giden", ozet: govde.slice(0, 60) || "(ek)" });
+        // Dış kimlik (mid) eşleşmese bile aynı metin ±3 dk içinde varsa tekrar yazma (webhook ile çift kayıt olmasın).
+        if (await mesajBenzerVar(k.id, gelen ? "gelen" : "giden", govde, at)) continue;
+        const ekler = await ekleriIndir(k.id, (m.attachments?.data || []).map(apiEkToIgEk));
+        const e = await mesajEkle({
+          konusmaId: k.id, yon: gelen ? "gelen" : "giden", govde, ekler, disId: m.id, at,
+          gonderen: gelen ? (k.ad || karsi.id) : "Instagram uygulaması", durum: gelen ? "" : "gonderildi",
+          sessiz: Date.now() - at.getTime() > 86400_000, // eski mesajlar okunmamış sayacını şişirmesin
+        });
+        if (e.yeni) yeni++;
+      }
+    }
+    await senkYaz("ig:senk", JSON.stringify({ konusma: konusmaSayisi, yeni }));
+    return { hesap: hesapAdi, yeni, konusma: konusmaSayisi, son };
+  } catch (e) {
+    return { hesap: hesapAdi, yeni: 0, hata: (e as Error)?.message || String(e) };
+  } finally {
+    igSenkSuruyor = false;
+  }
 }
 
 // ---- Handover Protocol (Facebook sayfası yolu): konuşmanın kontrolü hangi uygulamada?

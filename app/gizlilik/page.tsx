@@ -41,9 +41,45 @@ export default function GizlilikPage() {
         defter yükümlülükleri süresince saklanır.
       </p>
 
+      <h2 id="veri-silme" style={{ fontSize: 18, marginTop: 24 }}>Veri silme talebi</h2>
+      <p>
+        Instagram, WhatsApp ya da e-posta yoluyla bizimle yaptığınız yazışmaların ve size ait kayıtların
+        silinmesini istiyorsanız <strong>olgacercevee@gmail.com</strong> adresine e-posta gönderin ya da
+        <strong> 0850 305 75 45</strong> numarasını arayın. Talebinizde Instagram kullanıcı adınızı, telefon
+        numaranızı ya da e-posta adresinizi belirtmeniz yeterlidir. Kayıtlar en geç 30 gün içinde silinir ve
+        size bilgi verilir. Yasal saklama yükümlülüğü bulunan sipariş ve fatura kayıtları bu sürenin dışındadır.
+      </p>
+
       <h2 style={{ fontSize: 18, marginTop: 24 }}>İletişim</h2>
       <p>
-        Verilerinizle ilgili her türlü talep için: Olga Çerçeve · 0850 305 75 45
+        Verilerinizle ilgili her türlü talep için: Olga Çerçeve · 0850 305 75 45 · olgacercevee@gmail.com
+      </p>
+
+      <hr style={{ margin: "32px 0", border: 0, borderTop: "1px solid var(--border, #ddd)" }} />
+
+      <h2 id="english" style={{ fontSize: 18, marginTop: 24 }}>Privacy Policy (English summary)</h2>
+      <p>
+        Olga Çerçeve Sanayi ve Ticaret Ltd. Şti. (Ankara, Türkiye) operates this order-management system for its
+        own picture-frame business. We process only the data needed to prepare and deliver orders and to answer
+        customer messages: customer name, phone number, e-mail address, order details and the content of the
+        conversations customers start with us.
+      </p>
+      <p>
+        Messages sent to our Instagram professional account (@olga.cerceve), to our WhatsApp business number or
+        to our e-mail addresses are received through the official Meta APIs and Gmail and shown in our internal
+        inbox so that our staff can reply. Message content, sender name and attachments are stored only for the
+        purpose of handling the conversation and the related order. Replies are written by our staff; an AI
+        assistant may suggest a draft, but nothing is sent without a staff member&apos;s action. We do not sell
+        or share this data with third parties; it is transmitted only to the messaging provider (Meta, Google, SMS
+        provider) needed to deliver our reply.
+      </p>
+
+      <h2 id="data-deletion" style={{ fontSize: 18, marginTop: 24 }}>Data deletion instructions</h2>
+      <p>
+        To request deletion of your conversations and personal data, e-mail <strong>olgacercevee@gmail.com</strong>{" "}
+        or call <strong>+90 850 305 75 45</strong> and state your Instagram username, phone number or e-mail
+        address. We delete the records within 30 days and confirm by reply. Order and invoice records that we are
+        legally required to keep are excluded.
       </p>
     </main>
   );
