@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
   if ("hata" in y) return y.hata;
   const q = req.nextUrl.searchParams;
   try {
-    let senk: Awaited<ReturnType<typeof gmailSenk>> | undefined;
+    let senk: { hesap: string; yeni: number; hata?: string; sessiz?: boolean }[] | undefined;
     if (q.get("senk") === "1" && gmailConfigured()) senk = await gmailSenk({ zorla: q.get("zorla") === "1" });
     if (q.get("senk") === "1" && instagramConfigured()) {
       // Instagram login jetonu vadesi geldiyse tazelenir (7 günde bir; hızlı, önbellekli)
@@ -26,7 +26,8 @@ export async function GET(req: NextRequest) {
       // Webhook gelmese de son konuşmalar Conversations API'den çekilir (45 sn'de en çok bir kez)
       const ig = await instagramSenk({ zorla: q.get("zorla") === "1" });
       // Geri çekilme (atlandı) sırasında eski hata her yenilemede uyarı olarak çıkmasın; yalnızca gerçek denemeler raporlanır.
-      if (!ig.atlandi) senk = [...(senk || []), { hesap: ig.hesap, yeni: ig.yeni, hata: ig.hata }];
+      // Standard erişim zaman aşımı beklenen bir durum (İnceleme onayına kadar): liste uyarı göstermez, Ayarlar kartı gösterir.
+      if (!ig.atlandi) senk = [...(senk || []), { hesap: ig.hesap, yeni: ig.yeni, hata: ig.hata, sessiz: Boolean(ig.hata && /Standard erişim/i.test(ig.hata)) }];
     }
     const liste = await konusmalar({
       kanal: (q.get("kanal") || "") as Kanal | "",

@@ -155,6 +155,10 @@ yanıtlar. Yalnızca `MESAJ_USERNAMES`'teki çalışanlar (ve sahipler) görür.
 - **Gmail:** hesap başına Google *uygulama şifresi* (2 adımlı doğrulama açık olmalı). Gelen kutusu
   ekran açıkken 60 sn'de bir, ilk kurulumda son 7 gün okunur; `noreply`/bülten adresleri sessiz düşer.
   Yanıt aynı hesaptan, aynı konu dizisine (In-Reply-To) gider. `/api/mesaj/senk` elle/cron ile de tetiklenebilir.
+  HTML e-postalar (sipariş bildirimi, bülten…) temizlenip (`lib/mesaj/eposta-html.ts`: betik/form/olay
+  öznitelikleri atılır, gömülü görseller ek deposuna alınır) `mesaj.html` sütununda saklanır ve konuşmada
+  betiksiz, kum havuzlu bir çerçevede **asıl görünümüyle** gösterilir; düz metin (`govde`) yedek ve yapay zekâ
+  taslağı için kalır. Liste önizlemesi bağlantı/görsel kalıntılarını ayıklar (`ozetTemizle`).
 - **Yapay zekâ:** "Taslak öner" düğmesi, konuşmayı + katalog/stok/kur/müşteri kartını okuyup yanıt
   **taslağı** yazar (`ANTHROPIC_API_KEY`). Hiçbir şey kendiliğinden gönderilmez; çalışan okur, düzeltir, gönderir.
   Taslaktan gönderilen mesajlar konuşmada "taslak" etiketiyle görünür.

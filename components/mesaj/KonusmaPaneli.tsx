@@ -4,10 +4,11 @@
 // balonları, yanıt kutusu. "Taslak öner" yapay zekâdan metin alır ve kutuya
 // yazar — gönderim yalnızca çalışanın "Gönder"iyle olur.
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import Icon from "@/components/shell/Icon";
 import { KANAL_ADI, hesapKisa, pencereAcik, type KanalDurumu, type Konusma, type Mesaj } from "@/lib/mesaj/tur";
+import { mailMetinTemizle, mailSrcDoc } from "@/lib/mesaj/eposta-html";
 import type { Kullanici, Me } from "./Inbox";
 import MusteriBagla from "./MusteriBagla";
 import { KanalIkon, gunBasligi, zamanTam } from "./ortak";
@@ -127,7 +128,7 @@ export default function KonusmaPaneli({ id, me, kullanicilar, taslakHazir, kanal
           <strong>{k.ad || kimlik}</strong>
           <span className="muted ib-panel-sub">
             {iletisim ? <a href={iletisim} target="_blank" rel="noreferrer">{kimlik}</a> : kimlik}
-            {k.kanal === "email" && k.hesap && <span className={`badge ib-hesap ib-hesap-${hesapSira}`} title={`Bu hesaba geldi, yanıt buradan gider: ${k.hesap}`}><Icon name="mail" size={10} /> {hesapKisa(k.hesap)}</span>}
+            {k.kanal === "email" && k.hesap && <span className={`badge ib-hesap ib-hesap-${hesapSira}`} title={`Bu hesaba geldi, yanıt buradan gider: ${k.hesap}`}><Icon name="mail" size={10} /> {hesapKisa(k.hesap, 28)}</span>}
           </span>
         </div>
         <div className="ib-panel-actions">
@@ -273,15 +274,57 @@ function Balon({ m }: { m: Mesaj }) {
 
 const MAIL_KIRP_KARAKTER = 900;
 const MAIL_KIRP_SATIR = 14;
+const MAIL_HTML_KIRP = 480;
 
-/** Gövde "Konu: …" ile başlıyorsa (konu değişmiş e-posta) konuyu ayırır; fazla boş satırları toplar. */
+/** Gövde "Konu: …" ile başlıyorsa (konu değişmiş e-posta) konuyu ayırır; bağlantı/görsel kalıntılarını ve fazla boş satırları temizler. */
 function mailGovde(govde: string): { konu: string; metin: string } {
   let konu = "";
   let metin = govde || "";
   const m = metin.match(/^Konu: (.+)\n\n?/);
   if (m) { konu = m[1].trim(); metin = metin.slice(m[0].length); }
-  metin = metin.replace(/\r\n?/g, "\n").replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
-  return { konu, metin };
+  return { konu, metin: mailMetinTemizle(metin) };
+}
+
+/**
+ * HTML e-posta: betiksiz, kum havuzlu iframe (sandbox'ta betik yok; bağlantılar yeni sekmede açılır).
+ * Yükseklik içerikten ölçülür; uzun e-posta 480px'te kırpılır, "Devamını göster" açar.
+ */
+function MailHtml({ html }: { html: string }) {
+  const ref = useRef<HTMLIFrameElement>(null);
+  const [yukseklik, setYukseklik] = useState(0);
+  const [acik, setAcik] = useState(false);
+  const srcDoc = useMemo(() => mailSrcDoc(html), [html]);
+  useEffect(() => {
+    const el = ref.current; if (!el) return;
+    let ro: ResizeObserver | null = null;
+    const olc = () => {
+      const d = el.contentDocument; if (!d) return;
+      const h = Math.max(d.documentElement?.scrollHeight || 0, d.body?.scrollHeight || 0);
+      if (h > 0) setYukseklik((eski) => (Math.abs(eski - h) > 2 ? h : eski));
+    };
+    const bagla = () => {
+      olc();
+      const d = el.contentDocument;
+      if (d?.body && typeof ResizeObserver !== "undefined") { ro?.disconnect(); ro = new ResizeObserver(olc); ro.observe(d.body); }
+    };
+    el.addEventListener("load", bagla);
+    const zaman = [300, 1200, 3000].map((ms) => setTimeout(olc, ms));
+    return () => { el.removeEventListener("load", bagla); ro?.disconnect(); zaman.forEach(clearTimeout); };
+  }, [srcDoc]);
+  const uzun = yukseklik > MAIL_HTML_KIRP + 100;
+  const gorunen = yukseklik ? (uzun && !acik ? MAIL_HTML_KIRP : yukseklik) : 140;
+  return (
+    <>
+      <div className={`ib-mail-html-wrap ${uzun && !acik ? "kirpik" : ""}`} style={{ height: gorunen }}>
+        <iframe ref={ref} className="ib-mail-html" title="E-posta içeriği" sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox" srcDoc={srcDoc} style={{ height: yukseklik || 140 }} />
+      </div>
+      {uzun && (
+        <button type="button" className={`btn ghost xs ib-mail-more ${acik ? "acik" : ""}`} onClick={() => setAcik(!acik)}>
+          <Icon name="chevron-down" size={13} /> {acik ? "Daralt" : "Devamını göster"}
+        </button>
+      )}
+    </>
+  );
 }
 
 const basHarfler = (ad: string) => ad.split(/\s+/).filter(Boolean).slice(0, 2).map((x) => x[0]?.toLocaleUpperCase("tr-TR") || "").join("") || "?";
@@ -304,8 +347,8 @@ function MailKarti({ m, karsi, hesap }: { m: Mesaj; karsi: string; hesap: string
         <span className="ib-mail-time">{zamanTam(m.at)} <DurumIkonu m={m} /></span>
       </header>
       {konu && <div className="ib-mail-konu"><span>Konu</span>{konu}</div>}
-      <div className={`ib-mail-body ${uzun && !acik ? "kirpik" : ""}`}>{metin || <em className="muted">(metin yok)</em>}</div>
-      {uzun && (
+      {m.html ? <MailHtml html={m.html} /> : <div className={`ib-mail-body ${uzun && !acik ? "kirpik" : ""}`}>{metin || <em className="muted">(metin yok)</em>}</div>}
+      {!m.html && uzun && (
         <button type="button" className={`btn ghost xs ib-mail-more ${acik ? "acik" : ""}`} onClick={() => setAcik(!acik)}>
           <Icon name="chevron-down" size={13} /> {acik ? "Daralt" : "Devamını göster"}
         </button>

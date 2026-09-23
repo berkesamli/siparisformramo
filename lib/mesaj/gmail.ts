@@ -10,6 +10,7 @@
 
 import { konusmaBul, konusmaBulVeyaOlustur, konusmaGuncelle, mesajEkle, senkOku, senkYaz } from "./db";
 import { ekKaydet, ekUrl, ekTuru, EK_AZAMI_BAYT } from "./ek";
+import { HTML_AZAMI, htmlTemizle } from "./eposta-html";
 import { musteriEsle } from "./musteri-esle";
 import type { Ek, Konusma } from "./tur";
 
@@ -236,6 +237,18 @@ async function mesajIsle(h: GmailHesap, m: HamMesaj, uidValidity: string, bizim:
     const e = await musteriEsle({ eposta: adres }).catch(() => null);
     if (e) await konusmaGuncelle(k.id, { musteriId: e.musteriId, musteriTur: e.musteriTur });
   }
+  // HTML gövde: temizlenip saklanır; gömülü (cid:) görseller ek deposuna alınır ve adresleri değiştirilir.
+  // Arayüz bunu kum havuzlu çerçevede gösterir; düz metin (govde) yedek ve yapay zekâ taslağı için kalır.
+  let html: string | undefined;
+  if (p.html) {
+    let h = htmlTemizle(p.html);
+    for (const a of p.attachments || []) {
+      if (!(a.contentDisposition === "inline" && a.cid) || !a.content || !h.includes(`cid:${a.cid}`) || a.size > 3 * 1024 * 1024) continue;
+      const yol = await ekKaydet(k.id, a.filename || "gorsel", a.contentType || "image/png", a.content);
+      if (yol) h = h.split(`cid:${a.cid}`).join(ekUrl(yol));
+    }
+    if (h && h.length <= HTML_AZAMI) html = h;
+  }
   const ekler: Ek[] = [];
   for (const a of (p.attachments || []).slice(0, 8)) {
     if (a.contentDisposition === "inline" && a.cid) continue;
@@ -249,7 +262,7 @@ async function mesajIsle(h: GmailHesap, m: HamMesaj, uidValidity: string, bizim:
   }
   const at = p.date instanceof Date && !isNaN(p.date.getTime()) ? p.date : m.internalDate || new Date();
   const r = await mesajEkle({
-    konusmaId: k.id, yon: "gelen", govde: konuDegisti ? `Konu: ${konu}\n\n${metin}` : metin, ekler,
+    konusmaId: k.id, yon: "gelen", govde: konuDegisti ? `Konu: ${konu}\n\n${metin}` : metin, html, ekler,
     disId: messageId || `uid:${uidValidity}:${m.uid}`, gonderen: ad, at, sessiz: otomatik,
   });
   return r.yeni;

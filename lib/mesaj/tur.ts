@@ -37,6 +37,8 @@ export interface Mesaj {
   konusmaId: string;
   yon: Yon;
   govde: string;
+  /** E-posta: temizlenmiş HTML gövde (varsa arayüz bunu kum havuzlu çerçevede gösterir; düz metin yedeği govde'de). */
+  html?: string;
   ekler: Ek[];
   disId: string | null;  // wamid / IG mid / e-posta Message-ID (tekrar önleme)
   gonderen: string;      // giden: çalışan adı; gelen: karşı taraf adı
@@ -61,6 +63,39 @@ export const KANAL_ADI: Record<Kanal, string> = { whatsapp: "WhatsApp", instagra
 export function hesapKisa(hesap: string, max = 16): string {
   const yerel = String(hesap || "").split("@")[0] || String(hesap || "");
   return yerel.length > max ? yerel.slice(0, max - 1) + "…" : yerel;
+}
+
+/**
+ * Hesap için harf rozeti: "olgacercevee@gmail.com" → "O". Aynı harfle başlayan başka hesap varsa ilk iki harf ("OL").
+ * Listede uzun adres yerine renkli harf gösterilir; tam adres ipucunda ve konuşma başlığında durur.
+ */
+export function hesapHarf(hesap: string, hepsi: string[] = []): string {
+  const yerel = (h: string) => (String(h || "").split("@")[0] || "").toLocaleUpperCase("tr-TR");
+  const bu = yerel(hesap);
+  if (!bu) return "?";
+  const cakisan = hepsi.some((h) => h !== hesap && yerel(h)[0] === bu[0]);
+  return cakisan ? bu.slice(0, 2) : bu[0];
+}
+
+/**
+ * Liste önizlemesi: "Konu:" satırı, Gmail'in düz metindeki "[image: …]" / "[https://…]" kalıntıları ve
+ * bağlantılar atılır, boşluklar toplanır. Geriye metin kalmazsa içeriğin türü söylenir (Görsel / Bağlantı).
+ */
+export function ozetTemizle(metin: string, max = 140): string {
+  const ham = String(metin || "").replace(/^Konu: .*\n+/, "");
+  const s = ham
+    .replace(/\[(image|cid):[^\]]*\]/gi, " ")
+    .replace(/\[https?:\/\/[^\]\s]*\]/gi, " ")
+    .replace(/<?https?:\/\/\S+>?/gi, " ")
+    .replace(/\s+/g, " ")
+    .replace(/^[\s|•·>*_=-]+/, "")
+    .trim();
+  if (!s) {
+    if (/\[image:|\.(jpe?g|png|gif|webp)\b/i.test(ham)) return "Görsel";
+    if (/https?:\/\//i.test(ham)) return "Bağlantı";
+    return "";
+  }
+  return s.length > max ? s.slice(0, max - 1) + "…" : s;
 }
 
 /** Hangi kanallar ayarlı; whatsappSablon: 24 saat dışı / ilk mesaj için onaylı şablon tanımlı mı. */
