@@ -62,7 +62,7 @@ export async function PATCH(req: Request) {
   // Durum güncelleme
   if (body?.status !== undefined) {
     const status = String(body.status) as OrderStatus;
-    if (!(status in STATUS_LABELS)) {
+    if (!Object.prototype.hasOwnProperty.call(STATUS_LABELS, status)) {
       return NextResponse.json({ ok: false, error: "Geçersiz durum." }, { status: 400 });
     }
     order.status = status;
@@ -80,7 +80,7 @@ export async function PATCH(req: Request) {
   // Ödeme (cari) güncelleme
   if (body?.payment !== undefined) {
     const payment = String(body.payment) as PaymentStatus;
-    if (!(payment in PAYMENT_LABELS)) {
+    if (!Object.prototype.hasOwnProperty.call(PAYMENT_LABELS, payment)) {
       return NextResponse.json({ ok: false, error: "Geçersiz ödeme durumu." }, { status: 400 });
     }
     order.payment = payment;

@@ -95,19 +95,24 @@ export default function OrdersList({
   const [sadeceKontrolsuz, setSadeceKontrolsuz] = useState(false);
   // Hatırlanan liste durumu uygulanana kadar yükleme ve kaydetme bekler (ilk render varsayılanla; hydration uyumu)
   const [hazir, setHazir] = useState(false);
-  const bekleyenScroll = useRef<number | null>(null);
+  // Geri yüklenecek kaydırma: hangi filtrenin listesi için olduğu da tutulur (başka filtrenin listesine uygulanmaz)
+  const bekleyenScroll = useRef<{ y: number; filtre: string } | null>(null);
 
   useEffect(() => {
     const h = hafizaOku(tamamlananlar);
+    // Dönüş yalnızca iki yoldan tanınır: tarayıcı geri tuşu (popstate) ya da fiş/düzenle sayfasındaki
+    // "Siparişler" bağlantısı (?donus=1, bağlantıya basış anı 30 dk içinde). Menüden geliş varsayılan açar.
     const geriTusu = Date.now() - sonPopstate < 3_000;
-    const donus = Boolean(h?.donusAt && Date.now() - h.donusAt < DONUS_SURE_MS);
+    const donusParam = new URLSearchParams(window.location.search).get("donus") === "1";
+    const donus = donusParam && Boolean(h?.donusAt && Date.now() - h.donusAt < DONUS_SURE_MS);
     if (h && (geriTusu || donus)) {
-      if (h.filter && (h.filter.range || h.filter.date || h.filter.q)) setFilter(h.filter);
+      const f = h.filter && (h.filter.range || h.filter.date || h.filter.q) ? h.filter : { range: "today" };
+      setFilter(f);
       if (h.statusFilter) setStatusFilter(h.statusFilter);
       if (h.employeeFilter) setEmployeeFilter(h.employeeFilter);
       setSadeceKontrolsuz(Boolean(h.sadeceKontrolsuz));
       setAramaMetni(h.aramaMetni || "");
-      bekleyenScroll.current = Number(h.scrollY) || 0;
+      bekleyenScroll.current = { y: Number(h.scrollY) || 0, filtre: JSON.stringify(f) };
       hafizaYaz(tamamlananlar, { donusAt: 0 });
     }
     setHazir(true);
@@ -121,13 +126,17 @@ export default function OrdersList({
   useEffect(() => {
     if (!hazir) return;
     let raf = 0;
-    const kaydet = () => { raf = 0; hafizaYaz(tamamlananlar, { scrollY: window.scrollY }); };
+    // Sayfadan ayrılırken tablo DOM'dan kalkınca belge kısalır ve scrollY 0'a düşer; o kare kaydedilmesin
+    const kaydet = () => { raf = 0; if (!tabloRef.current) return; hafizaYaz(tamamlananlar, { scrollY: window.scrollY }); };
     const onScroll = () => { if (!raf) raf = requestAnimationFrame(kaydet); };
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => { window.removeEventListener("scroll", onScroll); if (raf) cancelAnimationFrame(raf); };
   }, [hazir, tamamlananlar]);
-  // Fiş / Düzenle'ye giderken: dönüşte hatırlanacağını ve o anki kaydırmayı yaz
-  const gidisKaydet = () => hafizaYaz(tamamlananlar, { donusAt: Date.now(), scrollY: window.scrollY });
+  // Fiş / Düzenle'ye giderken: dönüşte hatırlanacağını ve o anki kaydırmayı yaz (yeni sekmede açma sayılmaz)
+  const gidisKaydet = (e: React.MouseEvent) => {
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+    hafizaYaz(tamamlananlar, { donusAt: Date.now(), scrollY: window.scrollY });
+  };
 
   const refreshKontrolsuz = useCallback(async () => {
     try {
@@ -171,17 +180,23 @@ export default function OrdersList({
   useEffect(() => {
     if (hazir) load();
   }, [load, hazir]);
-  // Liste geldikten sonra hatırlanan kaydırma konumuna dön (satır yükseklikleri otururken birkaç deneme)
+  // Liste geldikten sonra hatırlanan kaydırma konumuna dön: yalnızca hatırlanan filtrenin listesi için,
+  // satır yükseklikleri otururken birkaç deneme; kullanıcı bu arada kaydırdıysa bırakılır.
   useEffect(() => {
-    if (!orders || bekleyenScroll.current == null) return;
-    const y = bekleyenScroll.current;
+    const b = bekleyenScroll.current;
+    if (!orders || !b) return;
     bekleyenScroll.current = null;
-    if (y <= 0) return;
-    const git = () => window.scrollTo(0, y);
+    if (b.y <= 0 || JSON.stringify(filter) !== b.filtre) return;
+    let son = -1;
+    const git = () => {
+      if (son >= 0 && Math.abs(window.scrollY - son) > 4) return;
+      window.scrollTo({ top: b.y, behavior: "instant" as ScrollBehavior });
+      son = window.scrollY;
+    };
     requestAnimationFrame(git);
     const z = [120, 400].map((ms) => setTimeout(git, ms));
     return () => z.forEach(clearTimeout);
-  }, [orders]);
+  }, [orders, filter]);
 
   async function changeStatus(o: SavedOrder, status: OrderStatus) {
     // İptal geri alınabilir ama ciddi bir işlem — önce onay iste

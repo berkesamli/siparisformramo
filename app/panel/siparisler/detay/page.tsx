@@ -14,7 +14,7 @@ const fmt = (n: number) =>
 
 // Durum rozeti rengi (fişte de basılır — açık zemin, koyu yazı olarak çıkar)
 const durumRozet = (s: OrderStatus) =>
-  s === "tamamlandi" ? "ok" : s === "iptal" ? "err" : s === "hazirlaniyor" ? "warn" : s === "yarim" ? "brand" : "info";
+  s === "tamamlandi" ? "ok" : s === "iptal" ? "err" : s === "hazirlaniyor" ? "warn" : s === "yarim" ? "yarim" : "info";
 
 export const dynamic = "force-dynamic";
 
@@ -32,7 +32,8 @@ export default async function OrderDetailPage({
   const order = dateKey && orderId ? await getOrder(dateKey, orderId) : null;
 
   const geriLink = (
-    <Link href="/panel/siparisler" className="btn secondary">
+    // ?donus=1: liste kaldığı filtre ve kaydırma konumuyla açılır (OrdersList hatırlama)
+    <Link href="/panel/siparisler?donus=1" className="btn secondary">
       <Icon name="chevron-left" size={16} /> Siparişler
     </Link>
   );
@@ -62,13 +63,6 @@ export default async function OrderDetailPage({
               className="btn secondary"
             >
               <Icon name="edit" size={16} /> Düzenle
-            </Link>
-            <Link
-              href={`/panel?kopya=${encodeURIComponent(order.orderId)}&d=${order.dateKey}`}
-              className="btn secondary"
-              title="Aynı satırlarla yeni sipariş aç — fiyatlar bugünün katalog fiyatı ve kurundan hesaplanır"
-            >
-              <Icon name="copy" size={16} /> Kopyala
             </Link>
             <a
               className="btn"

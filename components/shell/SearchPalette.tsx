@@ -17,7 +17,7 @@ export interface SearchHit {
   sub?: string;
   href: string;
   meta?: string;
-  metaKind?: "ok" | "warn" | "err" | "info" | "brand";
+  metaKind?: "ok" | "warn" | "err" | "info" | "brand" | "yarim";
 }
 
 const KIND_LABEL: Record<SearchKind, string> = {

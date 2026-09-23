@@ -22,7 +22,8 @@ export default async function OrderEditPage({
   const order = dateKey && orderId ? await getOrder(dateKey, orderId) : null;
 
   const geriLink = (
-    <Link href="/panel/siparisler" className="btn secondary">
+    // ?donus=1: liste kaldığı filtre ve kaydırma konumuyla açılır (OrdersList hatırlama)
+    <Link href="/panel/siparisler?donus=1" className="btn secondary">
       <Icon name="chevron-left" size={16} /> Siparişler
     </Link>
   );

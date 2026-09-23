@@ -6,6 +6,7 @@ import {
   readOrderIndex,
   rebuildOrderIndexFrom,
   toIndexEntry,
+  STATUS_LABELS,
   type OrderIndexEntry,
 } from "@/lib/orders";
 import { listAllRetailOrders, type SavedRetailOrder } from "@/lib/retail-orders";
@@ -94,7 +95,7 @@ export async function GET(req: NextRequest) {
       orderId: o.orderId,
       dateKey: o.dateKey,
       createdAt: o.createdAt,
-      status: o.status,
+      status: STATUS_LABELS[o.status] ?? o.status, // müşteri kartında Türkçe etiket (perakende zaten etiketli)
       total: o.net,
       paid,
       balance: orderBalance(o),

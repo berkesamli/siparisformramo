@@ -288,17 +288,6 @@ export interface InitialOrder {
   rows?: Partial<Row>[];
 }
 
-/** "Bu siparişi kopyala" ile açılan YENİ sipariş taslağı (düzenleme değil). */
-export interface KopyaOrder {
-  kaynakNo: string; // kopyalanan siparişin numarası (bilgi notu için)
-  customer: string;
-  customerId?: string;
-  branch?: "ankara" | "istanbul";
-  discountPct?: number;
-  vatApplied?: boolean;
-  rows?: Partial<Row>[];
-}
-
 /** Müşteri kartındaki "Yeni Sipariş" ile gelen ön seçim (/panel?musteri=C123). */
 export interface InitialCustomer {
   id: string;
@@ -310,12 +299,10 @@ export interface InitialCustomer {
 export default function OrderForm({
   employeeName,
   initialOrder,
-  kopyaOrder,
   initialCustomer,
 }: {
   employeeName: string;
   initialOrder?: InitialOrder;
-  kopyaOrder?: KopyaOrder;
   initialCustomer?: InitialCustomer;
 }) {
   // Fiyat listesi (çerçeve + teknik) oturumla sunucudan gelir
@@ -324,36 +311,17 @@ export default function OrderForm({
     if (initialOrder?.rows?.length) {
       return initialOrder.rows.map((r) => ({ ...emptyRow(), ...r, id: rowSeq++ }));
     }
-    if (kopyaOrder?.rows?.length) {
-      // Kopyada döviz fiyat alanları sıfırlanır: çerçeve USD'si bugünün
-      // katalog fiyatından, TL karşılığı bugünün kurundan yeniden hesaplanır.
-      // Elle girilen TL/EUR anlaşma fiyatları da eskimiş olabileceği için
-      // taşınmaz; cam/ayna/diğer satırlarının elle fiyatları aynen kalır.
-      return kopyaOrder.rows.map((r) => {
-        const row = { ...emptyRow(), ...r, id: rowSeq++ };
-        if (row.kind === "frame") {
-          row.usd = "";
-          row.tl = "";
-          row.fx = "usd";
-        }
-        if (row.kind === "technical") {
-          row.kutuPrice = "";
-          row.techFx = "eur";
-        }
-        return row;
-      });
-    }
     return [emptyRow()];
   });
   const [customer, setCustomer] = useState(
-    initialOrder?.customer ?? kopyaOrder?.customer ?? initialCustomer?.title ?? ""
+    initialOrder?.customer ?? initialCustomer?.title ?? ""
   );
   // Müşteri defterinden seçildiyse kaydı sipariş kaydına da bağlarız (cari takip)
-  const [customerId, setCustomerId] = useState(kopyaOrder?.customerId ?? initialCustomer?.id ?? "");
+  const [customerId, setCustomerId] = useState(initialCustomer?.id ?? "");
   // Siparişin şubesi — müşteri defterden seçilince kartındaki şube önerilir,
   // personel gerekirse değiştirir (iki şubede de çalışılabiliyor).
   const [branch, setBranch] = useState<"ankara" | "istanbul">(
-    (kopyaOrder?.branch ?? initialCustomer?.branch) === "istanbul" ? "istanbul" : "ankara"
+    initialCustomer?.branch === "istanbul" ? "istanbul" : "ankara"
   );
   // Sipariş onay SMS'i — varsayılan açık; müşteri defterden seçilmediyse veya
   // telefonu yoksa sunucu sessizce atlar. Düzenleme modunda gönderilmez.
@@ -423,17 +391,13 @@ export default function OrderForm({
   const [discountPct, setDiscountPct] = useState(
     initialOrder?.discountPct
       ? String(initialOrder.discountPct)
-      : kopyaOrder?.discountPct
-        ? String(kopyaOrder.discountPct)
-        : initialCustomer?.iskontoPct
-          ? String(initialCustomer.iskontoPct)
-          : ""
+      : initialCustomer?.iskontoPct
+        ? String(initialCustomer.iskontoPct)
+        : ""
   );
   // Yeni siparişte KDV varsayılan olarak açık (faturalı satış çoğunlukta);
-  // düzenleme ve kopyada siparişin kendi değeri korunur. Gerekirse kapatılır.
-  const [vat, setVat] = useState(
-    initialOrder?.vatApplied ?? kopyaOrder?.vatApplied ?? true
-  );
+  // düzenlemede siparişin kendi değeri korunur. Gerekirse kapatılır.
+  const [vat, setVat] = useState(initialOrder?.vatApplied ?? true);
   const [sending, setSending] = useState(false);
   const [ratesAuto, setRatesAuto] = useState(false);
   // Günün kuru yetkili tarafından belirlendiyse çalışanlarda alan kilitlenir
@@ -801,15 +765,6 @@ export default function OrderForm({
               </p>
             )}
           </>
-        )}
-
-        {/* Kopya modu bilgisi — satırlar hazır, fiyatlar bugünden hesaplanır */}
-        {kopyaOrder && !initialOrder && (
-          <div className="notice info" style={{ marginTop: 12, marginBottom: 0 }}>
-            📋 <b>{kopyaOrder.kaynakNo}</b> siparişinin kopyası açıldı — satırlar
-            aynı, çerçeve/teknik fiyatları bugünün katalog fiyatı ve kurundan
-            yeniden hesaplanır. Kontrol edip gönderin.
-          </div>
         )}
 
         {/* Mükerrer sipariş uyarısı — aynı müşteriye başka bir çalışan
