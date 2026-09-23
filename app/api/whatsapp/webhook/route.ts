@@ -73,7 +73,8 @@ export async function POST(req: Request) {
     await izKaydet("whatsapp", mesajSayisi ? "mesaj" : durumSayisi ? "durum" : "diger", `alan: ${[...alanlar].join(",") || "-"} · ${mesajSayisi} mesaj · ${durumSayisi} durum${dbConfigured() ? "" : " · gelen kutusu kurulu değil (DATABASE_URL yok)"}`);
   }
 
-  let smsGonderilen = 0;
+  let smsGonderilen = 0, yeni = 0, durum = 0;
+  const hatalar: string[] = [];
   for (const entry of body?.entry || []) {
     for (const ch of entry.changes || []) {
       const v = ch.value;
@@ -82,9 +83,10 @@ export async function POST(req: Request) {
         if (dbConfigured()) {
           try {
             const { gelenWhatsapp } = await import("@/lib/mesaj/whatsapp");
-            await gelenWhatsapp(v as Parameters<typeof gelenWhatsapp>[0]);
+            yeni += await gelenWhatsapp(v as Parameters<typeof gelenWhatsapp>[0]);
           } catch (err) {
             console.error("WhatsApp gelen mesaj kaydedilemedi:", err);
+            hatalar.push(`gelen mesaj kaydedilemedi: ${(err as Error)?.message || String(err)}`);
           }
         } else {
           console.log(`WhatsApp: ${v.messages.length} gelen mesaj (gelen kutusu kurulu değil).`);
@@ -93,9 +95,10 @@ export async function POST(req: Request) {
       if (v.statuses?.length && dbConfigured()) {
         try {
           const { whatsappDurumlar } = await import("@/lib/mesaj/whatsapp");
-          await whatsappDurumlar(v.statuses as Parameters<typeof whatsappDurumlar>[0]);
+          durum += await whatsappDurumlar(v.statuses as Parameters<typeof whatsappDurumlar>[0]);
         } catch (err) {
           console.error("WhatsApp durum güncellenemedi:", err);
+          hatalar.push(`durum güncellenemedi: ${(err as Error)?.message || String(err)}`);
         }
       }
       for (const st of v.statuses || []) {
@@ -139,6 +142,11 @@ export async function POST(req: Request) {
         await bekleyenSil(st.id);
       }
     }
+  }
+  if (dbConfigured()) {
+    await izKaydet("whatsapp", hatalar.length ? "islem-hata" : "islem", hatalar.length
+      ? `Olay işlenirken hata: ${hatalar.join("; ")}`
+      : `${yeni} yeni mesaj${durum ? `, ${durum} durum güncellemesi` : ""}${!yeni && !durum ? " (yeni mesaj yok: durum olayı ya da daha önce kaydedilmiş mesaj)" : ""}`);
   }
   return NextResponse.json({ ok: true, smsGonderilen });
 }
