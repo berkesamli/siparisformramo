@@ -43,7 +43,7 @@ interface Govde {
 }
 
 /** Instagram olaylarının türlere göre dökümü: "3 olay (mesaj 2, okundu 1)"; standby varsa uyarır. */
-export function olayDokumu(body: Govde | null): { n: number; ozet: string } {
+function olayDokumu(body: Govde | null): { n: number; ozet: string } {
   const say: Record<string, number> = {};
   let standby = 0, n = 0;
   for (const e of body?.entry || []) {
