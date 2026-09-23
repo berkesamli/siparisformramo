@@ -61,6 +61,7 @@
   --s-perakende: #c98500;
   --st-olusturuldu: #c98500;
   --st-hazirlaniyor: #3987e5;
+  --st-yarim: #a78bfa;
   --st-tamamlandi: #199e70;
   --st-iptal: #e66767;
   --grid: rgba(255, 255, 255, 0.08);
@@ -133,6 +134,7 @@
   --s-perakende: #eda100;
   --st-olusturuldu: #eda100;
   --st-hazirlaniyor: #2a78d6;
+  --st-yarim: #7c5cd6;
   --st-tamamlandi: #1baf7a;
   --st-iptal: #e34948;
   --grid: rgba(38, 32, 26, 0.08);

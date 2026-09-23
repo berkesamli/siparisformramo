@@ -4,11 +4,13 @@
 import type { OrderLine } from "./notify";
 import { kurus } from "./num";
 
-export type OrderStatus = "olusturuldu" | "hazirlaniyor" | "tamamlandi" | "iptal";
+// yarim: siparişin bir kısmı çıktı (örn. Ankara'dan bugün, İstanbul'dan yarın); kalanı tamamlanınca "tamamlandi".
+export type OrderStatus = "olusturuldu" | "hazirlaniyor" | "yarim" | "tamamlandi" | "iptal";
 
 export const STATUS_LABELS: Record<OrderStatus, string> = {
   olusturuldu: "Oluşturuldu",
   hazirlaniyor: "Hazırlanıyor",
+  yarim: "Yarım Tamamlandı",
   tamamlandi: "Tamamlandı",
   iptal: "İptal",
 };

@@ -17,9 +17,31 @@ import Icon from "@/components/shell/Icon";
 const STATUS_LABELS: Record<OrderStatus, string> = {
   olusturuldu: "Oluşturuldu",
   hazirlaniyor: "Hazırlanıyor",
+  yarim: "Yarım Tamamlandı",
   tamamlandi: "Tamamlandı",
   iptal: "İptal",
 };
+
+// ---- Liste durumunu hatırlama (filtre + kaydırma) ----
+// Fiş / Düzenle'ye girip tarayıcının geri tuşuyla ya da "Listeye dön" ile dönünce liste aynı
+// filtre ve kaydırma konumuyla açılır; menüden yeni gelişte varsayılan (Bugün) açılır.
+// sessionStorage sekmeye özeldir, sekme kapanınca silinir.
+interface ListeHafiza {
+  filter?: { range?: string; date?: string; q?: string };
+  statusFilter?: string; employeeFilter?: string; sadeceKontrolsuz?: boolean; aramaMetni?: string;
+  scrollY?: number;
+  donusAt?: number; // Fiş / Düzenle bağlantısına basıldığı an (30 dk içinde dönüşte hatırla)
+}
+const DONUS_SURE_MS = 30 * 60_000;
+let sonPopstate = 0;
+if (typeof window !== "undefined") window.addEventListener("popstate", () => { sonPopstate = Date.now(); });
+const hafizaAnahtar = (arsiv: boolean) => `siparisListe:${arsiv ? "arsiv" : "aktif"}`;
+function hafizaOku(arsiv: boolean): ListeHafiza | null {
+  try { const s = sessionStorage.getItem(hafizaAnahtar(arsiv)); return s ? (JSON.parse(s) as ListeHafiza) : null; } catch { return null; }
+}
+function hafizaYaz(arsiv: boolean, h: ListeHafiza) {
+  try { sessionStorage.setItem(hafizaAnahtar(arsiv), JSON.stringify({ ...(hafizaOku(arsiv) || {}), ...h })); } catch { /* özel pencere / depo dolu: hatırlama olmadan devam */ }
+}
 
 // Tabloda kısa ödeme etiketi (sütun dar kalsın; tam adı ipucunda)
 const PAY_KISA: Record<string, string> = { bekliyor: "Bekliyor", kismi: "Kısmi", odendi: "Ödendi" };
@@ -71,6 +93,41 @@ export default function OrdersList({
   // edilmemiş sipariş sayısı, hangi filtre açık olursa olsun üstte görünür.
   const [kontrolsuzSayi, setKontrolsuzSayi] = useState<number | null>(null);
   const [sadeceKontrolsuz, setSadeceKontrolsuz] = useState(false);
+  // Hatırlanan liste durumu uygulanana kadar yükleme ve kaydetme bekler (ilk render varsayılanla; hydration uyumu)
+  const [hazir, setHazir] = useState(false);
+  const bekleyenScroll = useRef<number | null>(null);
+
+  useEffect(() => {
+    const h = hafizaOku(tamamlananlar);
+    const geriTusu = Date.now() - sonPopstate < 3_000;
+    const donus = Boolean(h?.donusAt && Date.now() - h.donusAt < DONUS_SURE_MS);
+    if (h && (geriTusu || donus)) {
+      if (h.filter && (h.filter.range || h.filter.date || h.filter.q)) setFilter(h.filter);
+      if (h.statusFilter) setStatusFilter(h.statusFilter);
+      if (h.employeeFilter) setEmployeeFilter(h.employeeFilter);
+      setSadeceKontrolsuz(Boolean(h.sadeceKontrolsuz));
+      setAramaMetni(h.aramaMetni || "");
+      bekleyenScroll.current = Number(h.scrollY) || 0;
+      hafizaYaz(tamamlananlar, { donusAt: 0 });
+    }
+    setHazir(true);
+  }, [tamamlananlar]);
+  // Filtre değişince hatırla
+  useEffect(() => {
+    if (!hazir) return;
+    hafizaYaz(tamamlananlar, { filter, statusFilter, employeeFilter, sadeceKontrolsuz, aramaMetni });
+  }, [hazir, tamamlananlar, filter, statusFilter, employeeFilter, sadeceKontrolsuz, aramaMetni]);
+  // Kaydırma konumunu hatırla (kare başına en çok bir yazım)
+  useEffect(() => {
+    if (!hazir) return;
+    let raf = 0;
+    const kaydet = () => { raf = 0; hafizaYaz(tamamlananlar, { scrollY: window.scrollY }); };
+    const onScroll = () => { if (!raf) raf = requestAnimationFrame(kaydet); };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => { window.removeEventListener("scroll", onScroll); if (raf) cancelAnimationFrame(raf); };
+  }, [hazir, tamamlananlar]);
+  // Fiş / Düzenle'ye giderken: dönüşte hatırlanacağını ve o anki kaydırmayı yaz
+  const gidisKaydet = () => hafizaYaz(tamamlananlar, { donusAt: Date.now(), scrollY: window.scrollY });
 
   const refreshKontrolsuz = useCallback(async () => {
     try {
@@ -112,8 +169,19 @@ export default function OrdersList({
   }, [filter]);
 
   useEffect(() => {
-    load();
-  }, [load]);
+    if (hazir) load();
+  }, [load, hazir]);
+  // Liste geldikten sonra hatırlanan kaydırma konumuna dön (satır yükseklikleri otururken birkaç deneme)
+  useEffect(() => {
+    if (!orders || bekleyenScroll.current == null) return;
+    const y = bekleyenScroll.current;
+    bekleyenScroll.current = null;
+    if (y <= 0) return;
+    const git = () => window.scrollTo(0, y);
+    requestAnimationFrame(git);
+    const z = [120, 400].map((ms) => setTimeout(git, ms));
+    return () => z.forEach(clearTimeout);
+  }, [orders]);
 
   async function changeStatus(o: SavedOrder, status: OrderStatus) {
     // İptal geri alınabilir ama ciddi bir işlem — önce onay iste
@@ -415,6 +483,7 @@ export default function OrdersList({
             <option value="all">Tüm Durumlar</option>
             <option value="olusturuldu">Oluşturuldu</option>
             <option value="hazirlaniyor">Hazırlanıyor</option>
+            <option value="yarim">Yarım Tamamlandı</option>
             <option value="tamamlandi">Tamamlandı</option>
             <option value="iptal">İptal</option>
           </select>
@@ -603,12 +672,11 @@ export default function OrdersList({
                       PDF / Fiş / Düzenle her zaman ekranda kalır. */}
                   <td className="ord-actions">
                     <a
-                      className="btn small secondary icon"
+                      className="btn small secondary ord-pdf"
                       href={`/api/orders/pdf?d=${o.dateKey}&id=${encodeURIComponent(o.orderId)}`}
                       title="Sipariş fişini PDF olarak indir"
-                      aria-label="PDF indir"
                     >
-                      <Icon name="download" size={15} /><span className="ord-lbl">PDF</span>
+                      <Icon name="file-text" size={14} /> PDF
                     </a>
                     {patronGonderim && (
                       <button
@@ -627,6 +695,7 @@ export default function OrdersList({
                       href={`/panel/siparisler/detay?d=${o.dateKey}&id=${encodeURIComponent(o.orderId)}`}
                       title="Fişi görüntüle / yazdır"
                       aria-label="Fiş"
+                      onClick={gidisKaydet}
                     >
                       <Icon name="printer" size={15} /><span className="ord-lbl">Fiş</span>
                     </Link>
@@ -635,16 +704,9 @@ export default function OrdersList({
                       href={`/panel/siparisler/duzenle?d=${o.dateKey}&id=${encodeURIComponent(o.orderId)}`}
                       title="Siparişi düzenle"
                       aria-label="Düzenle"
+                      onClick={gidisKaydet}
                     >
                       <Icon name="edit" size={15} /><span className="ord-lbl">Düzenle</span>
-                    </Link>
-                    <Link
-                      className="btn small secondary icon"
-                      href={`/panel?kopya=${encodeURIComponent(o.orderId)}&d=${o.dateKey}`}
-                      title="Kopyala: aynı satırlarla yeni sipariş aç — fiyatlar bugünün katalog fiyatı ve kurundan hesaplanır"
-                      aria-label="Kopyala"
-                    >
-                      <Icon name="copy" size={15} /><span className="ord-lbl">Kopyala</span>
                     </Link>
                   </td>
                 </tr>

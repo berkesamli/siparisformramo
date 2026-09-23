@@ -9,8 +9,8 @@ import type { RetailStatus } from "@/data/perakende";
 
 interface Dilim { key: string; label: string; value: number; cls: string; }
 
-const TOPTAN_SIRA: OrderStatus[] = ["olusturuldu", "hazirlaniyor", "tamamlandi", "iptal"];
-const TOPTAN_CLS: Record<OrderStatus, string> = { olusturuldu: "st-olusturuldu", hazirlaniyor: "st-hazirlaniyor", tamamlandi: "st-tamamlandi", iptal: "st-iptal" };
+const TOPTAN_SIRA: OrderStatus[] = ["olusturuldu", "hazirlaniyor", "yarim", "tamamlandi", "iptal"];
+const TOPTAN_CLS: Record<OrderStatus, string> = { olusturuldu: "st-olusturuldu", hazirlaniyor: "st-hazirlaniyor", yarim: "st-yarim", tamamlandi: "st-tamamlandi", iptal: "st-iptal" };
 const PERAKENDE_SIRA: RetailStatus[] = ["Beklemede", "Hazırlanıyor", "Hazır", "Teslim Edildi", "İptal"];
 const PERAKENDE_CLS: Record<RetailStatus, string> = { Beklemede: "st-olusturuldu", "Hazırlanıyor": "st-hazirlaniyor", "Hazır": "st-tamamlandi", "Teslim Edildi": "st-teslim", "İptal": "st-iptal" };
 
