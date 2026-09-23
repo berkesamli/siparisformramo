@@ -5,6 +5,8 @@
 // sorgulanır ve gerekirse onarılır. Meta onarım sırasında callback adresini GET ile doğrular
 // (hub.verify_token = INSTAGRAM_VERIFY_TOKEN ya da WHATSAPP_VERIFY_TOKEN).
 
+import { IG_WEBHOOK_ALANLARI } from "./instagram";
+
 const FB = "https://graph.facebook.com/v20.0";
 
 export interface UygulamaAbonelik { nesne: string; url: string; aktif: boolean; alanlar: string[] }
@@ -12,8 +14,8 @@ export interface UygulamaWebhookDurumu {
   ok: boolean;
   uygulama?: { id: string; ad: string };
   abonelikler?: UygulamaAbonelik[];
-  /** "instagram" nesnesi bizim adresimizle ve "messages" alanıyla abone mi? */
-  instagram?: { abone: boolean; adresBizim: boolean; alanlar: string[]; url?: string };
+  /** "instagram" nesnesi bizim adresimizle ve "messages" alanıyla abone mi? standby: Handover için gerekli alan da var mı? */
+  instagram?: { abone: boolean; adresBizim: boolean; standby: boolean; alanlar: string[]; url?: string };
   hata?: string;
 }
 
@@ -59,8 +61,8 @@ function ozetle(yanit: AbonelikYaniti, callbackUrl: string): Pick<UygulamaWebhoo
   return {
     abonelikler,
     instagram: ig
-      ? { abone: ig.aktif && ig.alanlar.includes("messages"), adresBizim: ayni(ig.url, callbackUrl), alanlar: ig.alanlar, url: ig.url }
-      : { abone: false, adresBizim: false, alanlar: [] },
+      ? { abone: ig.aktif && ig.alanlar.includes("messages"), adresBizim: ayni(ig.url, callbackUrl), standby: ig.alanlar.includes("standby"), alanlar: ig.alanlar, url: ig.url }
+      : { abone: false, adresBizim: false, standby: false, alanlar: [] },
   };
 }
 
@@ -89,7 +91,7 @@ export async function igUygulamaWebhookOnar(callbackUrl: string): Promise<Uygula
     const govde = new URLSearchParams({
       object: "instagram",
       callback_url: callbackUrl,
-      fields: "messages,messaging_postbacks",
+      fields: IG_WEBHOOK_ALANLARI,
       verify_token: verifyToken(),
       include_values: "true",
       access_token: t,

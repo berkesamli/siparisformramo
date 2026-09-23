@@ -17,7 +17,7 @@ interface Durum {
   instagram: {
     kurulu: boolean; yol: "facebook" | "instagram-login"; igSecret: boolean;
     test: { ok: boolean; ad?: string; hata?: string; jeton?: { yol: string; kaynak: string; tazelendi: string | null; bitis: string | null }; tazeleme?: { ok: boolean; tazelendi?: boolean; bitis?: string | null; atlandi?: string; hata?: string } } | null;
-    webhook: { url: string; sonOlay: Iz | null; kabul: Iz | null; red: Iz | null; islem: Iz | null; abonelik: Abonelik | null; uygulama: UygulamaWebhook | null; sayfa: boolean };
+    webhook: { url: string; sonOlay: Iz | null; kabul: Iz | null; red: Iz | null; islem: Iz | null; abonelik: Abonelik | null; uygulama: UygulamaWebhook | null; thread: ThreadBilgi[] | null; sayfa: boolean };
   };
   taslak: boolean;
   gorebilenler: string[];
@@ -28,9 +28,10 @@ interface Abonelik { ok: boolean; wabaId?: string; abone?: boolean; alanlar?: st
 interface UygulamaWebhook {
   ok: boolean; uygulama?: { id: string; ad: string };
   abonelikler?: { nesne: string; url: string; aktif: boolean; alanlar: string[] }[];
-  instagram?: { abone: boolean; adresBizim: boolean; alanlar: string[]; url?: string };
+  instagram?: { abone: boolean; adresBizim: boolean; standby?: boolean; alanlar: string[]; url?: string };
   hata?: string;
 }
+interface ThreadBilgi { ad: string; disKimlik: string; standby: boolean; sahip: { ok: boolean; appId?: string; ad?: string; bizde?: boolean; hata?: string } }
 
 const nekadar = (iso: string) => {
   const dk = Math.round((Date.now() - new Date(iso).getTime()) / 60_000);
@@ -301,7 +302,7 @@ export default function MesajAyarlari() {
                   if (!u) return null;
                   if (!u.ok) return <div>Uygulama webhook'u sorgulanamadı: {u.hata}</div>;
                   const ig = u.instagram;
-                  const tamam = Boolean(ig?.abone && ig.adresBizim);
+                  const tamam = Boolean(ig?.abone && ig.adresBizim && ig.standby);
                   const digerleri = (u.abonelikler || []).filter((a) => a.nesne !== "instagram").map((a) => `${a.nesne}: ${a.alanlar.join(", ") || "alan yok"}`).join(" · ");
                   return (
                     <div style={{ marginTop: 4 }}>
@@ -310,7 +311,9 @@ export default function MesajAyarlari() {
                           ? `Meta uygulaması (${u.uygulama?.ad}) Instagram mesajlarına abone ✓ (instagram: ${ig?.alanlar.join(", ")})`
                           : !ig?.abone
                             ? <><strong>Meta uygulaması ({u.uygulama?.ad}) Instagram &quot;messages&quot; alanına ABONE DEĞİL</strong> → DM&apos;ler hiç gelmez. &quot;Uygulama webhook&apos;unu onar&quot; deyin.</>
-                            : <><strong>Meta uygulamasının Instagram webhook adresi farklı:</strong> {ig?.url} → &quot;Uygulama webhook&apos;unu onar&quot; deyin.</>}
+                            : !ig.adresBizim
+                              ? <><strong>Meta uygulamasının Instagram webhook adresi farklı:</strong> {ig?.url} → &quot;Uygulama webhook&apos;unu onar&quot; deyin.</>
+                              : <><strong>&quot;standby&quot; alanına abone değil</strong> (instagram: {ig.alanlar.join(", ")}) → Instagram uygulamasından yanıtlanan konuşmaların sonraki mesajları gelmez. &quot;Uygulama webhook&apos;unu onar&quot; deyin.</>}
                         {digerleri ? ` · diğer: ${digerleri}` : ""}
                       </div>
                       <div style={{ marginTop: 6, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
@@ -320,6 +323,19 @@ export default function MesajAyarlari() {
                     </div>
                   );
                 })()}
+                {d.instagram.webhook.thread && d.instagram.webhook.thread.length > 0 && (
+                  <div style={{ marginTop: 4 }}>
+                    <div>Konuşma kontrolü (Handover): </div>
+                    {d.instagram.webhook.thread.map((t) => (
+                      <div key={t.disKimlik} style={!t.sahip.ok || t.sahip.bizde === false ? { color: "var(--warn, var(--error))" } : undefined}>
+                        · {t.ad}: {t.sahip.ok
+                          ? (t.sahip.bizde ? "bizim uygulamada ✓" : t.sahip.appId ? `başka uygulamada (${t.sahip.ad || t.sahip.appId}${t.sahip.ad && /inbox|gelen kutusu/i.test(t.sahip.ad) ? ", yani Instagram uygulamasından yanıtlanmış" : ""}) — siteden yanıt gönderilince kontrol geri alınır; alınamazsa Facebook sayfası → Ayarlar → Gelişmiş mesajlaşma → Handover Protocol'de birincil alıcı = siparisformramo` : "sahip yok (serbest)")
+                          : `sorgulanamadı: ${t.sahip.hata}`}
+                        {t.standby ? " · son mesaj standby ile geldi" : ""}
+                      </div>
+                    ))}
+                  </div>
+                )}
                 {d.instagram.test?.ok && !d.instagram.webhook.kabul && !d.instagram.webhook.red && (
                   <div style={{ marginTop: 4 }}>
                     Henüz hiç Instagram olayı gelmedi. Abonelikler tamamsa Instagram uygulamasında <strong>Ayarlar → Mesajlar ve hikâye yanıtları → Mesaj denetimleri → Bağlı araçlar → &quot;Mesajlara erişime izin ver&quot;</strong> açık olmalı; kapalıysa Meta DM&apos;leri hiçbir uygulamaya iletmez. Ayrıca gönderen hesap uygulamada rolü olmayan biriyse <em>instagram_manage_messages</em> için Uygulama İncelemesi (Advanced access) gerekir.

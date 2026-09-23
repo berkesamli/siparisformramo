@@ -140,6 +140,13 @@ yanıtlar. Yalnızca `MESAJ_USERNAMES`'teki çalışanlar (ve sahipler) görür.
   6. Development modunda yalnızca uygulamada rolü olan Instagram hesaplarının (Instagram testers) DM'leri gelir; bütün
      müşteriler için `instagram_business_manage_messages` iznine **App Review** alınıp uygulama **Live** yapılır.
   Instagram uygulamasından atılan yanıtlar da (echo) konuşmada görünür. 24 saat kuralı burada da geçerlidir.
+  7. **Handover (kontrol devri):** Bir konuşma Instagram uygulamasından (gelen kutusundan) yanıtlanınca Meta o
+     konuşmanın kontrolünü Instagram gelen kutusuna verir ve sonraki müşteri mesajlarını `messaging` yerine
+     `standby` alanıyla gönderir. Uygulama `standby` alanına da abonedir (kart "Uygulama webhook'unu onar" /
+     "Sayfa aboneliğini onar" bunu da ekler); standby mesajları yine kaydedilir, konuşma "standby" işaretlenir ve
+     siteden yanıt gönderilirken `take_thread_control` ile kontrol geri alınır. Bunun çalışması için Facebook
+     sayfası → Ayarlar → Gelişmiş mesajlaşma → **Handover Protocol**'de birincil alıcı bu uygulama olmalıdır.
+     Kart, son Instagram konuşmalarının kontrolünün hangi uygulamada olduğunu gösterir.
 - **Gmail:** hesap başına Google *uygulama şifresi* (2 adımlı doğrulama açık olmalı). Gelen kutusu
   ekran açıkken 60 sn'de bir, ilk kurulumda son 7 gün okunur; `noreply`/bülten adresleri sessiz düşer.
   Yanıt aynı hesaptan, aynı konu dizisine (In-Reply-To) gider. `/api/mesaj/senk` elle/cron ile de tetiklenebilir.

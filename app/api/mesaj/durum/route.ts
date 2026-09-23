@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
 import { isOwner, mesajUsernames } from "@/data/users";
-import { dbConfigured, dbSaglik } from "@/lib/mesaj/db";
+import { dbConfigured, dbSaglik, konusmalar } from "@/lib/mesaj/db";
 import { gmailConfigured, gmailHesaplar, gmailSenk, gmailTest } from "@/lib/mesaj/gmail";
-import { igJetonTazele, igSayfaAbonelik, instagramConfigured, instagramDurum } from "@/lib/mesaj/instagram";
+import { igJetonTazele, igSayfaAbonelik, igThreadSahibi, instagramConfigured, instagramDurum } from "@/lib/mesaj/instagram";
 import { igUygulamaWebhookOnar, uygulamaWebhookDurumu } from "@/lib/mesaj/meta-uygulama";
 import { SABLON_GOVDE, SABLON_VARSAYILAN, sablonListesi, sablonOlustur, serbestSablonAdlari, wabaAbonelik, whatsappConfigured, whatsappDurum, type SablonBilgi } from "@/lib/mesaj/whatsapp";
 import { taslakHazir } from "@/lib/mesaj/taslak";
@@ -33,6 +33,15 @@ export async function GET(req: NextRequest) {
   ]);
   const origin = req.nextUrl.origin;
   const igCallback = `${origin}/api/mesaj/webhook`;
+  // Handover teşhisi: son Instagram konuşmalarının kontrolü hangi uygulamada? (Facebook sayfası yolu)
+  const igThread = canli && instagramConfigured() && (process.env.INSTAGRAM_PAGE_ID || "").trim() && dbConfigured()
+    ? await (async () => {
+        try {
+          const son = await konusmalar({ kanal: "instagram", limit: 3 }, "");
+          return await Promise.all(son.map(async (k) => ({ ad: k.ad || k.disKimlik, disKimlik: k.disKimlik, standby: Boolean(k.meta?.standby), sahip: await igThreadSahibi(k.disKimlik) })));
+        } catch { return null; }
+      })()
+    : null;
   const [igAbonelik, igUygulama, sablonlar] = await Promise.all([
     canli && instagramConfigured() && (process.env.INSTAGRAM_PAGE_ID || "").trim() ? igSayfaAbonelik(false) : Promise.resolve(null),
     canli && instagramConfigured() ? uygulamaWebhookDurumu(igCallback) : Promise.resolve(null),
@@ -59,7 +68,7 @@ export async function GET(req: NextRequest) {
       kurulu: instagramConfigured(), test: ig,
       yol: (process.env.INSTAGRAM_PAGE_ID || "").trim() ? "facebook" : "instagram-login",
       igSecret: Boolean((process.env.INSTAGRAM_APP_SECRET || "").trim()),
-      webhook: { url: igCallback, sonOlay: igIz.son, kabul: igIz.kabul, red: igIz.red, islem: igIz.islem, abonelik: igAbonelik, uygulama: igUygulama, sayfa: Boolean((process.env.INSTAGRAM_PAGE_ID || "").trim()) },
+      webhook: { url: igCallback, sonOlay: igIz.son, kabul: igIz.kabul, red: igIz.red, islem: igIz.islem, abonelik: igAbonelik, uygulama: igUygulama, thread: igThread, sayfa: Boolean((process.env.INSTAGRAM_PAGE_ID || "").trim()) },
     },
     taslak: taslakHazir(),
     gorebilenler: mesajUsernames(),
