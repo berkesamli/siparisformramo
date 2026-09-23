@@ -17,7 +17,7 @@
 }
 
 /* ---- Liste başlığı ---- */
-.ib-list-head { padding: 14px 12px 10px; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 10px; }
+.ib-list-head { padding: 12px 12px 10px; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 8px; }
 .ib-title { display: flex; align-items: center; gap: 10px; }
 .ib-title h1 { margin: 0; font-size: 19px; letter-spacing: -0.02em; line-height: 1.1; }
 .ib-title > div { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
@@ -52,36 +52,50 @@
 .chip.ib-hesap-2.sel { border-color: var(--success); }
 
 /* ---- Satırlar ---- */
-.ib-rows { flex: 1 1 auto; overflow-y: auto; padding: 8px; display: flex; flex-direction: column; gap: 4px; overscroll-behavior: contain; }
+.ib-rows { flex: 1 1 auto; overflow-y: auto; padding: 6px 8px 8px; display: flex; flex-direction: column; gap: 2px; overscroll-behavior: contain; }
 .ib-row {
-  display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; gap: 10px; align-items: start;
-  width: 100%; text-align: left; padding: 10px 10px; border-radius: 12px; border: 1px solid transparent;
+  display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; gap: 10px; align-items: start;
+  width: 100%; text-align: left; padding: 9px 10px; border-radius: 12px; border: 1px solid transparent;
   background: transparent; color: var(--text); font: inherit; cursor: pointer;
   transition: background 0.15s ease, border-color 0.15s ease;
 }
+.ib-row + .ib-row { position: relative; }
+.ib-row + .ib-row::before { content: ""; position: absolute; left: 56px; right: 10px; top: -1px; height: 1px; background: var(--hairline); }
 .ib-row:hover { background: var(--surface-3); }
 .ib-row.sel { background: var(--brand-soft); border-color: var(--brand-ring); }
-.ib-row.kapali { opacity: 0.72; }
+.ib-row.sel + .ib-row::before, .ib-row:hover + .ib-row::before { opacity: 0; }
+.ib-row.kapali { opacity: 0.68; }
 .ib-row.skeleton-row { cursor: default; }
 .ib-row.skeleton-row > span:nth-child(2) { display: flex; flex-direction: column; }
 .ib-av {
-  width: 40px; height: 40px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
-  background: var(--surface-2); color: var(--text-2);
+  width: 36px; height: 36px; border-radius: 11px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+  background: var(--surface-2); color: var(--text-2); margin-top: 1px;
 }
 .ib-av.whatsapp { background: color-mix(in srgb, var(--ib-wa) 16%, transparent); color: var(--ib-wa); }
 .ib-av.instagram { background: color-mix(in srgb, var(--ib-ig) 16%, transparent); color: var(--ib-ig); }
 .ib-av.email { background: color-mix(in srgb, var(--ib-mail) 16%, transparent); color: var(--ib-mail); }
 .ib-row-main { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.ib-row-top { display: flex; align-items: baseline; gap: 8px; }
+.ib-row-top { display: flex; align-items: center; gap: 6px; }
 .ib-row-name { flex: 1; min-width: 0; font-weight: 600; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ib-row.unread .ib-row-name, .ib-row.unread .ib-row-ozet { font-weight: 700; color: var(--text); }
+.ib-row.unread .ib-row-name, .ib-row.unread .ib-row-ozet-text { font-weight: 700; color: var(--text); }
 .ib-row-time { font-size: 11.5px; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
-.ib-row-sub { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ib-row-ozet { font-size: 13px; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.ib-row-tags { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 3px; }
-.ib-row-tags .badge { padding: 1px 7px; font-size: 10.5px; }
-.ib-row-tags .badge:not(.brand):not(.info):not(.ok) { background: var(--surface-3); color: var(--muted); }
-.ib-unread { align-self: center; }
+.ib-row-sub { display: flex; align-items: center; gap: 6px; min-width: 0; font-size: 12.5px; color: var(--muted); }
+.ib-row-sub-text { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ib-row-ozet { display: flex; align-items: center; gap: 5px; min-width: 0; font-size: 13px; color: var(--text-2); }
+.ib-row-ozet > svg { flex-shrink: 0; color: var(--success); }
+.ib-row-ozet-text { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ib-row-side { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; padding-top: 18px; }
+.ib-unread { flex-shrink: 0; }
+.ib-tag { display: inline-flex; align-items: center; padding: 1px 6px; border-radius: 6px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.02em; white-space: nowrap; flex-shrink: 0; }
+.ib-tag.toptan { background: var(--brand-soft); color: var(--brand); }
+.ib-tag.perakende { background: var(--info-soft); color: var(--info); }
+.ib-tag.kapali { background: var(--surface-3); color: var(--muted); }
+.ib-atanan { width: 22px; height: 22px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 9.5px; font-weight: 800; background: var(--surface-3); color: var(--text-2); border: 1px solid var(--border); letter-spacing: 0.02em; }
+/* E-posta hesabı: satırda küçük renkli etiket (hesap başına ton) */
+.ib-hesap-nokta { display: inline-flex; align-items: center; padding: 0 6px; border-radius: 5px; font-size: 10.5px; font-weight: 700; line-height: 16px; white-space: nowrap; flex-shrink: 0; max-width: 120px; overflow: hidden; text-overflow: ellipsis; }
+.ib-hesap-nokta.ib-hesap-0 { background: var(--brand-soft); color: var(--brand); }
+.ib-hesap-nokta.ib-hesap-1 { background: var(--info-soft); color: var(--info); }
+.ib-hesap-nokta.ib-hesap-2 { background: var(--success-soft); color: var(--success); }
 
 /* ---- Konuşma paneli ---- */
 .ib-thread-empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 6px; padding: 30px; color: var(--muted); max-width: 420px; margin: 0 auto; }
@@ -93,7 +107,11 @@
 .ib-panel-who { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
 .ib-panel-who strong { font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ib-panel-who .muted { font-size: 12.5px; line-height: 1.35; overflow-wrap: anywhere; }
+.ib-panel-sub { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .ib-panel-who a { color: inherit; text-decoration: underline dotted; }
+.ib-konu { display: flex; align-items: baseline; gap: 8px; padding: 7px 14px; border-bottom: 1px solid var(--hairline); font-size: 13px; min-width: 0; }
+.ib-konu-etiket { font-size: 10.5px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); flex-shrink: 0; }
+.ib-konu-metin { font-weight: 600; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .ib-panel-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
 .ib-select { padding: 7px 28px 7px 10px; font-size: 13px; border-radius: 9px; max-width: 170px; }
 .ib-musteri { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 8px 14px; border-bottom: 1px solid var(--hairline); background: var(--surface-2); font-size: 12.5px; }
@@ -123,6 +141,26 @@
 .ib-ek:hover { border-color: var(--border-strong); text-decoration: none; }
 .ib-ek.off { opacity: 0.6; cursor: default; }
 .ib-ek small { color: var(--muted); }
+
+/* E-posta kartları (balon yerine mektup görünümü) */
+.ib-msgs-mail { gap: 10px; padding: 14px 16px 8px; }
+.ib-mail { display: flex; flex-direction: column; gap: 8px; max-width: 820px; width: 100%; padding: 12px 14px 12px; border-radius: 14px; border: 1px solid var(--border); background: var(--surface-2); font-size: 14px; line-height: 1.5; }
+.ib-mail.giden { background: var(--brand-soft-2); border-color: var(--brand-ring); margin-left: auto; }
+.ib-mail-head { display: flex; align-items: center; gap: 10px; }
+.ib-mail-av { width: 32px; height: 32px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; background: var(--surface-3); color: var(--text-2); flex-shrink: 0; letter-spacing: 0.02em; }
+.ib-mail-av.giden { background: var(--brand); color: #fff; }
+.ib-mail-who { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.ib-mail-who strong { font-size: 13.5px; display: flex; align-items: center; gap: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ib-mail-who .muted { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ib-mail-time { font-size: 11.5px; color: var(--muted); white-space: nowrap; display: inline-flex; align-items: center; gap: 5px; font-variant-numeric: tabular-nums; align-self: flex-start; }
+.ib-mail-konu { display: flex; align-items: baseline; gap: 8px; font-size: 13px; font-weight: 600; padding: 6px 10px; border-radius: 8px; background: var(--surface-3); }
+.ib-mail-konu span { font-size: 10.5px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.ib-mail-body { white-space: pre-wrap; overflow-wrap: anywhere; color: var(--text); }
+.ib-mail-body.kirpik { max-height: 300px; overflow: hidden; -webkit-mask-image: linear-gradient(to bottom, #000 78%, transparent); mask-image: linear-gradient(to bottom, #000 78%, transparent); }
+.ib-mail-more { align-self: flex-start; margin-top: -4px; }
+.ib-mail-more svg { transition: transform 0.15s ease; }
+.ib-mail-more.acik svg { transform: rotate(180deg); }
+.ib-mail .ib-ekler { padding-top: 6px; border-top: 1px dashed var(--hairline); }
 
 /* Yanıt kutusu */
 .ib-compose { border-top: 1px solid var(--border); padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 8px; background: var(--surface-2); }
@@ -175,6 +213,9 @@
   .ib-panel-actions .btn span, .ib-panel-actions .btn { font-size: 12px; }
   .ib-bubble { max-width: 88%; }
   .ib-msgs { padding: 12px 10px 6px; }
+  .ib-msgs-mail { padding: 10px 8px 6px; }
+  .ib-mail { padding: 10px 12px; border-radius: 12px; }
+  .ib-konu { padding: 6px 10px; }
   .ib-compose { padding: 8px 10px 10px; }
 }
 @media (max-width: 600px) {

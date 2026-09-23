@@ -200,6 +200,7 @@ export default function Inbox({ me, dbHazir, kanallar, taslak, ilkKonusma }: {
             kullanicilar={kullanicilar}
             taslakHazir={taslak}
             kanallar={kanallar}
+            hesapSira={Math.max(0, epostaHesaplar.indexOf(liste.find((x) => x.id === secili)?.hesap || "")) % 3}
             onBack={() => setSecili("")}
             onChanged={konusmaGuncellendi}
             onClosed={() => { setSecili(""); void yukle(true); }}
@@ -217,27 +218,32 @@ export default function Inbox({ me, dbHazir, kanallar, taslak, ilkKonusma }: {
 }
 
 function KonusmaSatiri({ k, secili, kullanicilar, hesapSira, onClick }: { k: Konusma; secili: boolean; kullanicilar: Kullanici[]; hesapSira: number; onClick: () => void }) {
-  const atanan = k.atanan ? (kullanicilar.find((u) => u.username === k.atanan)?.name || k.atanan) : "";
-  const altBilgi = k.kanal === "email" ? k.baslik : k.kanal === "instagram" ? (k.baslik || "Instagram") : `+${k.disKimlik}`;
+  const atananAd = k.atanan ? (kullanicilar.find((u) => u.username === k.atanan)?.name || k.atanan) : "";
+  const altBilgi = k.kanal === "email" ? (k.baslik || "(konu yok)") : k.kanal === "instagram" ? (k.baslik || "Instagram") : `+${k.disKimlik}`;
+  const ozet = (k.sonMesajOzet || "").replace(/^Konu: .*\n+/, "").replace(/\s+/g, " ").trim() || "—";
   return (
     <button type="button" role="listitem" className={`ib-row ${secili ? "sel" : ""} ${k.okunmamis ? "unread" : ""} ${k.durum}`} onClick={onClick}>
-      <span className={`ib-av ${k.kanal}`}><KanalIkon kanal={k.kanal} size={18} /></span>
+      <span className={`ib-av ${k.kanal}`}><KanalIkon kanal={k.kanal} size={17} /></span>
       <span className="ib-row-main">
         <span className="ib-row-top">
           <span className="ib-row-name">{k.ad || k.disKimlik}</span>
+          {k.musteriTur && <span className={`ib-tag ${k.musteriTur}`}>{k.musteriTur === "toptan" ? "Bayi" : "Perakende"}</span>}
           <span className="ib-row-time">{zamanKisa(k.sonMesajAt)}</span>
         </span>
-        <span className="ib-row-sub">{altBilgi}</span>
-        <span className="ib-row-ozet">{k.sonMesajOzet || "—"}</span>
-        <span className="ib-row-tags">
-          {k.kanal === "email" && k.hesap && <span className={`badge ib-hesap ib-hesap-${hesapSira}`} title={`Hesap: ${k.hesap}`}><Icon name="mail" size={10} /> {hesapKisa(k.hesap)}</span>}
-          {k.musteriTur && <span className={`badge ${k.musteriTur === "toptan" ? "brand" : "info"}`}>{k.musteriTur === "toptan" ? "Bayi" : "Perakende"}</span>}
-          {k.durum === "kapali" && <span className="badge">Kapalı</span>}
-          {k.durum === "yanitlandi" && <span className="badge ok">Yanıtlandı</span>}
-          {atanan && <span className="badge"><Icon name="user" size={11} /> {atanan.split(" ")[0]}</span>}
+        <span className="ib-row-sub">
+          {k.kanal === "email" && k.hesap && <span className={`ib-hesap-nokta ib-hesap-${hesapSira}`} title={`Hesap: ${k.hesap}`}>{hesapKisa(k.hesap, 14)}</span>}
+          <span className="ib-row-sub-text">{altBilgi}</span>
+        </span>
+        <span className="ib-row-ozet">
+          {k.durum === "yanitlandi" && <Icon name="check-circle" size={12} />}
+          {k.durum === "kapali" && <span className="ib-tag kapali">Kapalı</span>}
+          <span className="ib-row-ozet-text">{ozet}</span>
         </span>
       </span>
-      {k.okunmamis > 0 && <span className="badge count ib-unread">{k.okunmamis > 99 ? "99+" : k.okunmamis}</span>}
+      <span className="ib-row-side">
+        {k.okunmamis > 0 && <span className="badge count ib-unread">{k.okunmamis > 99 ? "99+" : k.okunmamis}</span>}
+        {atananAd && <span className="ib-atanan" title={`Atanan: ${atananAd}`}>{atananAd.split(/\s+/).slice(0, 2).map((x) => x[0]?.toLocaleUpperCase("tr-TR")).join("")}</span>}
+      </span>
     </button>
   );
 }

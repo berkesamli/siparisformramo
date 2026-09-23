@@ -7,7 +7,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Icon from "@/components/shell/Icon";
-import { KANAL_ADI, pencereAcik, type KanalDurumu, type Konusma, type Mesaj } from "@/lib/mesaj/tur";
+import { KANAL_ADI, hesapKisa, pencereAcik, type KanalDurumu, type Konusma, type Mesaj } from "@/lib/mesaj/tur";
 import type { Kullanici, Me } from "./Inbox";
 import MusteriBagla from "./MusteriBagla";
 import { KanalIkon, gunBasligi, zamanTam } from "./ortak";
@@ -20,8 +20,8 @@ interface Yanit { ok: boolean; error?: string; konusma?: Konusma; mesajlar?: Mes
 
 const tl = (n: number) => n.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " ₺";
 
-export default function KonusmaPaneli({ id, me, kullanicilar, taslakHazir, kanallar, onBack, onChanged, onClosed }: {
-  id: string; me: Me; kullanicilar: Kullanici[]; taslakHazir: boolean; kanallar: KanalDurumu;
+export default function KonusmaPaneli({ id, me, kullanicilar, taslakHazir, kanallar, hesapSira = 0, onBack, onChanged, onClosed }: {
+  id: string; me: Me; kullanicilar: Kullanici[]; taslakHazir: boolean; kanallar: KanalDurumu; hesapSira?: number;
   onBack: () => void; onChanged: (k: Konusma) => void; onClosed: () => void;
 }) {
   const [k, setK] = useState<Konusma | null>(null);
@@ -125,10 +125,9 @@ export default function KonusmaPaneli({ id, me, kullanicilar, taslakHazir, kanal
         <span className={`ib-av ${k.kanal}`}><KanalIkon kanal={k.kanal} size={18} /></span>
         <div className="ib-panel-who">
           <strong>{k.ad || kimlik}</strong>
-          <span className="muted">
-            {KANAL_ADI[k.kanal]} · {iletisim ? <a href={iletisim} target="_blank" rel="noreferrer">{kimlik}</a> : kimlik}
-            {k.kanal === "email" && k.baslik ? <> · <em>{k.baslik}</em></> : null}
-            {k.kanal === "email" && k.hesap ? <> · gelen hesap: <strong>{k.hesap}</strong></> : null}
+          <span className="muted ib-panel-sub">
+            {iletisim ? <a href={iletisim} target="_blank" rel="noreferrer">{kimlik}</a> : kimlik}
+            {k.kanal === "email" && k.hesap && <span className={`badge ib-hesap ib-hesap-${hesapSira}`} title={`Bu hesaba geldi, yanıt buradan gider: ${k.hesap}`}><Icon name="mail" size={10} /> {hesapKisa(k.hesap)}</span>}
           </span>
         </div>
         <div className="ib-panel-actions">
@@ -143,6 +142,10 @@ export default function KonusmaPaneli({ id, me, kullanicilar, taslakHazir, kanal
           )}
         </div>
       </header>
+
+      {k.kanal === "email" && k.baslik && (
+        <div className="ib-konu" title="E-posta konusu"><span className="ib-konu-etiket">Konu</span><span className="ib-konu-metin">{k.baslik}</span></div>
+      )}
 
       <div className="ib-musteri">
         {musteri ? (
@@ -165,14 +168,14 @@ export default function KonusmaPaneli({ id, me, kullanicilar, taslakHazir, kanal
         )}
       </div>
 
-      <div className="ib-msgs">
+      <div className={`ib-msgs ${k.kanal === "email" ? "ib-msgs-mail" : ""}`}>
         {mesajlar.map((m, i) => {
           const oncekiGun = i > 0 ? new Date(mesajlar[i - 1].at).toDateString() : "";
           const buGun = new Date(m.at).toDateString();
           return (
             <div key={m.id}>
               {oncekiGun !== buGun && <div className="ib-day"><span>{gunBasligi(m.at)}</span></div>}
-              <Balon m={m} />
+              {k.kanal === "email" ? <MailKarti m={m} karsi={k.disKimlik} hesap={k.hesap} /> : <Balon m={m} />}
             </div>
           );
         })}
@@ -183,7 +186,7 @@ export default function KonusmaPaneli({ id, me, kullanicilar, taslakHazir, kanal
       <footer className="ib-compose">
         {!kanalHazir && <div className="notice warn">{KANAL_ADI[k.kanal]} gönderimi için kanal ayarları eksik; bu konuşmaya buradan yanıt verilemez.</div>}
         {kanalHazir && k.kanal !== "email" && !pencere && !sablonla && (
-          <div className="notice warn"><Icon name="clock" size={14} /> {KANAL_ADI[k.kanal]} kuralı: müşteri son 24 saatte yazmadığı için serbest yanıt gönderilemez. Müşteri yeniden yazınca pencere açılır{k.kanal === "whatsapp" ? "; acil durumda telefon/SMS kullanın ya da onaylı şablon tanımlayın (WHATSAPP_TEMPLATE_SERBEST)" : ""}.</div>
+          <div className="notice warn"><Icon name="clock" size={14} /> {KANAL_ADI[k.kanal]} kuralı: müşteri son 24 saatte yazmadığı için serbest yanıt gönderilemez. Müşteri yeniden yazınca pencere açılır{k.kanal === "whatsapp" ? "; acil durumda telefon/SMS kullanın ya da Ayarlar → Mesajlar kartından onaylı şablon oluşturun" : ""}.</div>
         )}
         {sablonla && (
           <div className="notice info"><Icon name="clock" size={14} /> Müşteri son 24 saatte yazmadı: mesajınız Meta onaylı şablonun içinde gider (satır sonları tek boşluk olur, en fazla 1000 karakter); müşteri yanıtlayınca serbest yazışma açılır.</div>
@@ -240,24 +243,74 @@ function DurumIkonu({ m }: { m: Mesaj }) {
   return <span className="ib-st" title="Gönderildi">✓</span>;
 }
 
+function Ekler({ ekler }: { ekler: Mesaj["ekler"] }) {
+  if (!ekler?.length) return null;
+  return (
+    <div className="ib-ekler">
+      {ekler.map((e, i) => e.tur === "image" && e.url ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <a key={i} href={e.url} target="_blank" rel="noreferrer" className="ib-ek-img"><img src={e.url} alt={e.ad} loading="lazy" /></a>
+      ) : (
+        <a key={i} href={e.url || "#"} target={e.url ? "_blank" : undefined} rel="noreferrer" className={`ib-ek ${e.url ? "" : "off"}`} title={e.url ? "Aç" : "Ek kaydedilemedi (depo yok)"}>
+          <Icon name={e.tur === "audio" ? "activity" : e.tur === "video" || e.tur === "image" ? "image" : "file-text"} size={14} /> {e.ad}{e.boyut ? <small> · {Math.round(e.boyut / 1024)} KB</small> : null}
+        </a>
+      ))}
+    </div>
+  );
+}
+
+/** WhatsApp / Instagram: sohbet balonu. */
 function Balon({ m }: { m: Mesaj }) {
   return (
     <div className={`ib-bubble ${m.yon}`}>
       {m.yon === "giden" && <span className="ib-bubble-who">{m.gonderen || "Biz"}{m.taslakAi && <span className="ib-ai" title="Yapay zekâ taslağından gönderildi"><Icon name="sparkles" size={10} /> taslak</span>}</span>}
       {m.govde && <div className="ib-bubble-text">{m.govde}</div>}
-      {m.ekler?.length > 0 && (
-        <div className="ib-ekler">
-          {m.ekler.map((e, i) => e.tur === "image" && e.url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <a key={i} href={e.url} target="_blank" rel="noreferrer" className="ib-ek-img"><img src={e.url} alt={e.ad} loading="lazy" /></a>
-          ) : (
-            <a key={i} href={e.url || "#"} target={e.url ? "_blank" : undefined} rel="noreferrer" className={`ib-ek ${e.url ? "" : "off"}`} title={e.url ? "Aç" : "Ek kaydedilemedi (depo yok)"}>
-              <Icon name={e.tur === "audio" ? "activity" : e.tur === "video" ? "image" : "file-text"} size={14} /> {e.ad}{e.boyut ? <small> · {Math.round(e.boyut / 1024)} KB</small> : null}
-            </a>
-          ))}
-        </div>
-      )}
+      <Ekler ekler={m.ekler} />
       <span className="ib-bubble-meta">{zamanTam(m.at)} <DurumIkonu m={m} /></span>
     </div>
+  );
+}
+
+const MAIL_KIRP_KARAKTER = 900;
+const MAIL_KIRP_SATIR = 14;
+
+/** Gövde "Konu: …" ile başlıyorsa (konu değişmiş e-posta) konuyu ayırır; fazla boş satırları toplar. */
+function mailGovde(govde: string): { konu: string; metin: string } {
+  let konu = "";
+  let metin = govde || "";
+  const m = metin.match(/^Konu: (.+)\n\n?/);
+  if (m) { konu = m[1].trim(); metin = metin.slice(m[0].length); }
+  metin = metin.replace(/\r\n?/g, "\n").replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
+  return { konu, metin };
+}
+
+const basHarfler = (ad: string) => ad.split(/\s+/).filter(Boolean).slice(0, 2).map((x) => x[0]?.toLocaleUpperCase("tr-TR") || "").join("") || "?";
+
+/** E-posta: sohbet balonu yerine okunaklı mektup kartı (gönderen, saat, konu, gövde, ekler). */
+function MailKarti({ m, karsi, hesap }: { m: Mesaj; karsi: string; hesap: string }) {
+  const [acik, setAcik] = useState(false);
+  const { konu, metin } = mailGovde(m.govde);
+  const uzun = metin.length > MAIL_KIRP_KARAKTER || metin.split("\n").length > MAIL_KIRP_SATIR;
+  const giden = m.yon === "giden";
+  const ad = m.gonderen || (giden ? "Biz" : karsi);
+  return (
+    <article className={`ib-mail ${m.yon}`}>
+      <header className="ib-mail-head">
+        <span className={`ib-mail-av ${m.yon}`} aria-hidden>{giden ? <Icon name="arrow-up-right" size={14} /> : basHarfler(ad)}</span>
+        <div className="ib-mail-who">
+          <strong>{ad}{giden && m.taslakAi && <span className="ib-ai" title="Yapay zekâ taslağından gönderildi"><Icon name="sparkles" size={10} /> taslak</span>}</strong>
+          <span className="muted">{giden ? <>{hesap || "biz"} → {karsi}</> : karsi}</span>
+        </div>
+        <span className="ib-mail-time">{zamanTam(m.at)} <DurumIkonu m={m} /></span>
+      </header>
+      {konu && <div className="ib-mail-konu"><span>Konu</span>{konu}</div>}
+      <div className={`ib-mail-body ${uzun && !acik ? "kirpik" : ""}`}>{metin || <em className="muted">(metin yok)</em>}</div>
+      {uzun && (
+        <button type="button" className={`btn ghost xs ib-mail-more ${acik ? "acik" : ""}`} onClick={() => setAcik(!acik)}>
+          <Icon name="chevron-down" size={13} /> {acik ? "Daralt" : "Devamını göster"}
+        </button>
+      )}
+      <Ekler ekler={m.ekler} />
+    </article>
   );
 }

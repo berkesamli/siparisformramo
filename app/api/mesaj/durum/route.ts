@@ -5,7 +5,7 @@ import { dbConfigured, dbSaglik } from "@/lib/mesaj/db";
 import { gmailConfigured, gmailHesaplar, gmailSenk, gmailTest } from "@/lib/mesaj/gmail";
 import { igJetonTazele, igSayfaAbonelik, instagramConfigured, instagramDurum } from "@/lib/mesaj/instagram";
 import { igUygulamaWebhookOnar, uygulamaWebhookDurumu } from "@/lib/mesaj/meta-uygulama";
-import { serbestSablonAdlari, wabaAbonelik, whatsappConfigured, whatsappDurum } from "@/lib/mesaj/whatsapp";
+import { SABLON_GOVDE, SABLON_VARSAYILAN, sablonListesi, sablonOlustur, serbestSablonAdlari, wabaAbonelik, whatsappConfigured, whatsappDurum, type SablonBilgi } from "@/lib/mesaj/whatsapp";
 import { taslakHazir } from "@/lib/mesaj/taslak";
 import { izOku } from "@/lib/mesaj/webhook-iz";
 
@@ -33,10 +33,17 @@ export async function GET(req: NextRequest) {
   ]);
   const origin = req.nextUrl.origin;
   const igCallback = `${origin}/api/mesaj/webhook`;
-  const [igAbonelik, igUygulama] = await Promise.all([
+  const [igAbonelik, igUygulama, sablonlar] = await Promise.all([
     canli && instagramConfigured() && (process.env.INSTAGRAM_PAGE_ID || "").trim() ? igSayfaAbonelik(false) : Promise.resolve(null),
     canli && instagramConfigured() ? uygulamaWebhookDurumu(igCallback) : Promise.resolve(null),
+    canli && whatsappConfigured() ? sablonListesi(true) : Promise.resolve(null),
   ]);
+  // Bizim başlattığımız mesajların şablonları: env'dekiler + varsayılan; her birinin Meta'daki durumu.
+  const sablonAdaylari = [...new Set([...serbestSablonAdlari(), SABLON_VARSAYILAN])];
+  const sablon = sablonlar ? {
+    varsayilan: SABLON_VARSAYILAN, govde: SABLON_GOVDE, hata: sablonlar.ok ? undefined : sablonlar.hata,
+    adaylar: sablonAdaylari.map((ad): SablonBilgi | { ad: string; durum: "yok" } => sablonlar.liste.find((t) => t.ad === ad && t.dil === (process.env.WHATSAPP_TEMPLATE_DIL || "tr").trim()) || sablonlar.liste.find((t) => t.ad === ad) || { ad, durum: "yok" }),
+  } : null;
   // Yayındaki secret'ın kısa parmak izi (tamamı asla dönmez): Meta'daki değerle karşılaştırmak için.
   const secret = (process.env.WHATSAPP_APP_SECRET || process.env.META_APP_SECRET || "").trim();
   const secretIpucu = secret ? { uzunluk: secret.length, bas: secret.slice(0, 2), son: secret.slice(-2), tirnak: /^["']|["']$/.test(secret) } : null;
@@ -45,7 +52,7 @@ export async function GET(req: NextRequest) {
     db: { kurulu: dbConfigured(), test: db },
     gmail: { kurulu: gmailConfigured(), hesaplar: gmailHesaplar().map((h) => h.adres), test: gmail },
     whatsapp: {
-      kurulu: whatsappConfigured(), sablonlar: serbestSablonAdlari(), test: wa,
+      kurulu: whatsappConfigured(), sablonlar: serbestSablonAdlari(), sablon, test: wa,
       webhook: { url: `${origin}/api/whatsapp/webhook`, verifyToken: Boolean((process.env.WHATSAPP_VERIFY_TOKEN || "").trim()), appSecret: Boolean(secret), secretIpucu, sonOlay: waIz.son, kabul: waIz.kabul, red: waIz.red, wabaId: Boolean((process.env.WHATSAPP_WABA_ID || "").trim()), abonelik },
     },
     instagram: {
@@ -74,6 +81,10 @@ export async function POST(req: NextRequest) {
   if (b?.islem === "ig-abone") {
     const r = await igSayfaAbonelik(true);
     return NextResponse.json({ ok: r.ok, abonelik: r, error: r.ok ? undefined : r.hata });
+  }
+  if (b?.islem === "wa-sablon") {
+    const r = await sablonOlustur();
+    return NextResponse.json({ ok: r.ok, sablon: r, error: r.ok ? undefined : r.hata });
   }
   if (b?.islem === "wa-abone") {
     const r = await wabaAbonelik(true);

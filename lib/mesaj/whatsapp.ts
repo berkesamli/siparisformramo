@@ -7,7 +7,7 @@
 // Medya: Graph'tan indirilip özel Blob'a yazılır (bkz. ek.ts).
 
 import { normalizeWaNumber, whatsappConfigured } from "@/lib/whatsapp-pdf";
-import { konusmaBulVeyaOlustur, konusmaGuncelle, mesajDurumDisId, mesajEkle } from "./db";
+import { dbConfigured, konusmaBulVeyaOlustur, konusmaGuncelle, mesajDurumDisId, mesajEkle, senkOku, senkYaz } from "./db";
 import { ekIndir, ekKaydet, ekTuru, ekUrl, mimeUzanti } from "./ek";
 import { musteriEsle } from "./musteri-esle";
 import { pencereAcik, type Ek, type Konusma } from "./tur";
@@ -47,6 +47,7 @@ export interface WaDurum {
 
 const token = () => (process.env.WHATSAPP_TOKEN || "").trim();
 const phoneId = () => (process.env.WHATSAPP_PHONE_ID || "").trim();
+const wabaId = () => (process.env.WHATSAPP_WABA_ID || "").trim();
 const sablonDili = () => (process.env.WHATSAPP_TEMPLATE_DIL || "tr").trim();
 
 /**
@@ -62,8 +63,111 @@ export function serbestSablonAdlari(): string[] {
   }
   return out;
 }
-export function whatsappSablonHazir(): boolean {
-  return whatsappConfigured() && serbestSablonAdlari().length > 0;
+/**
+ * Varsayılan şablon: Ayarlar kartındaki "Şablonu oluştur" bununla Meta'ya başvurur; Meta onaylayınca
+ * (durum APPROVED) env'de ad yazmaya gerek kalmadan kendiliğinden kullanılır.
+ * {{1}} = müşteri adı, {{2}} = mesaj metni.
+ */
+export const SABLON_VARSAYILAN = "genel_mesaj";
+export const SABLON_GOVDE = "Merhaba {{1}}, Olga Çerçeve'den yazıyoruz:\n\n{{2}}\n\nSorularınız için bu numaradan bize yazabilirsiniz.";
+const SABLON_ORNEK = ["Ayşe Hanım", "Siparişiniz hazırlandı; teslimat için uygun olduğunuz günü yazabilir misiniz?"];
+
+export interface SablonBilgi { ad: string; durum: string; kategori: string; dil: string; degisken: number; red?: string; id?: string }
+
+let sablonOnbellek: { at: number; liste: SablonBilgi[] } | null = null;
+const SABLON_ONBELLEK_MS = 10 * 60_000;
+/** Testler için: şablon önbelleğini sıfırla. */
+export function sablonOnbellekSifirla() { sablonOnbellek = null; }
+
+function degiskenSayisi(components: { type?: string; text?: string }[] | undefined): number {
+  const govde = (components || []).find((c) => (c.type || "").toUpperCase() === "BODY")?.text || "";
+  const n = new Set((govde.match(/\{\{\s*(\d+)\s*\}\}/g) || []).map((x) => x.replace(/\D/g, "")));
+  return n.size;
+}
+
+/**
+ * WhatsApp hesabındaki (WABA) mesaj şablonları — ad, onay durumu, kategori, dil, değişken sayısı.
+ * 10 dk bellekte ve veri tabanında (mesaj_senk "wa:sablon") önbelleklenir; zorla=true Meta'dan tazeler.
+ */
+export async function sablonListesi(zorla = false): Promise<{ ok: boolean; liste: SablonBilgi[]; hata?: string }> {
+  if (!wabaId() || !token()) return { ok: false, liste: [], hata: "Şablonlar için WHATSAPP_WABA_ID ve WHATSAPP_TOKEN gerekli." };
+  if (!zorla && sablonOnbellek && Date.now() - sablonOnbellek.at < SABLON_ONBELLEK_MS) return { ok: true, liste: sablonOnbellek.liste };
+  if (!zorla && dbConfigured()) {
+    try {
+      const s = await senkOku("wa:sablon");
+      if (s && Date.now() - new Date(s.at).getTime() < SABLON_ONBELLEK_MS) {
+        const liste = JSON.parse(s.deger) as SablonBilgi[];
+        sablonOnbellek = { at: new Date(s.at).getTime(), liste };
+        return { ok: true, liste };
+      }
+    } catch { /* Meta'dan okunur */ }
+  }
+  try {
+    const r = await fetch(`${GRAPH}/${wabaId()}/message_templates?fields=id,name,status,category,language,components,rejected_reason&limit=200`, { headers: { Authorization: `Bearer ${token()}` }, signal: AbortSignal.timeout(10_000) });
+    const j = (await r.json().catch(() => ({}))) as { data?: { id?: string; name?: string; status?: string; category?: string; language?: string; components?: { type?: string; text?: string }[]; rejected_reason?: string }[]; error?: { message?: string; code?: number } };
+    if (!r.ok) return { ok: false, liste: [], hata: `${j.error?.message || `HTTP ${r.status}`}${j.error?.code ? ` (kod ${j.error.code})` : ""}` };
+    const liste: SablonBilgi[] = (j.data || []).map((d) => ({
+      ad: d.name || "?", durum: d.status || "?", kategori: d.category || "?", dil: d.language || "?", degisken: degiskenSayisi(d.components), id: d.id,
+      red: d.rejected_reason && d.rejected_reason !== "NONE" ? d.rejected_reason : undefined,
+    }));
+    sablonOnbellek = { at: Date.now(), liste };
+    if (dbConfigured()) await senkYaz("wa:sablon", JSON.stringify(liste)).catch(() => undefined);
+    return { ok: true, liste };
+  } catch (e) {
+    return { ok: false, liste: [], hata: (e as Error)?.message || String(e) };
+  }
+}
+
+/** Şablon adı → bilgi (onaylı listeden; bilinmiyorsa null). */
+export async function sablonBilgisi(ad: string): Promise<SablonBilgi | null> {
+  const { liste } = await sablonListesi();
+  return liste.find((s) => s.ad === ad && s.dil === sablonDili()) || liste.find((s) => s.ad === ad) || null;
+}
+
+/**
+ * Bizim başlattığımız mesajlarda denenecek şablonlar, sırayla: env'dekiler, ardından Meta'da
+ * ONAYLI görünen varsayılan şablon (genel_mesaj). Hiçbiri yoksa boş liste.
+ */
+export async function etkinSablonlar(): Promise<string[]> {
+  const out = serbestSablonAdlari();
+  if (!out.includes(SABLON_VARSAYILAN)) {
+    const b = await sablonBilgisi(SABLON_VARSAYILAN).catch(() => null);
+    if (b && b.durum === "APPROVED" && b.degisken >= 1 && b.degisken <= 2) out.push(SABLON_VARSAYILAN);
+  }
+  return out;
+}
+
+export async function whatsappSablonHazir(): Promise<boolean> {
+  return whatsappConfigured() && (await etkinSablonlar()).length > 0;
+}
+
+/**
+ * Varsayılan şablonu Meta'ya oluşturur (kategori UTILITY; Meta gerekli görürse kategoriyi kendisi
+ * değiştirir). Onay çoğu zaman dakikalar içinde, bazen 24 saate kadar sürer; durum kartta görünür.
+ */
+export async function sablonOlustur(): Promise<{ ok: boolean; id?: string; durum?: string; kategori?: string; hata?: string }> {
+  if (!wabaId() || !token()) return { ok: false, hata: "Şablon için WHATSAPP_WABA_ID ve WHATSAPP_TOKEN gerekli." };
+  try {
+    const r = await fetch(`${GRAPH}/${wabaId()}/message_templates`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token()}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: SABLON_VARSAYILAN, language: sablonDili(), category: "UTILITY", allow_category_change: true,
+        components: [{ type: "BODY", text: SABLON_GOVDE, example: { body_text: [SABLON_ORNEK] } }],
+      }),
+      signal: AbortSignal.timeout(15_000),
+    });
+    const j = (await r.json().catch(() => ({}))) as { id?: string; status?: string; category?: string; error?: { message?: string; code?: number; error_user_msg?: string; error_user_title?: string } };
+    if (!r.ok || !j.id) {
+      const e = j.error;
+      return { ok: false, hata: `${e?.error_user_title ? e.error_user_title + ": " : ""}${e?.error_user_msg || e?.message || `HTTP ${r.status}`}${e?.code ? ` (kod ${e.code})` : ""}` };
+    }
+    sablonOnbellek = null;
+    if (dbConfigured()) await senkYaz("wa:sablon", "[]").catch(() => undefined);
+    return { ok: true, id: j.id, durum: j.status, kategori: j.category };
+  } catch (e) {
+    return { ok: false, hata: (e as Error)?.message || String(e) };
+  }
 }
 
 export const SABLON_METIN_AZAMI = 1000;
@@ -156,9 +260,15 @@ export interface WaGonderim { disId: string; yontem: "serbest" | "sablon"; sablo
 
 async function sablonlaGonder(hesap: string, to: string, ad: string, metin: string): Promise<WaGonderim> {
   const hatalar: string[] = [];
-  for (const sablon of serbestSablonAdlari()) {
-    // Önce tek değişken ({{1}} = metin); Meta "değişken sayısı uyuşmuyor" derse ad + metin denenir.
-    for (const params of [[metin], [ad || "Sayın Müşterimiz", metin]]) {
+  const adlar = await etkinSablonlar();
+  if (adlar.length === 0) throw new Error("WhatsApp şablonu yok: Ayarlar → Mesajlar kartından \"Şablonu oluştur\" deyin (Meta onaylayınca kullanılır).");
+  for (const sablon of adlar) {
+    // Değişken sayısı Meta'dan biliniyorsa ona göre; bilinmiyorsa önce tek ({{1}} = metin), Meta
+    // "değişken sayısı uyuşmuyor" derse ad + metin denenir.
+    const bilgi = await sablonBilgisi(sablon).catch(() => null);
+    const tek = [metin], cift = [ad || "Sayın Müşterimiz", metin];
+    const denemeler = bilgi?.degisken === 2 ? [cift, tek] : [tek, cift];
+    for (const params of denemeler) {
       const r = await grafGonder(hesap, {
         to, type: "template",
         template: { name: sablon, language: { code: sablonDili() }, components: [{ type: "body", parameters: params.map((t) => ({ type: "text", text: sablonParam(t) })) }] },
@@ -267,10 +377,10 @@ export async function whatsappGonder(k: Konusma, metin: string): Promise<WaGonde
   if (pencereAcik(k)) {
     const r = await grafGonder(hesap, { to, type: "text", text: { preview_url: false, body: metin } });
     if (r.ok) return { disId: r.disId, yontem: "serbest" };
-    if (r.kod !== 131047 || !whatsappSablonHazir()) throw new Error(`WhatsApp gönderilemedi: ${r.hata}`);
+    if (r.kod !== 131047 || !(await whatsappSablonHazir())) throw new Error(`WhatsApp gönderilemedi: ${r.hata}`);
   }
-  if (!whatsappSablonHazir()) {
-    throw new Error("WhatsApp 24 saat penceresi kapalı: müşteri son 24 saatte yazmadığı için serbest mesaj gönderilemez. Müşteri tekrar yazınca yanıtlayabilirsiniz; ya da Meta onaylı bir şablon tanımlayın (WHATSAPP_TEMPLATE_SERBEST).");
+  if (!(await whatsappSablonHazir())) {
+    throw new Error("WhatsApp 24 saat penceresi kapalı: müşteri son 24 saatte yazmadığı için serbest mesaj gönderilemez. Müşteri tekrar yazınca yanıtlayabilirsiniz; ya da Ayarlar → Mesajlar kartından onaylı şablon oluşturun.");
   }
   const uzunluk = sablonParam(metin, Infinity).length;
   if (uzunluk > SABLON_METIN_AZAMI) {

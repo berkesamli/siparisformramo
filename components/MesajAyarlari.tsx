@@ -11,6 +11,7 @@ interface Durum {
   gmail: { kurulu: boolean; hesaplar: string[]; test: { adres: string; ok: boolean; inbox?: number; okunmamis?: number; hata?: string }[] | null };
   whatsapp: {
     kurulu: boolean; sablonlar: string[]; test: { ok: boolean; numara?: string; ad?: string; kalite?: string; uygulama?: { id: string; ad: string }; hata?: string } | null;
+    sablon: { varsayilan: string; govde: string; hata?: string; adaylar: { ad: string; durum: string; kategori?: string; dil?: string; degisken?: number; red?: string }[] } | null;
     webhook: { url: string; verifyToken: boolean; appSecret: boolean; secretIpucu: { uzunluk: number; bas: string; son: string; tirnak: boolean } | null; sonOlay: Iz | null; kabul: Iz | null; red: Iz | null; wabaId: boolean; abonelik: Abonelik | null };
   };
   instagram: {
@@ -59,6 +60,8 @@ export default function MesajAyarlari() {
   const [igAboneNotu, setIgAboneNotu] = useState("");
   const [igWebhookOnariyor, setIgWebhookOnariyor] = useState(false);
   const [igWebhookNotu, setIgWebhookNotu] = useState("");
+  const [sablonOlusuyor, setSablonOlusuyor] = useState(false);
+  const [sablonNotu, setSablonNotu] = useState("");
 
   async function yukle(test = false) {
     if (test) setTestEdiyor(true);
@@ -103,6 +106,17 @@ export default function MesajAyarlari() {
       if (j.ok) void yukle(true);
     } catch { setIgAboneNotu("Sunucuya ulaşılamadı."); }
     finally { setIgAboneOluyor(false); }
+  }
+
+  async function sablonOlustur() {
+    setSablonOlusuyor(true); setSablonNotu("");
+    try {
+      const r = await fetch("/api/mesaj/durum", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ islem: "wa-sablon" }) });
+      const j = await r.json();
+      setSablonNotu(j.ok ? `Şablon Meta'ya gönderildi (durum: ${j.sablon?.durum || "PENDING"}). Onay genelde dakikalar içinde gelir; "Bağlantıları sına" ile durumu yenileyin.` : `Olmadı: ${j.error || "hata"}`);
+      if (j.ok) void yukle(true);
+    } catch { setSablonNotu("Sunucuya ulaşılamadı."); }
+    finally { setSablonOlusuyor(false); }
   }
 
   async function igWebhookOnar() {
@@ -176,9 +190,44 @@ export default function MesajAyarlari() {
                 ? (d.whatsapp.test.ok
                     ? <>{`${d.whatsapp.test.numara || ""} ${d.whatsapp.test.ad ? "· " + d.whatsapp.test.ad : ""}${d.whatsapp.test.kalite ? " · kalite " + d.whatsapp.test.kalite : ""}`}{d.whatsapp.test.uygulama && <div>Jeton şu Meta uygulamasına ait: <strong>{d.whatsapp.test.uygulama.ad || "?"}</strong> (ID {d.whatsapp.test.uygulama.id}) — webhook ve App Secret bu uygulamada ayarlanır: developers.facebook.com/apps/{d.whatsapp.test.uygulama.id}/whatsapp-business/wa-settings/</div>}</>
                     : d.whatsapp.test.hata)
-                : d.whatsapp.sablonlar.length ? `Bizim başlattığımız mesaj şablonu: ${d.whatsapp.sablonlar.join(", ")}` : "Şablon tanımlı değil: yalnızca müşteri yazınca (24 saat içinde) yanıtlanır. Biz başlatmak için WHATSAPP_TEMPLATE_SERBEST."
+                : d.whatsapp.sablonlar.length ? `Bizim başlattığımız mesaj şablonu: ${d.whatsapp.sablonlar.join(", ")}` : "Bizim başlattığımız mesajlar için şablon durumu \"Bağlantıları sına\" ile görünür."
             }
           />
+          {d.whatsapp.sablon && (() => {
+            const sb = d.whatsapp.sablon;
+            const DURUM: Record<string, string> = { APPROVED: "onaylı ✓", PENDING: "Meta inceliyor…", IN_APPEAL: "itirazda", REJECTED: "reddedildi", PAUSED: "duraklatıldı", DISABLED: "devre dışı", yok: "yok" };
+            const onayli = sb.adaylar.some((a) => a.durum === "APPROVED");
+            const varsayilan = sb.adaylar.find((a) => a.ad === sb.varsayilan);
+            return (
+              <Satir
+                ok={sb.hata ? false : onayli ? true : null}
+                uyari={!sb.hata && !onayli}
+                baslik="WhatsApp: bizim başlattığımız mesajlar (şablon)"
+                detay={
+                  <>
+                    <div>Müşteri son 24 saatte yazmadıysa ya da yazışmayı biz başlatıyorsak Meta, mesajın onaylı bir şablon içinde gitmesini ister. Şablon onaylanınca Mesajlar sayfasında <strong>Yeni</strong> düğmesi çıkar; pencere dışı yanıtlar da bu şablonla gider.</div>
+                    {sb.hata && <div><strong>Şablonlar okunamadı:</strong> {sb.hata}</div>}
+                    {!sb.hata && sb.adaylar.map((a) => (
+                      <div key={a.ad}>
+                        Şablon <strong>{a.ad}</strong>: {DURUM[a.durum] || a.durum}
+                        {a.durum !== "yok" ? ` · ${a.kategori || "?"} · ${a.dil || "?"} · ${a.degisken ?? "?"} değişken` : ""}
+                        {a.red ? ` · sebep: ${a.red}` : ""}
+                        {a.durum === "REJECTED" ? " → WhatsApp Manager → Mesaj şablonları'ndan düzenleyip yeniden gönderin." : ""}
+                      </div>
+                    ))}
+                    {!sb.hata && varsayilan?.durum === "yok" && (
+                      <div style={{ marginTop: 6, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                        <button type="button" className="btn secondary xs" onClick={() => void sablonOlustur()} disabled={sablonOlusuyor}><Icon name="zap" size={12} /> {sablonOlusuyor ? "Gönderiliyor…" : `Şablonu oluştur (${sb.varsayilan})`}</button>
+                        <span style={{ fontSize: 12.5 }}>{sablonNotu || "Meta'ya tek tıkla başvurur; onay genelde dakikalar, en geç 24 saat."}</span>
+                      </div>
+                    )}
+                    {!sb.hata && varsayilan && varsayilan.durum !== "yok" && sablonNotu && <div style={{ marginTop: 4 }}>{sablonNotu}</div>}
+                    <div style={{ marginTop: 6, whiteSpace: "pre-wrap", padding: "6px 10px", borderRadius: 8, background: "var(--surface-3)", fontSize: 12 }}>{sb.govde.replace("{{1}}", "[müşteri adı]").replace("{{2}}", "[yazdığınız mesaj]")}</div>
+                  </>
+                }
+              />
+            );
+          })()}
           <Satir
             ok={webhookOk}
             uyari={!kabul || (sonOlay ? sonOlay.tur !== "mesaj" : true)}

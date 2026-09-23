@@ -9,8 +9,8 @@ import { musteriEsle } from "./musteri-esle";
 import { sablonParam, whatsappConfigured, whatsappGonder, whatsappSablonHazir } from "./whatsapp";
 import type { KanalDurumu, Konusma, Mesaj } from "./tur";
 
-export function kanalDurumu(): KanalDurumu {
-  return { whatsapp: whatsappConfigured(), instagram: instagramConfigured(), email: gmailConfigured(), whatsappSablon: whatsappSablonHazir() };
+export async function kanalDurumu(): Promise<KanalDurumu> {
+  return { whatsapp: whatsappConfigured(), instagram: instagramConfigured(), email: gmailConfigured(), whatsappSablon: await whatsappSablonHazir().catch(() => false) };
 }
 
 export interface GonderimSonucu { mesaj: Mesaj; yontem: "serbest" | "sablon" | "eposta" | "instagram"; sablon?: string }

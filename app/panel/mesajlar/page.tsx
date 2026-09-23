@@ -21,7 +21,7 @@ export default async function MesajlarPage({ searchParams }: { searchParams?: { 
       <Inbox
         me={{ username: user.username, name: user.name, owner: isOwner(user.username) }}
         dbHazir={dbConfigured()}
-        kanallar={kanalDurumu()}
+        kanallar={await kanalDurumu()}
         taslak={taslakHazir()}
         ilkKonusma={searchParams?.k || ""}
       />
