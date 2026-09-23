@@ -120,19 +120,20 @@ yanıtlar. Yalnızca `MESAJ_USERNAMES`'teki çalışanlar (ve sahipler) görür.
   ekran uyarır ve yalnızca 24 saat içinde yanıt verilir.
   Not: müşterinin başlattığı yazışmalar Meta'da ücretsizdir; bizim başlattığımız şablonlu mesajlar
   Meta'nın mesaj başı ücretine tabidir.
-- **Instagram** (olga.cerceve, Facebook sayfasına bağlı profesyonel hesap; WhatsApp ile aynı Meta uygulaması):
+- **Instagram** (olga.cerceve profesyonel hesabı; WhatsApp ile aynı Meta uygulaması, "Instagram" kullanım durumu):
   1. Instagram uygulamasında: Ayarlar → Mesajlar ve hikâye yanıtları → **Bağlı araçlar** → *Mesajlara erişime izin ver* açık.
-  2. Meta uygulaması → Add Product → **Instagram** → "API setup with Facebook login" → hesabı ekleyin (sayfa + Instagram).
-     Webhooks → Instagram → `messages` alanına abone olun; Callback URL `https://<site>/api/mesaj/webhook`,
-     doğrulama metni `WHATSAPP_VERIFY_TOKEN` (ya da `INSTAGRAM_VERIFY_TOKEN`).
-  3. Jeton: Business Settings → Sistem kullanıcıları → jeton üret (uygulama: aynı uygulama; izinler
-     `instagram_basic`, `instagram_manage_messages`, `pages_manage_metadata`, `pages_messaging`, `pages_show_list`);
-     sistem kullanıcısına sayfa ve Instagram hesabı varlık olarak atanmış olmalı.
-  4. Vercel: `INSTAGRAM_TOKEN`, `INSTAGRAM_PAGE_ID` (Facebook sayfa ID), `INSTAGRAM_ACCOUNT_ID` (Instagram işletme hesabı ID) → Redeploy.
-  5. Ayarlar → Mesajlar kartı → "Bağlantıları sına": sayfa adı + @kullanıcı adı görünmeli; "Sayfa aboneliğini onar" ile
-     uygulama sayfaya abone yapılır (Instagram DM'leri ancak bu abonelikle düşer).
-  6. Uygulama Development modundayken yalnızca uygulama rolündeki kişilerin DM'leri gelir; bütün müşteriler için
-     `instagram_manage_messages` (+ `pages_messaging`) izinlerine **App Review** alınıp uygulama **Live** yapılır.
+  2. Meta uygulaması → Add use cases → Business messaging → **Instagram** → Customize → **API setup with Instagram login**
+     (önerilen yol): "Add all required permissions"; "Generate access tokens" ile olga.cerceve hesabını ekleyip jetonu ve
+     Instagram hesap kimliğini alın; "Configure webhooks": Callback URL `https://<site>/api/mesaj/webhook`, doğrulama metni
+     `WHATSAPP_VERIFY_TOKEN`, alan `messages`. Aynı sayfadaki **Instagram app secret** (Show) değerini de alın.
+  3. Vercel: `INSTAGRAM_TOKEN`, `INSTAGRAM_ACCOUNT_ID`, `INSTAGRAM_APP_SECRET` → Redeploy. (`INSTAGRAM_PAGE_ID` boş kalır.
+     Jeton 60 günlüktür; sistem 7 günde bir kendisi tazeleyip veri tabanında saklar.)
+  4. Alternatif "API setup with Facebook login" yolu: sistem kullanıcısı jetonu (süresiz; izinler `instagram_basic`,
+     `instagram_manage_messages`, `pages_manage_metadata`, `pages_messaging`, `pages_show_list`) + `INSTAGRAM_PAGE_ID`;
+     imza `META_APP_SECRET` / `WHATSAPP_APP_SECRET`; Ayarlar kartındaki "Sayfa aboneliğini onar" gerekir.
+  5. Ayarlar → Mesajlar kartı → "Bağlantıları sına": @olga.cerceve ve jeton durumu görünmeli.
+  6. Development modunda yalnızca uygulamada rolü olan Instagram hesaplarının (Instagram testers) DM'leri gelir; bütün
+     müşteriler için `instagram_business_manage_messages` iznine **App Review** alınıp uygulama **Live** yapılır.
   Instagram uygulamasından atılan yanıtlar da (echo) konuşmada görünür. 24 saat kuralı burada da geçerlidir.
 - **Gmail:** hesap başına Google *uygulama şifresi* (2 adımlı doğrulama açık olmalı). Gelen kutusu
   ekran açıkken 60 sn'de bir, ilk kurulumda son 7 gün okunur; `noreply`/bülten adresleri sessiz düşer.

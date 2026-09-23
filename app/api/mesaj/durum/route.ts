@@ -3,7 +3,7 @@ import { getSessionUser } from "@/lib/auth";
 import { isOwner, mesajUsernames } from "@/data/users";
 import { dbConfigured, dbSaglik } from "@/lib/mesaj/db";
 import { gmailConfigured, gmailHesaplar, gmailSenk, gmailTest } from "@/lib/mesaj/gmail";
-import { igSayfaAbonelik, instagramConfigured, instagramDurum } from "@/lib/mesaj/instagram";
+import { igJetonTazele, igSayfaAbonelik, instagramConfigured, instagramDurum } from "@/lib/mesaj/instagram";
 import { serbestSablonAdlari, wabaAbonelik, whatsappConfigured, whatsappDurum } from "@/lib/mesaj/whatsapp";
 import { taslakHazir } from "@/lib/mesaj/taslak";
 import { izOku } from "@/lib/mesaj/webhook-iz";
@@ -43,7 +43,12 @@ export async function GET(req: NextRequest) {
       kurulu: whatsappConfigured(), sablonlar: serbestSablonAdlari(), test: wa,
       webhook: { url: `${origin}/api/whatsapp/webhook`, verifyToken: Boolean((process.env.WHATSAPP_VERIFY_TOKEN || "").trim()), appSecret: Boolean(secret), secretIpucu, sonOlay: waIz.son, kabul: waIz.kabul, red: waIz.red, wabaId: Boolean((process.env.WHATSAPP_WABA_ID || "").trim()), abonelik },
     },
-    instagram: { kurulu: instagramConfigured(), test: ig, webhook: { url: `${origin}/api/mesaj/webhook`, sonOlay: igIz.son, kabul: igIz.kabul, red: igIz.red, abonelik: igAbonelik, sayfa: Boolean((process.env.INSTAGRAM_PAGE_ID || "").trim()) } },
+    instagram: {
+      kurulu: instagramConfigured(), test: ig,
+      yol: (process.env.INSTAGRAM_PAGE_ID || "").trim() ? "facebook" : "instagram-login",
+      igSecret: Boolean((process.env.INSTAGRAM_APP_SECRET || "").trim()),
+      webhook: { url: `${origin}/api/mesaj/webhook`, sonOlay: igIz.son, kabul: igIz.kabul, red: igIz.red, abonelik: igAbonelik, sayfa: Boolean((process.env.INSTAGRAM_PAGE_ID || "").trim()) },
+    },
     taslak: taslakHazir(),
     gorebilenler: mesajUsernames(),
   });
@@ -53,6 +58,10 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   if (!(await yetki())) return NextResponse.json({ ok: false, error: "Yetkisiz." }, { status: 401 });
   const b = (await req.json().catch(() => null)) as { islem?: string } | null;
+  if (b?.islem === "ig-jeton") {
+    const r = await igJetonTazele(true);
+    return NextResponse.json({ ok: r.ok, tazeleme: r, error: r.ok ? undefined : r.hata });
+  }
   if (b?.islem === "ig-abone") {
     const r = await igSayfaAbonelik(true);
     return NextResponse.json({ ok: r.ok, abonelik: r, error: r.ok ? undefined : r.hata });
