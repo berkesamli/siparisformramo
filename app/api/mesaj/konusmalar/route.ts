@@ -38,7 +38,7 @@ export async function GET(req: NextRequest) {
       konusmalar: liste,
       hesaplar: { email: epostaHesap },
       okunmamis: await okunmamisSayisi(),
-      kanallar: kanalDurumu(),
+      kanallar: await kanalDurumu(),
       taslak: taslakHazir(),
       kullanicilar,
       senk,

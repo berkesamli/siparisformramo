@@ -68,7 +68,7 @@ Eski Apps Script kodu `legacy-apps-script/` klasöründe korunmaktadır.
 | `BOLGE_SORUMLULARI` | Ankara: Ramazan Kaypan, İstanbul: Alaattin Yıldız, Taşra: Murat Gündüz | Müşteri satış bölgeleriyle ilgilenen satışçılar: `ankara=…;istanbul=…;tasra=…` |
 | `DATABASE_URL` | Mesajlar için | Postgres (Vercel Storage → Neon). `STORAGE_URL` / `POSTGRES_URL` gibi farklı ön ekli adlar da tanınır. Gelen kutusu tabloları ilk açılışta kendiliğinden kurulur |
 | `MESAJ_USERNAMES` | bütün çalışanlar | Gelen kutusunu (`/panel/mesajlar`) görüp yanıtlayabilenleri daraltır (virgülle; sahipler her zaman dahil) |
-| `WHATSAPP_TEMPLATE_SERBEST` | — | Gelen kutusundan bizim başlattığımız WhatsApp mesajı ve 24 saat sonrası yanıt için Meta onaylı şablon ad(lar)ı (`{{1}}` = metin) |
+| `WHATSAPP_TEMPLATE_SERBEST` | — | İsteğe bağlı: bizim başlattığımız WhatsApp mesajı için elle tanımlı Meta onaylı şablon ad(lar)ı. Boşsa Ayarlar kartındaki **"Şablonu oluştur"** ile açılan `genel_mesaj` şablonu Meta onaylayınca kendiliğinden kullanılır (`WHATSAPP_WABA_ID` gerekir) |
 | `GMAIL_HESAPLAR` | — | `adres:uygulama-şifresi;adres2:şifre2` — bu Gmail hesaplarının gelen kutusu IMAP ile okunur, yanıt aynı hesaptan SMTP ile gider |
 | `INSTAGRAM_TOKEN`, `INSTAGRAM_PAGE_ID`, `INSTAGRAM_ACCOUNT_ID` | — | Instagram DM'leri (Meta Messenger Platform); webhook `/api/mesaj/webhook`. `META_APP_SECRET` (ya da `WHATSAPP_APP_SECRET`) zorunlu; isteğe bağlı `INSTAGRAM_VERIFY_TOKEN` |
 
@@ -115,9 +115,11 @@ yanıtlar. Yalnızca `MESAJ_USERNAMES`'teki çalışanlar (ve sahipler) görür.
 - **WhatsApp:** mevcut webhook (`/api/whatsapp/webhook`) gelen mesajları ve teslim/okundu
   durumlarını da yazar. Müşteri yazdığında ve 24 saat içinde yanıtlandığında normal yazışma gibidir.
   **24 saat** geçtiyse ya da konuşmayı **biz başlatıyorsak** (liste başlığındaki "Yeni" düğmesi:
-  müşteri defterinden seç ya da numara yaz) Meta onaylı şablon gerekir: `WHATSAPP_TEMPLATE_SERBEST`
-  tanımlıysa metin şablonun içinde gider, müşteri yanıtlayınca serbest yazışma açılır. Şablon yoksa
-  ekran uyarır ve yalnızca 24 saat içinde yanıt verilir.
+  müşteri defterinden seç ya da numara yaz) Meta onaylı şablon gerekir. Ayarlar → Mesajlar kartında
+  **"Şablonu oluştur"** düğmesi `genel_mesaj` şablonunu ("Merhaba {{1}}, Olga Çerçeve'den yazıyoruz: {{2}} …")
+  Meta'ya tek tıkla gönderir; kart onay durumunu gösterir (PENDING → APPROVED, genelde dakikalar). Onaylanınca
+  Mesajlar sayfasında **Yeni** düğmesi çıkar; metin şablonun içinde gider, müşteri yanıtlayınca serbest yazışma
+  açılır. Elle tanımlı şablon için `WHATSAPP_TEMPLATE_SERBEST` de kullanılabilir (önce o denenir).
   Not: müşterinin başlattığı yazışmalar Meta'da ücretsizdir; bizim başlattığımız şablonlu mesajlar
   Meta'nın mesaj başı ücretine tabidir.
 - **Instagram** (olga.cerceve profesyonel hesabı; WhatsApp ile aynı Meta uygulaması, "Instagram" kullanım durumu):
