@@ -42,6 +42,26 @@ interface Govde {
   entry?: (IgEntry & { changes?: { field?: string; value?: WaValue & { statuses?: WaDurum[] } }[] })[];
 }
 
+/** Instagram olaylarının türlere göre dökümü: "3 olay (mesaj 2, okundu 1)"; standby varsa uyarır. */
+export function olayDokumu(body: Govde | null): { n: number; ozet: string } {
+  const say: Record<string, number> = {};
+  let standby = 0, n = 0;
+  for (const e of body?.entry || []) {
+    standby += e.standby?.length || 0;
+    for (const ev of e.messaging || []) {
+      n++;
+      const tur = ev.message
+        ? (ev.message.is_deleted ? "silindi" : ev.message.is_echo ? "bizim gönderdiğimiz (echo)" : ev.message.is_unsupported ? "desteklenmeyen" : "mesaj")
+        : ev.read ? "okundu" : ev.reaction ? "tepki" : ev.postback ? "postback" : "diğer";
+      say[tur] = (say[tur] || 0) + 1;
+    }
+  }
+  const parcalar = Object.entries(say).map(([t, c]) => `${t} ${c}`).join(", ");
+  let ozet = `object: ${body?.object || "?"} · ${n} olay${parcalar ? ` (${parcalar})` : ""}`;
+  if (standby) ozet += ` · standby ${standby}: Meta bu mesajları başka bir uygulamaya "birincil alıcı" olarak veriyor; Meta uygulaması → Messenger ayarları → Handover'da bu uygulamayı birincil yapın ya da diğer uygulamanın sayfa aboneliğini kaldırın`;
+  return { n, ozet };
+}
+
 export async function POST(req: Request) {
   const raw = await req.text();
   if (!imzaGecerli(raw, req.headers.get("x-hub-signature-256"))) {
@@ -52,12 +72,12 @@ export async function POST(req: Request) {
   }
   let body: Govde | null = null;
   try { body = JSON.parse(raw); } catch { return NextResponse.json({ ok: false }, { status: 400 }); }
-  {
-    const n = (body?.entry || []).reduce((a, e) => a + (e.messaging?.length || 0), 0);
-    await izKaydet(body?.object === "instagram" ? "instagram" : "whatsapp", n ? "mesaj" : "diger", `object: ${body?.object || "?"} · ${n} olay`);
-  }
+  const kanal = body?.object === "instagram" ? "instagram" : "whatsapp";
+  const dokum = olayDokumu(body);
+  await izKaydet(kanal, dokum.n ? "mesaj" : "diger", dokum.ozet);
   if (!dbConfigured()) {
     console.warn("Mesaj webhook'u geldi ama DATABASE_URL yok; olay atlandı.");
+    await izKaydet(kanal, "islem-hata", "Olay işlenemedi: DATABASE_URL tanımlı değil (gelen kutusu kurulu değil).");
     return NextResponse.json({ ok: true, atlandi: true });
   }
   let yeni = 0, durum = 0;
@@ -74,9 +94,11 @@ export async function POST(req: Request) {
         }
       }
     }
+    await izKaydet(kanal, "islem", `${dokum.n} olay → ${yeni} yeni mesaj${durum ? `, ${durum} durum güncellemesi` : ""}${dokum.n && !yeni && !durum ? " (yeni mesaj yok: okundu/tepki olayı ya da daha önce kaydedilmiş mesaj)" : ""}`);
   } catch (e) {
     // Meta 200 dışında yanıt alırsa tekrar dener; işlenen kısmı kaybetmemek için hata loglanır, 200 döner.
     console.error("Mesaj webhook işlenemedi:", e);
+    await izKaydet(kanal, "islem-hata", `Olay işlenirken hata: ${(e as Error)?.message || String(e)}`);
   }
   return NextResponse.json({ ok: true, yeni, durum });
 }

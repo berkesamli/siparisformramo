@@ -53,13 +53,13 @@ export async function GET(req: NextRequest) {
     gmail: { kurulu: gmailConfigured(), hesaplar: gmailHesaplar().map((h) => h.adres), test: gmail },
     whatsapp: {
       kurulu: whatsappConfigured(), sablonlar: serbestSablonAdlari(), sablon, test: wa,
-      webhook: { url: `${origin}/api/whatsapp/webhook`, verifyToken: Boolean((process.env.WHATSAPP_VERIFY_TOKEN || "").trim()), appSecret: Boolean(secret), secretIpucu, sonOlay: waIz.son, kabul: waIz.kabul, red: waIz.red, wabaId: Boolean((process.env.WHATSAPP_WABA_ID || "").trim()), abonelik },
+      webhook: { url: `${origin}/api/whatsapp/webhook`, verifyToken: Boolean((process.env.WHATSAPP_VERIFY_TOKEN || "").trim()), appSecret: Boolean(secret), secretIpucu, sonOlay: waIz.son, kabul: waIz.kabul, red: waIz.red, islem: waIz.islem, wabaId: Boolean((process.env.WHATSAPP_WABA_ID || "").trim()), abonelik },
     },
     instagram: {
       kurulu: instagramConfigured(), test: ig,
       yol: (process.env.INSTAGRAM_PAGE_ID || "").trim() ? "facebook" : "instagram-login",
       igSecret: Boolean((process.env.INSTAGRAM_APP_SECRET || "").trim()),
-      webhook: { url: igCallback, sonOlay: igIz.son, kabul: igIz.kabul, red: igIz.red, abonelik: igAbonelik, uygulama: igUygulama, sayfa: Boolean((process.env.INSTAGRAM_PAGE_ID || "").trim()) },
+      webhook: { url: igCallback, sonOlay: igIz.son, kabul: igIz.kabul, red: igIz.red, islem: igIz.islem, abonelik: igAbonelik, uygulama: igUygulama, sayfa: Boolean((process.env.INSTAGRAM_PAGE_ID || "").trim()) },
     },
     taslak: taslakHazir(),
     gorebilenler: mesajUsernames(),

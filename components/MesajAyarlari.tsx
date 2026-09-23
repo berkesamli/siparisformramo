@@ -12,12 +12,12 @@ interface Durum {
   whatsapp: {
     kurulu: boolean; sablonlar: string[]; test: { ok: boolean; numara?: string; ad?: string; kalite?: string; uygulama?: { id: string; ad: string }; hata?: string } | null;
     sablon: { varsayilan: string; govde: string; hata?: string; adaylar: { ad: string; durum: string; kategori?: string; dil?: string; degisken?: number; red?: string }[] } | null;
-    webhook: { url: string; verifyToken: boolean; appSecret: boolean; secretIpucu: { uzunluk: number; bas: string; son: string; tirnak: boolean } | null; sonOlay: Iz | null; kabul: Iz | null; red: Iz | null; wabaId: boolean; abonelik: Abonelik | null };
+    webhook: { url: string; verifyToken: boolean; appSecret: boolean; secretIpucu: { uzunluk: number; bas: string; son: string; tirnak: boolean } | null; sonOlay: Iz | null; kabul: Iz | null; red: Iz | null; islem: Iz | null; wabaId: boolean; abonelik: Abonelik | null };
   };
   instagram: {
     kurulu: boolean; yol: "facebook" | "instagram-login"; igSecret: boolean;
     test: { ok: boolean; ad?: string; hata?: string; jeton?: { yol: string; kaynak: string; tazelendi: string | null; bitis: string | null }; tazeleme?: { ok: boolean; tazelendi?: boolean; bitis?: string | null; atlandi?: string; hata?: string } } | null;
-    webhook: { url: string; sonOlay: Iz | null; kabul: Iz | null; red: Iz | null; abonelik: Abonelik | null; uygulama: UygulamaWebhook | null; sayfa: boolean };
+    webhook: { url: string; sonOlay: Iz | null; kabul: Iz | null; red: Iz | null; islem: Iz | null; abonelik: Abonelik | null; uygulama: UygulamaWebhook | null; sayfa: boolean };
   };
   taslak: boolean;
   gorebilenler: string[];
@@ -235,6 +235,7 @@ export default function MesajAyarlari() {
             detay={
               <>
                 <div>{webhookDetay}</div>
+                {wh?.islem && <div style={wh.islem.tur === "islem-hata" ? { color: "var(--error)" } : undefined}>{wh.islem.tur === "islem-hata" ? <strong>Son işlemde hata</strong> : "Son işlem"} {nekadar(wh.islem.at)}: {wh.islem.ozet}</div>}
                 {wh && !wh.appSecret && <div><strong>Zorunlu:</strong> WHATSAPP_APP_SECRET tanımlı değil; güvenlik için Meta'dan gelen bütün olaylar reddedilir. Meta uygulaması → App settings → Basic → App secret değerini Vercel'e girin.</div>}
                 {wh?.secretIpucu && (
                   <div>Yayındaki WHATSAPP_APP_SECRET: {wh.secretIpucu.uzunluk} karakter, &quot;{wh.secretIpucu.bas}…{wh.secretIpucu.son}&quot;{wh.secretIpucu.tirnak ? " — başında/sonunda tırnak var, kaldırın!" : ""}{jetonUygulama ? ` — Meta'da karşılaştırın: developers.facebook.com/apps/${jetonUygulama.id}/settings/basic/ (App secret, Show).` : ""} Vercel'de değiştirdiyseniz Redeploy gerekir.</div>
@@ -281,6 +282,7 @@ export default function MesajAyarlari() {
                 )}
                 {d.instagram.webhook.kabul && <div>Kabul edilen son olay {nekadar(d.instagram.webhook.kabul.at)}: {d.instagram.webhook.kabul.ozet}</div>}
                 {d.instagram.webhook.red && <div>Reddedilen son olay {nekadar(d.instagram.webhook.red.at)}: {d.instagram.webhook.red.ozet}</div>}
+                {d.instagram.webhook.islem && <div style={d.instagram.webhook.islem.tur === "islem-hata" ? { color: "var(--error)" } : undefined}>{d.instagram.webhook.islem.tur === "islem-hata" ? <strong>Son işlemde hata</strong> : "Son işlem"} {nekadar(d.instagram.webhook.islem.at)}: {d.instagram.webhook.islem.ozet}</div>}
                 {d.instagram.webhook.abonelik && (
                   <div>
                     {d.instagram.webhook.abonelik.ok
