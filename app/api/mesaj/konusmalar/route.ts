@@ -25,6 +25,7 @@ export async function GET(req: NextRequest) {
       await igJetonTazele(false).catch(() => undefined);
       // Webhook gelmese de son konuşmalar Conversations API'den çekilir (45 sn'de en çok bir kez)
       const ig = await instagramSenk({ zorla: q.get("zorla") === "1" });
+      // Geri çekilme (atlandı) sırasında eski hata her yenilemede uyarı olarak çıkmasın; yalnızca gerçek denemeler raporlanır.
       if (!ig.atlandi) senk = [...(senk || []), { hesap: ig.hesap, yeni: ig.yeni, hata: ig.hata }];
     }
     const liste = await konusmalar({
