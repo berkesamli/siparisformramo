@@ -16,7 +16,7 @@ interface Durum {
   instagram: {
     kurulu: boolean; yol: "facebook" | "instagram-login"; igSecret: boolean;
     test: { ok: boolean; ad?: string; hata?: string; jeton?: { yol: string; kaynak: string; tazelendi: string | null; bitis: string | null }; tazeleme?: { ok: boolean; tazelendi?: boolean; bitis?: string | null; atlandi?: string; hata?: string } } | null;
-    webhook: { url: string; sonOlay: Iz | null; kabul: Iz | null; red: Iz | null; abonelik: Abonelik | null; sayfa: boolean };
+    webhook: { url: string; sonOlay: Iz | null; kabul: Iz | null; red: Iz | null; abonelik: Abonelik | null; uygulama: UygulamaWebhook | null; sayfa: boolean };
   };
   taslak: boolean;
   gorebilenler: string[];
@@ -24,6 +24,12 @@ interface Durum {
 interface SenkSonuc { hesap: string; yeni: number; hata?: string; atlandi?: boolean }
 interface Iz { at: string; tur: string; ozet: string }
 interface Abonelik { ok: boolean; wabaId?: string; abone?: boolean; alanlar?: string[]; uygulamalar?: { id: string; ad: string; alanlar: string[] }[]; hata?: string }
+interface UygulamaWebhook {
+  ok: boolean; uygulama?: { id: string; ad: string };
+  abonelikler?: { nesne: string; url: string; aktif: boolean; alanlar: string[] }[];
+  instagram?: { abone: boolean; adresBizim: boolean; alanlar: string[]; url?: string };
+  hata?: string;
+}
 
 const nekadar = (iso: string) => {
   const dk = Math.round((Date.now() - new Date(iso).getTime()) / 60_000);
@@ -51,6 +57,8 @@ export default function MesajAyarlari() {
   const [aboneNotu, setAboneNotu] = useState("");
   const [igAboneOluyor, setIgAboneOluyor] = useState(false);
   const [igAboneNotu, setIgAboneNotu] = useState("");
+  const [igWebhookOnariyor, setIgWebhookOnariyor] = useState(false);
+  const [igWebhookNotu, setIgWebhookNotu] = useState("");
 
   async function yukle(test = false) {
     if (test) setTestEdiyor(true);
@@ -95,6 +103,17 @@ export default function MesajAyarlari() {
       if (j.ok) void yukle(true);
     } catch { setIgAboneNotu("Sunucuya ulaşılamadı."); }
     finally { setIgAboneOluyor(false); }
+  }
+
+  async function igWebhookOnar() {
+    setIgWebhookOnariyor(true); setIgWebhookNotu("");
+    try {
+      const r = await fetch("/api/mesaj/durum", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ islem: "ig-webhook" }) });
+      const j = await r.json();
+      setIgWebhookNotu(j.ok ? "Uygulama Instagram mesajlarına abone yapıldı. Instagram'dan bir DM atıp \"Bağlantıları sına\" ile son olayı kontrol edin." : `Olmadı: ${j.error || "hata"}`);
+      if (j.ok) void yukle(true);
+    } catch { setIgWebhookNotu("Sunucuya ulaşılamadı."); }
+    finally { setIgWebhookOnariyor(false); }
   }
 
   const canli = Boolean(d?.db.test || d?.gmail.test || d?.whatsapp.test || d?.instagram.test);
@@ -224,6 +243,35 @@ export default function MesajAyarlari() {
                   <div style={{ marginTop: 6, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
                     <button type="button" className="btn secondary xs" onClick={() => void igAboneOl()} disabled={igAboneOluyor}><Icon name="zap" size={12} /> {igAboneOluyor ? "Abone olunuyor…" : "Sayfa aboneliğini onar"}</button>
                     {igAboneNotu && <span style={{ fontSize: 12.5 }}>{igAboneNotu}</span>}
+                  </div>
+                )}
+                {(() => {
+                  const u = d.instagram.webhook.uygulama;
+                  if (!u) return null;
+                  if (!u.ok) return <div>Uygulama webhook'u sorgulanamadı: {u.hata}</div>;
+                  const ig = u.instagram;
+                  const tamam = Boolean(ig?.abone && ig.adresBizim);
+                  const digerleri = (u.abonelikler || []).filter((a) => a.nesne !== "instagram").map((a) => `${a.nesne}: ${a.alanlar.join(", ") || "alan yok"}`).join(" · ");
+                  return (
+                    <div style={{ marginTop: 4 }}>
+                      <div>
+                        {tamam
+                          ? `Meta uygulaması (${u.uygulama?.ad}) Instagram mesajlarına abone ✓ (instagram: ${ig?.alanlar.join(", ")})`
+                          : !ig?.abone
+                            ? <><strong>Meta uygulaması ({u.uygulama?.ad}) Instagram &quot;messages&quot; alanına ABONE DEĞİL</strong> → DM&apos;ler hiç gelmez. &quot;Uygulama webhook&apos;unu onar&quot; deyin.</>
+                            : <><strong>Meta uygulamasının Instagram webhook adresi farklı:</strong> {ig?.url} → &quot;Uygulama webhook&apos;unu onar&quot; deyin.</>}
+                        {digerleri ? ` · diğer: ${digerleri}` : ""}
+                      </div>
+                      <div style={{ marginTop: 6, display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                        <button type="button" className="btn secondary xs" onClick={() => void igWebhookOnar()} disabled={igWebhookOnariyor}><Icon name="zap" size={12} /> {igWebhookOnariyor ? "Onarılıyor…" : "Uygulama webhook'unu onar"}</button>
+                        {igWebhookNotu && <span style={{ fontSize: 12.5 }}>{igWebhookNotu}</span>}
+                      </div>
+                    </div>
+                  );
+                })()}
+                {d.instagram.test?.ok && !d.instagram.webhook.kabul && !d.instagram.webhook.red && (
+                  <div style={{ marginTop: 4 }}>
+                    Henüz hiç Instagram olayı gelmedi. Abonelikler tamamsa Instagram uygulamasında <strong>Ayarlar → Mesajlar ve hikâye yanıtları → Mesaj denetimleri → Bağlı araçlar → &quot;Mesajlara erişime izin ver&quot;</strong> açık olmalı; kapalıysa Meta DM&apos;leri hiçbir uygulamaya iletmez. Ayrıca gönderen hesap uygulamada rolü olmayan biriyse <em>instagram_manage_messages</em> için Uygulama İncelemesi (Advanced access) gerekir.
                   </div>
                 )}
                 <div>Webhook adresi: {d.instagram.webhook.url}</div>

@@ -4,6 +4,7 @@ import { isOwner, mesajUsernames } from "@/data/users";
 import { dbConfigured, dbSaglik } from "@/lib/mesaj/db";
 import { gmailConfigured, gmailHesaplar, gmailSenk, gmailTest } from "@/lib/mesaj/gmail";
 import { igJetonTazele, igSayfaAbonelik, instagramConfigured, instagramDurum } from "@/lib/mesaj/instagram";
+import { igUygulamaWebhookOnar, uygulamaWebhookDurumu } from "@/lib/mesaj/meta-uygulama";
 import { serbestSablonAdlari, wabaAbonelik, whatsappConfigured, whatsappDurum } from "@/lib/mesaj/whatsapp";
 import { taslakHazir } from "@/lib/mesaj/taslak";
 import { izOku } from "@/lib/mesaj/webhook-iz";
@@ -30,8 +31,12 @@ export async function GET(req: NextRequest) {
     izOku("instagram"),
     canli && whatsappConfigured() && process.env.WHATSAPP_WABA_ID ? wabaAbonelik(false) : Promise.resolve(null),
   ]);
-  const igAbonelik = canli && instagramConfigured() && (process.env.INSTAGRAM_PAGE_ID || "").trim() ? await igSayfaAbonelik(false) : null;
   const origin = req.nextUrl.origin;
+  const igCallback = `${origin}/api/mesaj/webhook`;
+  const [igAbonelik, igUygulama] = await Promise.all([
+    canli && instagramConfigured() && (process.env.INSTAGRAM_PAGE_ID || "").trim() ? igSayfaAbonelik(false) : Promise.resolve(null),
+    canli && instagramConfigured() ? uygulamaWebhookDurumu(igCallback) : Promise.resolve(null),
+  ]);
   // Yayındaki secret'ın kısa parmak izi (tamamı asla dönmez): Meta'daki değerle karşılaştırmak için.
   const secret = (process.env.WHATSAPP_APP_SECRET || process.env.META_APP_SECRET || "").trim();
   const secretIpucu = secret ? { uzunluk: secret.length, bas: secret.slice(0, 2), son: secret.slice(-2), tirnak: /^["']|["']$/.test(secret) } : null;
@@ -47,7 +52,7 @@ export async function GET(req: NextRequest) {
       kurulu: instagramConfigured(), test: ig,
       yol: (process.env.INSTAGRAM_PAGE_ID || "").trim() ? "facebook" : "instagram-login",
       igSecret: Boolean((process.env.INSTAGRAM_APP_SECRET || "").trim()),
-      webhook: { url: `${origin}/api/mesaj/webhook`, sonOlay: igIz.son, kabul: igIz.kabul, red: igIz.red, abonelik: igAbonelik, sayfa: Boolean((process.env.INSTAGRAM_PAGE_ID || "").trim()) },
+      webhook: { url: igCallback, sonOlay: igIz.son, kabul: igIz.kabul, red: igIz.red, abonelik: igAbonelik, uygulama: igUygulama, sayfa: Boolean((process.env.INSTAGRAM_PAGE_ID || "").trim()) },
     },
     taslak: taslakHazir(),
     gorebilenler: mesajUsernames(),
@@ -61,6 +66,10 @@ export async function POST(req: NextRequest) {
   if (b?.islem === "ig-jeton") {
     const r = await igJetonTazele(true);
     return NextResponse.json({ ok: r.ok, tazeleme: r, error: r.ok ? undefined : r.hata });
+  }
+  if (b?.islem === "ig-webhook") {
+    const r = await igUygulamaWebhookOnar(`${req.nextUrl.origin}/api/mesaj/webhook`);
+    return NextResponse.json({ ok: r.ok, uygulama: r, error: r.ok ? undefined : r.hata });
   }
   if (b?.islem === "ig-abone") {
     const r = await igSayfaAbonelik(true);
