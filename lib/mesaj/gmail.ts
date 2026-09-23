@@ -8,7 +8,7 @@
 // gelen kutusu açılınca ve arka planda (senk=1) tetiklenir; son okunan UID
 // mesaj_senk tablosunda tutulur (UIDVALIDITY değişirse baştan başlanır).
 
-import { konusmaBul, konusmaBulVeyaOlustur, konusmaGuncelle, mesajEkle, senkOku, senkYaz } from "./db";
+import { htmlEksikMesajlar, konusmaBul, konusmaBulVeyaOlustur, konusmaGuncelle, mesajEkle, mesajHtmlYaz, senkOku, senkYaz } from "./db";
 import { ekKaydet, ekUrl, ekTuru, EK_AZAMI_BAYT } from "./ek";
 import { HTML_AZAMI, htmlTemizle } from "./eposta-html";
 import { musteriEsle } from "./musteri-esle";
@@ -237,18 +237,8 @@ async function mesajIsle(h: GmailHesap, m: HamMesaj, uidValidity: string, bizim:
     const e = await musteriEsle({ eposta: adres }).catch(() => null);
     if (e) await konusmaGuncelle(k.id, { musteriId: e.musteriId, musteriTur: e.musteriTur });
   }
-  // HTML gövde: temizlenip saklanır; gömülü (cid:) görseller ek deposuna alınır ve adresleri değiştirilir.
-  // Arayüz bunu kum havuzlu çerçevede gösterir; düz metin (govde) yedek ve yapay zekâ taslağı için kalır.
-  let html: string | undefined;
-  if (p.html) {
-    let h = htmlTemizle(p.html);
-    for (const a of p.attachments || []) {
-      if (!(a.contentDisposition === "inline" && a.cid) || !a.content || !h.includes(`cid:${a.cid}`) || a.size > 3 * 1024 * 1024) continue;
-      const yol = await ekKaydet(k.id, a.filename || "gorsel", a.contentType || "image/png", a.content);
-      if (yol) h = h.split(`cid:${a.cid}`).join(ekUrl(yol));
-    }
-    if (h && h.length <= HTML_AZAMI) html = h;
-  }
+  // HTML gövde: temizlenip saklanır; arayüz kum havuzlu çerçevede gösterir, düz metin (govde) yedek ve yapay zekâ taslağı için kalır.
+  const html = (await htmlHazirla(p, k.id)) || undefined;
   const ekler: Ek[] = [];
   for (const a of (p.attachments || []).slice(0, 8)) {
     if (a.contentDisposition === "inline" && a.cid) continue;
@@ -266,6 +256,76 @@ async function mesajIsle(h: GmailHesap, m: HamMesaj, uidValidity: string, bizim:
     disId: messageId || `uid:${uidValidity}:${m.uid}`, gonderen: ad, at, sessiz: otomatik,
   });
   return r.yeni;
+}
+
+/** Ayrıştırılmış e-postanın HTML'ini temizler; gömülü (cid:) görselleri ek deposuna alıp adreslerini değiştirir. HTML yoksa/çok büyükse "". */
+async function htmlHazirla(p: { html?: string | false; attachments?: any[] }, konusmaId: string): Promise<string> {
+  if (!p.html) return "";
+  let h = htmlTemizle(p.html);
+  for (const a of p.attachments || []) {
+    if (!(a.contentDisposition === "inline" && a.cid) || !a.content || !h.includes(`cid:${a.cid}`) || a.size > 3 * 1024 * 1024) continue;
+    const yol = await ekKaydet(konusmaId, a.filename || "gorsel", a.contentType || "image/png", a.content);
+    if (yol) h = h.split(`cid:${a.cid}`).join(ekUrl(yol));
+  }
+  return h && h.length <= HTML_AZAMI ? h : "";
+}
+
+const HTML_TAMAMLA_SURE_MS = 9_000;
+
+/**
+ * Geriye dönük tamamlama: HTML'i hiç okunmamış (bu özellikten önce gelen) e-postalar konuşma açılınca
+ * Gmail'den Message-ID ile yeniden okunur ve HTML'i yazılır (en çok `adet` mesaj, ~9 sn bütçe).
+ * "Tüm Postalar" klasöründe aranır (arşivlenmiş olsa da bulunur); HTML'i olmayan mesaja "" yazılır ki tekrar denenmesin.
+ * Döner: tamamlanan mesaj sayısı. Hata durumunda sessizce 0 (konuşma yine açılır).
+ */
+export async function gmailHtmlTamamla(k: Konusma, adet = 3): Promise<number> {
+  if (k.kanal !== "email") return 0;
+  const h = gmailHesaplar().find((x) => x.adres === k.hesap);
+  if (!h) return 0;
+  const eksik = (await htmlEksikMesajlar(k.id, adet)).filter((m) => m.disId && m.disId.includes("@"));
+  if (!eksik.length) return 0;
+  const { ImapFlow } = await import("imapflow");
+  const { simpleParser } = await import("mailparser");
+  const client = new ImapFlow({ host: "imap.gmail.com", port: 993, secure: true, auth: { user: h.adres, pass: h.sifre }, logger: false, connectionTimeout: 8_000, greetingTimeout: 8_000, socketTimeout: 20_000 } as any);
+  const baslangic = Date.now();
+  let n = 0;
+  const islem = async () => {
+    await client.connect();
+    try {
+      // Gmail "Tüm Postalar" (özel kullanım \All; adı dile göre değişir), yoksa INBOX
+      let kutu = "INBOX";
+      try {
+        const liste = await client.list();
+        const hepsi = (Array.isArray(liste) ? liste : []).find((x: any) => String(x.specialUse || "").toLowerCase() === "\\all");
+        if (hepsi?.path) kutu = hepsi.path;
+      } catch { /* liste alınamazsa INBOX */ }
+      const lock = await client.getMailboxLock(kutu);
+      try {
+        for (const m of eksik) {
+          if (Date.now() - baslangic > HTML_TAMAMLA_SURE_MS) break;
+          const bulunan = await client.search({ header: { "message-id": m.disId as string } }, { uid: true });
+          const uid = Array.isArray(bulunan) && bulunan.length ? bulunan[bulunan.length - 1] : 0;
+          if (!uid) { await mesajHtmlYaz(m.id, ""); continue; }
+          const msg = await client.fetchOne(String(uid), { source: true }, { uid: true });
+          if (!msg || !msg.source) { await mesajHtmlYaz(m.id, ""); continue; }
+          const p = await simpleParser(msg.source);
+          const html = await htmlHazirla(p, k.id);
+          await mesajHtmlYaz(m.id, html);
+          if (html) n++;
+        }
+      } finally {
+        lock.release();
+      }
+    } finally {
+      await client.logout().catch(() => {});
+    }
+    return n;
+  };
+  // Süre bütçesi: aşılırsa konuşma tamamlanan kadarıyla açılır; bağlantı arka planda kapanır
+  return Promise.race([
+    islem().catch((e) => { console.warn(`Gmail HTML tamamlama (${h.adres}):`, imapHata(e)); return n; }),
+    new Promise<number>((r) => setTimeout(() => r(n), HTML_TAMAMLA_SURE_MS + 1_500)),
+  ]);
 }
 
 function kacir(s: string): string {
