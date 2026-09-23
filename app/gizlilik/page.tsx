@@ -24,6 +24,16 @@ export default function GizlilikPage() {
         0850 305 75 45 numaralı hattımızı arayarak numaralarının listeden çıkarılmasını isteyebilir.
       </p>
 
+      <h2 style={{ fontSize: 18, marginTop: 24 }}>Instagram, WhatsApp ve e-posta yazışmaları</h2>
+      <p>
+        Instagram hesabımıza (@olga.cerceve), WhatsApp hattımıza ya da e-posta adreslerimize
+        gönderdiğiniz mesajlar, size yanıt verebilmemiz için sipariş sistemimizin gelen kutusuna
+        aktarılır. Mesaj içeriği, gönderen adı ve varsa ekler yalnızca yazışmayı yürütmek ve
+        siparişinizi hazırlamak amacıyla saklanır; mesajlar Instagram veya WhatsApp üzerinden
+        Meta'nın resmi API'leri aracılığıyla alınır ve yanıtlanır. Yazışmalarınızın silinmesini
+        istediğinizde aşağıdaki iletişim kanalından talep edebilirsiniz.
+      </p>
+
       <h2 style={{ fontSize: 18, marginTop: 24 }}>Paylaşım ve saklama</h2>
       <p>
         Veriler üçüncü kişilerle paylaşılmaz, satılmaz. Mesaj iletimi için WhatsApp (Meta) ve SMS
