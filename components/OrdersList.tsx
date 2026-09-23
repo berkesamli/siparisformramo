@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import Link from "next/link";
 import {
   orderBalance,
@@ -19,6 +20,9 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
   tamamlandi: "Tamamlandı",
   iptal: "İptal",
 };
+
+// Tabloda kısa ödeme etiketi (sütun dar kalsın; tam adı ipucunda)
+const PAY_KISA: Record<string, string> = { bekliyor: "Bekliyor", kismi: "Kısmi", odendi: "Ödendi" };
 
 // Ödeme rozeti — .badge renk sınıfı (bekliyor kırmızı, kısmi sarı, ödendi yeşil)
 const PAY_BADGE: Record<string, string> = {
@@ -46,6 +50,7 @@ export default function OrdersList({
   tamamlananlar?: boolean;
   patronGonderim?: boolean;
 }) {
+  const tabloRef = useRef<HTMLDivElement>(null);
   const [filter, setFilter] = useState<{ range?: string; date?: string; q?: string }>({
     range: "today",
   });
@@ -479,14 +484,12 @@ export default function OrdersList({
 
       {orders && (
         <>
-        <div className="ord-table-wrap">
+        <div className="ord-table-wrap" ref={tabloRef}>
           <table>
             <thead>
               <tr>
-                <th>Sipariş No</th>
-                <th>Tarih</th>
+                <th>Sipariş</th>
                 <th>Müşteri</th>
-                <th>Çalışan</th>
                 <th>Tutar</th>
                 <th>Durum</th>
                 <th>Ödeme</th>
@@ -497,16 +500,22 @@ export default function OrdersList({
             <tbody>
               {visible.map((o) => (
                 <tr key={o.orderId}>
-                  <td style={{ fontWeight: 600, whiteSpace: "nowrap" }}>{o.orderId}</td>
-                  <td style={{ whiteSpace: "nowrap" }}>
-                    {new Date(o.createdAt).toLocaleString("tr-TR", {
-                      dateStyle: "short",
-                      timeStyle: "short",
-                      timeZone: "Europe/Istanbul",
-                    })}
+                  {/* Sipariş no + tarih ve müşteri + çalışan ikişer satırlık tek hücre: tablo
+                      dizüstü ekranına yatay kaydırmadan sığsın (durum/ödeme/kontrol hep görünür) */}
+                  <td className="ord-no">
+                    <strong>{o.orderId}</strong>
+                    <span className="muted">
+                      {new Date(o.createdAt).toLocaleString("tr-TR", {
+                        dateStyle: "short",
+                        timeStyle: "short",
+                        timeZone: "Europe/Istanbul",
+                      })}
+                    </span>
                   </td>
-                  <td>{o.customer || "—"}</td>
-                  <td>{o.employee}</td>
+                  <td className="ord-musteri">
+                    {o.customer || "—"}
+                    <span className="ord-calisan" title="Siparişi giren çalışan">{o.employee}</span>
+                  </td>
                   <td
                     style={{
                       whiteSpace: "nowrap",
@@ -532,8 +541,8 @@ export default function OrdersList({
                     </select>
                   </td>
                   <td style={{ whiteSpace: "nowrap" }}>
-                    <span className={`badge ${PAY_BADGE[o.payment || "bekliyor"] || ""} pay-select ${o.payment || "bekliyor"}`}>
-                      {PAYMENT_LABELS[o.payment || "bekliyor"]}
+                    <span className={`badge ${PAY_BADGE[o.payment || "bekliyor"] || ""} pay-select ${o.payment || "bekliyor"}`} title={PAYMENT_LABELS[o.payment || "bekliyor"]}>
+                      {PAY_KISA[o.payment || "bekliyor"] || PAYMENT_LABELS[o.payment || "bekliyor"]}
                     </span>{" "}
                     {orderBalance(o) > 0 && (
                       <button
@@ -594,11 +603,12 @@ export default function OrdersList({
                       PDF / Fiş / Düzenle her zaman ekranda kalır. */}
                   <td className="ord-actions">
                     <a
-                      className="btn small secondary"
+                      className="btn small secondary icon"
                       href={`/api/orders/pdf?d=${o.dateKey}&id=${encodeURIComponent(o.orderId)}`}
                       title="Sipariş fişini PDF olarak indir"
+                      aria-label="PDF indir"
                     >
-                      <Icon name="download" size={14} /> PDF
+                      <Icon name="download" size={15} /><span className="ord-lbl">PDF</span>
                     </a>
                     {patronGonderim && (
                       <button
@@ -613,25 +623,28 @@ export default function OrdersList({
                       </button>
                     )}
                     <Link
-                      className="btn small secondary"
+                      className="btn small secondary icon"
                       href={`/panel/siparisler/detay?d=${o.dateKey}&id=${encodeURIComponent(o.orderId)}`}
                       title="Fişi görüntüle / yazdır"
+                      aria-label="Fiş"
                     >
-                      <Icon name="printer" size={14} /> Fiş
+                      <Icon name="printer" size={15} /><span className="ord-lbl">Fiş</span>
                     </Link>
                     <Link
-                      className="btn small secondary"
+                      className="btn small secondary icon"
                       href={`/panel/siparisler/duzenle?d=${o.dateKey}&id=${encodeURIComponent(o.orderId)}`}
                       title="Siparişi düzenle"
+                      aria-label="Düzenle"
                     >
-                      <Icon name="edit" size={14} /> Düzenle
+                      <Icon name="edit" size={15} /><span className="ord-lbl">Düzenle</span>
                     </Link>
                     <Link
-                      className="btn small secondary"
+                      className="btn small secondary icon"
                       href={`/panel?kopya=${encodeURIComponent(o.orderId)}&d=${o.dateKey}`}
-                      title="Aynı satırlarla yeni sipariş aç — fiyatlar bugünün katalog fiyatı ve kurundan hesaplanır"
+                      title="Kopyala: aynı satırlarla yeni sipariş aç — fiyatlar bugünün katalog fiyatı ve kurundan hesaplanır"
+                      aria-label="Kopyala"
                     >
-                      <Icon name="copy" size={14} /> Kopyala
+                      <Icon name="copy" size={15} /><span className="ord-lbl">Kopyala</span>
                     </Link>
                   </td>
                 </tr>
@@ -639,7 +652,8 @@ export default function OrdersList({
             </tbody>
           </table>
         </div>
-        {/* Boş durum tablonun DIŞINDA: 9 sütunlu tablo telefonda yatay kayar,
+        <YatayKaydirma hedef={tabloRef} />
+        {/* Boş durum tablonun DIŞINDA: 7 sütunlu tablo telefonda yatay kayar,
             mesaj kart genişliğine göre ortalanır ve her ekranda okunur. */}
         {!visible.length && (
           <div className="empty">
@@ -661,5 +675,69 @@ export default function OrdersList({
         />
       )}
     </div>
+  );
+}
+
+
+/**
+ * Tablo ekrana sığmayıp yatay kaydığında, sayfanın en altındaki (fark edilmeyen)
+ * çubuk yerine ekranın alt kenarında sabit duran bir kaydırma çubuğu gösterir.
+ * Fareyle çalışanlar (dokunmatik yüzey olmadan) durum / ödeme sütunlarına sayfayı
+ * en alta indirmeden ulaşır. Tablo tamamen görünürken ya da taşma yokken gizlidir;
+ * telefonda (≤900) dokunmatik kaydırma yeterli olduğundan çıkmaz.
+ * Gövdeye portal ile basılır: kartın cam efekti (backdrop-filter) "fixed" konumu kartın
+ * içine bağlar ve kart taşanı gizlerdi.
+ */
+function YatayKaydirma({ hedef }: { hedef: React.RefObject<HTMLDivElement> }) {
+  const cubukRef = useRef<HTMLDivElement>(null);
+  const [durum, setDurum] = useState({ goster: false, left: 0, width: 0, icWidth: 0 });
+  useEffect(() => {
+    const wrap = hedef.current;
+    if (!wrap) return;
+    let raf = 0;
+    const olc = () => {
+      raf = 0;
+      const r = wrap.getBoundingClientRect();
+      const tasar = wrap.scrollWidth > wrap.clientWidth + 2;
+      const vh = window.innerHeight;
+      const genis = window.matchMedia("(min-width: 901px)").matches;
+      // Tablonun alt kenarı ekranın altında kalıyorsa (kendi çubuğu görünmüyorsa) ve tablo görünürdeyse
+      const goster = tasar && genis && r.bottom > vh - 2 && r.top < vh - 80;
+      setDurum((d) => (d.goster === goster && d.left === r.left && d.width === r.width && d.icWidth === wrap.scrollWidth ? d : { goster, left: r.left, width: r.width, icWidth: wrap.scrollWidth }));
+      const c = cubukRef.current;
+      if (c && Math.abs(c.scrollLeft - wrap.scrollLeft) > 1) c.scrollLeft = wrap.scrollLeft;
+    };
+    const iste = () => { if (!raf) raf = requestAnimationFrame(olc); };
+    olc();
+    window.addEventListener("scroll", iste, { passive: true });
+    window.addEventListener("resize", iste);
+    wrap.addEventListener("scroll", iste, { passive: true });
+    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(iste) : null;
+    ro?.observe(wrap);
+    const tablo = wrap.querySelector("table");
+    if (tablo) ro?.observe(tablo);
+    return () => {
+      window.removeEventListener("scroll", iste);
+      window.removeEventListener("resize", iste);
+      wrap.removeEventListener("scroll", iste);
+      ro?.disconnect();
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, [hedef]);
+  if (!durum.goster || typeof document === "undefined") return null;
+  return createPortal(
+    <div
+      ref={cubukRef}
+      className="ord-kaydirma"
+      style={{ left: durum.left, width: durum.width }}
+      title="Tabloyu sağa-sola kaydırır (Shift + fare tekerleği de çalışır)"
+      onScroll={(e) => {
+        const w = hedef.current;
+        if (w && Math.abs(w.scrollLeft - e.currentTarget.scrollLeft) > 1) w.scrollLeft = e.currentTarget.scrollLeft;
+      }}
+    >
+      <div style={{ width: durum.icWidth, height: 1 }} />
+    </div>,
+    document.body
   );
 }
