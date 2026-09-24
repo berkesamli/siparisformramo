@@ -13,7 +13,7 @@ import {
 import { useKatalog, type Katalog } from "@/lib/use-katalog";
 import { GLASS_TYPES, GLASS_SIZES, AYNA_SIZES, plateM2 } from "@/data/glass";
 import { kurus, kesin, fmtQty, fmtPrice, fmtTL, sayi } from "@/lib/num";
-import { searchStock, toBoy } from "@/lib/stock-search";
+import { stokEslesme, toBoy } from "@/lib/stock-search";
 import type { StockItem } from "@/lib/stock-parse";
 import CustomerPicker from "@/components/CustomerPicker";
 import MikroCariKutusu from "@/components/MikroCariKutusu";
@@ -446,18 +446,25 @@ export default function OrderForm({
       .catch(() => {});
   }, []);
 
-  function stokRozet(code: string): { txt: string; bulundu: boolean } | null {
+  // Rozetin yanında eşleşen stok kodu da yazılır: "KS4022-BİG" gibi eksik ya da hatalı yazımda başka
+  // rengin/modelin stoku gösterilebilir; kod birebir değilse rozet sarıya döner ve "en yakın kod" belirtilir.
+  function stokRozet(code: string): { txt: string; bulundu: boolean; kod?: string; tam?: boolean; aday?: number; adaylar?: string[] } | null {
     if (!stokItems || !stokItems.length) return null;
     const q = code.trim();
     // Kod yeterince yazılmadan rozet gösterme (model seçilirken gürültü olmasın)
     if (q.replace(/[^A-Za-z0-9]/g, "").length < 6) return null;
-    const m = searchStock(stokItems, q, 0.95, 1)[0];
-    // Yalnızca birebir / önek / içerme eşleşmeleri (skor ≥ 0.9) sayılır —
-    // bulanık benzerlik yanlış modelin stokunu göstermesin.
-    if (!m || m.score < 0.9) return { txt: "stokta görünmüyor", bulundu: false };
+    // Yalnızca birebir / önek / içerme eşleşmeleri sayılır — bulanık benzerlik yanlış modelin stokunu göstermesin.
+    const e = stokEslesme(stokItems, q);
+    if (!e) return { txt: "stokta görünmüyor", bulundu: false };
+    // Eksik yazımda birden çok olası kod varsa miktar gösterilmez (yanlış rengin stoku sanılmasın)
+    if (!e.tam && e.aday > 1) return { txt: `${e.aday} benzer kod — kodu tamamlayın`, bulundu: true, kod: e.item.code, tam: false, aday: e.aday, adaylar: e.adaylar };
     return {
-      txt: `ANK ${toBoy(m.item.ankaraMt)} boy · İST ${toBoy(m.item.istanbulMt)} boy`,
+      txt: `ANK ${toBoy(e.item.ankaraMt)} boy · İST ${toBoy(e.item.istanbulMt)} boy`,
       bulundu: true,
+      kod: e.item.code,
+      tam: e.tam,
+      aday: e.aday,
+      adaylar: e.adaylar,
     };
   }
 
@@ -1266,18 +1273,35 @@ export default function OrderForm({
                     (() => {
                       const rz = stokRozet(row.code);
                       if (!rz) return null;
+                      // Birebir eşleşme yeşil; eksik/hatalı yazımla en yakın koda düşüldüyse ya da birden çok
+                      // olası kod varsa sarı — hangi koda bakıldığı rozetin yanında yazılır
+                      const kesin = rz.bulundu && Boolean(rz.tam);
+                      const belirsiz = rz.bulundu && !rz.tam && (rz.aday || 1) > 1;
                       return (
-                        <span
-                          className={`badge ${rz.bulundu ? "ok" : "warn"}`}
-                          title={
-                            rz.bulundu
-                              ? "Depo stok listesindeki güncel miktar (1 boy = 2,9 mt)"
-                              : "Bu kod depo stok listesinde bulunamadı — kodu kontrol edin"
-                          }
-                        >
-                          <Icon name="package" size={12} />
-                          {rz.txt}
-                        </span>
+                        <>
+                          <span
+                            className={`badge ${kesin ? "ok" : "warn"}`}
+                            title={
+                              !rz.bulundu
+                                ? "Bu kod depo stok listesinde bulunamadı — kodu kontrol edin"
+                                : kesin
+                                  ? `Depo stok listesindeki güncel miktar (1 boy = 2,9 mt) — stok kodu: ${rz.kod}`
+                                  : belirsiz
+                                    ? "Yazdığınız kod birden çok stok koduna uyuyor; miktar için kodu tamamlayın"
+                                    : `Yazdığınız kod stokta birebir yok; en yakın kodun (${rz.kod}) miktarı gösteriliyor — kodu kontrol edin`
+                            }
+                          >
+                            <Icon name="package" size={12} />
+                            {rz.txt}
+                          </span>
+                          {rz.bulundu && (
+                            <span className={`of-stok-kod ${kesin ? "" : "uyari"}`}>
+                              {belirsiz
+                                ? <>Olası kodlar: {(rz.adaylar || []).join(", ")}{(rz.aday || 0) > (rz.adaylar || []).length ? "…" : ""}</>
+                                : <>{kesin ? "Stok kodu" : "En yakın stok kodu"}: <b>{rz.kod}</b></>}
+                            </span>
+                          )}
+                        </>
                       );
                     })()}
                   <span>

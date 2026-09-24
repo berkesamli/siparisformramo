@@ -81,3 +81,37 @@ export function searchStock(
 
   return matches.sort((a, b) => b.score - a.score).slice(0, limit);
 }
+
+export interface StokEslesme {
+  item: StockItem;
+  /** Yazılan kod stok koduyla birebir aynı (boşluk/tire/büyük-küçük harf farkı sayılmaz). */
+  tam: boolean;
+  /** Olası kod sayısı: "KS4022-BİG" gibi eksik yazımda bütün BİG renkleri → belirsiz, miktar gösterilmez. */
+  aday: number;
+  /** Olası kodlar (en çok 6; arayüz "kodu tamamlayın" ipucunda listeler). */
+  adaylar: string[];
+}
+
+/**
+ * Sipariş satırı için stok eşleşmesi. Yalnızca birebir, önek ya da içerme eşleşmeleri (puan ≥ 0.9) sayılır;
+ * bulanık benzerlik (harf hatası) yanlış modelin stokunu göstermesin diye dışarıda kalır.
+ * - Birebir: tam=true.
+ * - Eksik yazım (stok kodları yazılanla başlıyor / yazılanı içeriyor): her biri olası tamamlama → aday = hepsi;
+ *   en kısası "en yakın" olarak döner.
+ * - Fazla yazım (yazılan, stok kodunu içeriyor; örn. sondaki fazla harf): en uzun (en özgül) kod en yakın.
+ * Hangi kodun eşleştiği item.code'da döner ki arayüz "stok bu koda ait" diye gösterebilsin.
+ */
+export function stokEslesme(items: StockItem[], code: string): StokEslesme | null {
+  const q = normalizeCode(code);
+  const m = searchStock(items, code, 0.95, 200);
+  if (!m.length || m[0].score < 0.9) return null;
+  const top = m.filter((x) => x.score === m[0].score);
+  const uz = (x: StockMatch) => normalizeCode(x.item.code).length;
+  if (m[0].score === 1) return { item: top[0].item, tam: true, aday: top.length, adaylar: top.slice(0, 6).map((x) => x.item.code) };
+  const eksik = top.filter((x) => uz(x) > q.length).sort((a, b) => uz(a) - uz(b));
+  if (eksik.length) return { item: eksik[0].item, tam: false, aday: eksik.length, adaylar: eksik.slice(0, 6).map((x) => x.item.code) };
+  const fazla = [...top].sort((a, b) => uz(b) - uz(a));
+  const enUzun = uz(fazla[0]);
+  const esit = fazla.filter((x) => uz(x) === enUzun);
+  return { item: esit[0].item, tam: false, aday: esit.length, adaylar: esit.slice(0, 6).map((x) => x.item.code) };
+}
