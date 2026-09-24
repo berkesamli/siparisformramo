@@ -36,6 +36,9 @@ const TANIM_KELIMELERI = new Set([
   "DÜZ",
 ]);
 
+/** Kalem anahtarı: büyük harf, İ→I, yalnız harf-rakam (KS4022-BIG ≡ KS4022-BİG ≡ ks4022 big). */
+export const stokAnahtar = (code: string) => norm(code).replace(/[^A-Z0-9]/g, "");
+
 // "KS3514-KOREA SILVER LAMİNE PROFİL" → "KS3514-KOREA SILVER"
 export function extractCode(name: string): string {
   const tokens = String(name).trim().split(/\s+/);
@@ -93,10 +96,13 @@ export function parseStockWorkbook(buffer: Buffer, sourceName: string): StockDat
     const code = extractCode(name);
     if (!code) continue;
 
-    let item = map.get(code);
+    // Aynı ürünün iki yazımı (KS4022-BIG / KS4022-BİG, boşluk-tire farkı) tek kalemde toplanır;
+    // görünen kod ilk görülen yazımdır.
+    const anahtar = stokAnahtar(code);
+    let item = map.get(anahtar);
     if (!item) {
       item = { code, ankaraMt: 0, istanbulMt: 0 };
-      map.set(code, item);
+      map.set(anahtar, item);
     }
     if (depot.includes("ANKARA")) item.ankaraMt += qty;
     else if (depot.includes("ISTANBUL")) item.istanbulMt += qty;
