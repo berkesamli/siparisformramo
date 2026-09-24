@@ -25,7 +25,7 @@ interface Hit {
   sub?: string;
   href: string;
   meta?: string;
-  metaKind?: "ok" | "warn" | "err" | "info" | "brand";
+  metaKind?: "ok" | "warn" | "err" | "info" | "brand" | "yarim";
 }
 
 const nf = (n: number) => n.toLocaleString("tr-TR");
@@ -34,7 +34,7 @@ const tl = (n: number) => "₺" + (Number(n) || 0).toLocaleString("tr-TR", { max
 const TOPTAN_KIND: Record<string, Hit["metaKind"]> = {
   olusturuldu: "warn",
   hazirlaniyor: "info",
-  yarim: "brand",
+  yarim: "yarim",
   tamamlandi: "ok",
   iptal: "err",
 };

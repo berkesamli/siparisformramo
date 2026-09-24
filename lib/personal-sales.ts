@@ -54,7 +54,7 @@ export interface KisiselSiparis {
   musteri: string;
   tutar: number;
   status: string;      // Türkçe etiket
-  statusKind: "warn" | "info" | "ok" | "err" | "";
+  statusKind: "warn" | "info" | "ok" | "err" | "yarim" | "";
   href: string;
   alan?: string;       // siparişi alan çalışan (bölge listesinde)
 }
@@ -126,7 +126,7 @@ function gunEtiketi(dateKey: string): { label: string; gun: string } {
   return { label: `${d} ${AY_KISA[m - 1]}`, gun: GUN_KISA[dt.getUTCDay()] };
 }
 
-const TOPTAN_KIND: Record<string, KisiselSiparis["statusKind"]> = { olusturuldu: "warn", hazirlaniyor: "info", yarim: "warn", tamamlandi: "ok", iptal: "err" };
+const TOPTAN_KIND: Record<string, KisiselSiparis["statusKind"]> = { olusturuldu: "warn", hazirlaniyor: "info", yarim: "yarim", tamamlandi: "ok", iptal: "err" };
 const PERAKENDE_KIND: Record<string, KisiselSiparis["statusKind"]> = { Beklemede: "warn", "Hazırlanıyor": "info", "Hazır": "ok", "Teslim Edildi": "", "İptal": "err" };
 
 /** Son 6 ayın indeksleri — kullanıcıdan bağımsız, kısa süre paylaşımlı önbellek. */

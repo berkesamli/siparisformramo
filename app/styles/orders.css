@@ -68,7 +68,8 @@
 .ord-calisan { display: block; font-size: 12px; color: var(--muted); margin-top: 2px; }
 /* İşlemler: ikon düğmeler (ipucu etiketi), 1600 px üstü geniş ekranda yazılar da görünür */
 .ord-actions .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; vertical-align: middle; }
-.ord-actions .btn.ord-pdf { height: 32px; padding: 0 8px; } /* yazılı PDF düğmesi ikonlarla aynı yükseklikte */
+.ord-actions .btn.ord-pdf { height: 32px; min-height: 0; padding: 0 8px; } /* yazılı PDF düğmesi ikonlarla aynı yükseklikte */
+@media (pointer: coarse) { .ord-actions .btn.ord-pdf { height: 36px; } } /* dokunmatikte .btn.icon.small ile aynı (36 px) */
 .ord-lbl { display: none; }
 @media (min-width: 1600px) {
   .ord-actions .btn.icon.small { width: auto; padding: 0 10px; }
@@ -132,8 +133,8 @@ select.status-select:focus {
 }
 .status-select.olusturuldu { --ss-color: var(--warning); --ss-bg: var(--warning-soft); --ss-line: var(--warning-line); }
 .status-select.hazirlaniyor { --ss-color: var(--info);    --ss-bg: var(--info-soft);    --ss-line: var(--info-line); }
-/* Yarım tamamlandı: mor (grafik serisiyle aynı ton; yumuşak zemin ve çizgi karışımla türetilir) */
-.status-select.yarim        { --ss-color: var(--st-yarim); --ss-bg: color-mix(in srgb, var(--st-yarim) 14%, transparent); --ss-line: color-mix(in srgb, var(--st-yarim) 45%, transparent); }
+/* Yarım tamamlandı: mor (grafik serisiyle aynı ton; yazı, zemin ve çizgi tokens.css'ten — her tarayıcıda aynı) */
+.status-select.yarim        { --ss-color: var(--st-yarim-text); --ss-bg: var(--st-yarim-soft); --ss-line: var(--st-yarim-line); }
 .status-select.tamamlandi   { --ss-color: var(--success); --ss-bg: var(--success-soft); --ss-line: var(--success-line); }
 .status-select.iptal        { --ss-color: var(--error);   --ss-bg: var(--error-soft);   --ss-line: var(--error-line); }
 

@@ -411,7 +411,7 @@ export async function PATCH(req: NextRequest) {
   // Ödeme (cari) güncelleme
   if (body?.payment !== undefined) {
     const payment = String(body.payment) as PaymentStatus;
-    if (!(payment in PAYMENT_LABELS)) {
+    if (!Object.prototype.hasOwnProperty.call(PAYMENT_LABELS, payment)) {
       return NextResponse.json({ error: "Geçersiz ödeme durumu" }, { status: 400 });
     }
     order.payment = payment;
