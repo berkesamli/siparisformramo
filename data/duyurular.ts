@@ -30,6 +30,16 @@ export interface Duyuru {
 
 export const DUYURULAR: Duyuru[] = [
   {
+    id: "jarvis-sesli-asistan-2026-09",
+    baslik: "Yeni: Jarvis'le konuşun",
+    metin:
+      "Sağ alttaki asistanın adı artık Jarvis ve sizi dinliyor: mikrofon düğmesine basıp Türkçe sorun ('KS4022 big silver stokta var mı?', 'bugünkü kur ne?'), cevabı hem yazar hem sesli söyler. Hoparlör simgesiyle sesli yanıtı açıp kapatabilir, 'Sürekli konuşma' ile her yanıttan sonra mikrofonun kendiliğinden açılmasını sağlayabilirsiniz. Chrome, Edge ya da Safari'de çalışır; ilk kullanımda tarayıcı mikrofon izni ister.",
+    baslangic: "2026-09-26",
+    bitis: "2026-10-26",
+    roller: ["staff"],
+    ikon: "mic",
+  },
+  {
     id: "whatsapp-fis-2026-09",
     baslik: "Yeni: Sipariş fişleri WhatsApp'a gidiyor",
     metin:
