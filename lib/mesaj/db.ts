@@ -59,10 +59,16 @@ async function pool(): Promise<Sorgu> {
   // Yerel geliştirme: DATABASE_URL=pg-mem://yerel → süreç içi bellek veri tabanı (pg-mem, devDependency;
   // yeniden başlatınca silinir). Postgres kurmadan mesajlar ve üretim takvimi denenebilir.
   if (/^pg-mem:/i.test(url)) {
-    const { newDb } = await import("pg-mem");
-    const mem = newDb({ autoCreateForeignKeyIndices: true });
-    const { Pool: MemPool } = mem.adapters.createPg();
-    havuz = new MemPool() as unknown as Sorgu;
+    // Next dev her rotayı ayrı modül grafiğiyle derler; bellek veri tabanı süreç genelinde
+    // tek olsun diye globalThis'te tutulur (yoksa her rota kendi boş veri tabanını görür).
+    const g = globalThis as unknown as { __olgaPgMemHavuz?: Sorgu };
+    if (!g.__olgaPgMemHavuz) {
+      const { newDb } = await import("pg-mem");
+      const mem = newDb({ autoCreateForeignKeyIndices: true });
+      const { Pool: MemPool } = mem.adapters.createPg();
+      g.__olgaPgMemHavuz = new MemPool() as unknown as Sorgu;
+    }
+    havuz = g.__olgaPgMemHavuz;
     return havuz;
   }
   const { Pool } = (await import("pg")) as { Pool: typeof PgPool };
