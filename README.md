@@ -59,7 +59,8 @@ Eski Apps Script kodu `legacy-apps-script/` klasöründe korunmaktadır.
 | `SMTP_HOST/PORT/USER/PASS/FROM` | — | Sipariş e-postası için SMTP (Gmail: uygulama şifresi) |
 | `ORDER_EMAIL_TO` | — | Sipariş e-postasının gideceği adres |
 | `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_ID`, `WHATSAPP_TO` | — | Meta WhatsApp Cloud API — tanımlıysa sipariş otomatik WhatsApp'a düşer; tanımlı değilse panelde tek tıkla **wa.me** linki üretilir |
-| `ANTHROPIC_API_KEY` | — | AI ürün asistanı için Claude API anahtarı |
+| `ANTHROPIC_API_KEY` | — | AI ürün asistanı (Jarvis) için Claude API anahtarı |
+| `ELEVENLABS_API_KEY`, `ELEVENLABS_VOICE_ID` | — | İsteğe bağlı: Jarvis'in sesli yanıtı için doğal ses (ElevenLabs). Boşsa tarayıcının kendi Türkçe sesi kullanılır. Varsayılan ses "Daniel" (İngiliz, sakin); Voices sayfasından başka bir sesin kimliği verilebilir |
 | `PATRON_WHATSAPP`, `WHATSAPP_TEMPLATE_SIPARIS`, `WHATSAPP_TEMPLATE_DIL` | — | Her siparişin fiş PDF'i WhatsApp Cloud API ile bu alıcılara **dosya olarak** gider (`05325099442:Özgür Bey,05336610287:Gültekin Bey` — iki nokta sonrası şablondaki hitap); onaylı şablon ad(lar)ı (`siparis_fisi,siparis_fisi_v2`, sırayla denenir) ve dili (`tr`). Kurulum durumu ve test: `/panel/ayarlar` (sahipler) |
 | `WHATSAPP_TEMPLATE_MUSTERI`, `WHATSAPP_VERIFY_TOKEN`, `WHATSAPP_APP_SECRET` | — | Müşteriye fiş: sipariş formunda "müşteriye bildir" işaretliyse önce WhatsApp ile PDF (2 değişkenli şablon), Meta "teslim edilemedi" derse webhook (`/api/whatsapp/webhook`) SMS'e düşer. Doğrulama metni ve imza gizi (App Secret; gelen kutusu için zorunlu, yoksa webhook olayları reddedilir) |
 | `MIKRO_API_URL`, `MIKRO_API_KEY`, `MIKRO_FIRMA_KODU`, `MIKRO_KULLANICI`, `MIKRO_SIFRE`, `MIKRO_CALISMA_YILI` | — | Mikro Jump 17 Desktop API (yalnızca okuma): cari bakiye sorgusu. Bağlantı denemesi `/panel/ayarlar` (sahipler) |
@@ -161,6 +162,11 @@ yanıtlar. Yalnızca `MESAJ_USERNAMES`'teki çalışanlar (ve sahipler) görür.
   taslağı için kalır. Liste önizlemesi bağlantı/görsel kalıntılarını ayıklar (`ozetTemizle`). Bu özellikten
   önce gelen e-postaların HTML'i konuşma ilk açıldığında Gmail'den Message-ID ile geriye dönük okunur
   (`gmailHtmlTamamla`: en çok 3 mesaj, ~9 sn; "Tüm Postalar" klasöründe aranır, HTML'i olmayana boş yazılır).
+- **Jarvis (sesli asistan):** paneldeki sağ alt asistan artık dinler ve konuşur. Mikrofon düğmesi
+  tarayıcının konuşma tanımasını (tr-TR; Chrome/Edge/Safari) kullanır; yanıt `sesli: true` ile istenir
+  (kısa, düz metin) ve `/api/ai/ses` üzerinden seslendirilir: `ELEVENLABS_API_KEY` tanımlıysa ElevenLabs,
+  yoksa tarayıcı sesi (`lib/sesli-asistan.ts`). "Sürekli konuşma" açıkken her yanıttan sonra mikrofon
+  yeniden açılır. Sesli okuma öncesi markdown/emoji ayıklanır, kod ve para birimleri okunur yazılır.
 - **Yapay zekâ:** "Taslak öner" düğmesi, konuşmayı + katalog/stok/kur/müşteri kartını okuyup yanıt
   **taslağı** yazar (`ANTHROPIC_API_KEY`). Hiçbir şey kendiliğinden gönderilmez; çalışan okur, düzeltir, gönderir.
   Taslaktan gönderilen mesajlar konuşmada "taslak" etiketiyle görünür.

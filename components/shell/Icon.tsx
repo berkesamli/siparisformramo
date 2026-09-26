@@ -11,7 +11,8 @@ export type IconName =
   | "credit-card" | "wallet" | "file-text" | "briefcase" | "calendar" | "zap" | "alert"
   | "refresh" | "arrow-up-right" | "arrow-up" | "arrow-down" | "external" | "shield" | "layers" | "percent"
   | "box" | "frame" | "clock" | "sidebar" | "more" | "info" | "download" | "edit" | "copy" | "eye"
-  | "phone" | "map-pin" | "star" | "activity" | "inbox" | "archive" | "hash" | "sparkles";
+  | "phone" | "map-pin" | "star" | "activity" | "inbox" | "archive" | "hash" | "sparkles"
+  | "mic" | "volume" | "volume-off";
 
 const P: Record<IconName, JSX.Element> = {
   home: <><path d="M3 11.5 12 4l9 7.5" /><path d="M5 10v10h14V10" /><path d="M10 20v-6h4v6" /></>,
@@ -78,6 +79,9 @@ const P: Record<IconName, JSX.Element> = {
   inbox: <><path d="M22 12h-6l-2 3h-4l-2-3H2" /><path d="M5.5 5.1 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.5-6.9A2 2 0 0 0 16.8 4H7.2a2 2 0 0 0-1.7 1.1z" /></>,
   archive: <><path d="M21 8v13H3V8" /><path d="M1 3h22v5H1z" /><path d="M10 12h4" /></>,
   hash: <><path d="M4 9h16" /><path d="M4 15h16" /><path d="M10 3 8 21" /><path d="m16 3-2 18" /></>,
+  mic: <><rect x="9" y="2" width="6" height="12" rx="3" /><path d="M5 10a7 7 0 0 0 14 0" /><path d="M12 17v4" /><path d="M8 21h8" /></>,
+  volume: <><path d="M11 5 6 9H2v6h4l5 4V5z" /><path d="M15.5 8.5a5 5 0 0 1 0 7" /><path d="M19 5a9 9 0 0 1 0 14" /></>,
+  "volume-off": <><path d="M11 5 6 9H2v6h4l5 4V5z" /><path d="m22 9-6 6" /><path d="m16 9 6 6" /></>,
   sparkles: <><path d="m12 3 1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z" /><path d="M5 19l.8 2 .8-2 2-.8-2-.8-.8-2-.8 2-2 .8 2 .8z" /><path d="M19 2l.5 1.5L21 4l-1.5.5L19 6l-.5-1.5L17 4l1.5-.5L19 2z" /></>,
 };
 

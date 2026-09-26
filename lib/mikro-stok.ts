@@ -7,7 +7,7 @@
 // Sonuç Excel yüklemesiyle aynı StockData biçimindedir; aynı Blob dosyasına yazılır.
 
 import { stokMiktarlari, mikroConfigured, type MikroStokSonuc } from "./mikro";
-import { extractCode, norm, type StockData, type StockItem } from "./stock-parse";
+import { extractCode, norm, type StockData, type StockItem, stokAnahtar } from "./stock-parse";
 import { STOCK_BLOB_PATH, stockBlobConfigured } from "./stock-store";
 
 export interface MikroStokBilgi {
@@ -63,8 +63,10 @@ export async function mikroStokCek(): Promise<MikroStokCekim> {
     const ank = s.ankara > 0 ? s.ankara : 0;
     const ist = s.istanbul > 0 ? s.istanbul : 0;
     if (ank <= 0 && ist <= 0) continue;
-    let item = map.get(code);
-    if (!item) { item = { code, ankaraMt: 0, istanbulMt: 0 }; map.set(code, item); }
+    // Aynı ürünün iki yazımı (KS4022-BIG / KS4022-BİG) tek kalemde toplanır
+    const anahtar = stokAnahtar(code);
+    let item = map.get(anahtar);
+    if (!item) { item = { code, ankaraMt: 0, istanbulMt: 0 }; map.set(anahtar, item); }
     item.ankaraMt += ank;
     item.istanbulMt += ist;
   }

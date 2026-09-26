@@ -1,6 +1,7 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { konusmaTanimaDestegi, konusmaTanimaOlustur, seslendirmeMetni, tarayiciSesi, type SpeechRecognitionBenzeri } from "@/lib/sesli-asistan";
 import Icon from "@/components/shell/Icon";
 
 interface Msg {
@@ -22,38 +23,128 @@ export default function AiChat() {
   const [loading, setLoading] = useState(false);
   const listRef = useRef<HTMLDivElement>(null);
 
-  async function send() {
-    const text = input.trim();
-    if (!text || loading) return;
+  // ---- Jarvis: sesli giriş / sesli yanıt ----
+  // Mikrofon: tarayıcının konuşma tanıması (tr-TR). Sesli yanıt: sunucu sesi (ElevenLabs tanımlıysa),
+  // yoksa tarayıcının Türkçe sesi. "Sürekli konuşma" açıkken yanıt bitince mikrofon kendiliğinden açılır.
+  const [sesDestegi, setSesDestegi] = useState(false);
+  const [dinliyor, setDinliyor] = useState(false);
+  const [konusuyor, setKonusuyor] = useState(false);
+  const [sesliYanit, setSesliYanit] = useState(false);
+  const [surekli, setSurekli] = useState(false);
+  const [araMetin, setAraMetin] = useState("");
+  const [sesHata, setSesHata] = useState("");
+  const tanimaRef = useRef<SpeechRecognitionBenzeri | null>(null);
+  const sesRef = useRef<HTMLAudioElement | null>(null);
+  const sunucuSesi = useRef<boolean | null>(null); // null: denenmedi, false: yok (501), true: var
+  const surekliRef = useRef(false);
+  const loadingRef = useRef(false);
+  surekliRef.current = surekli;
+  loadingRef.current = loading;
+
+  useEffect(() => { setSesDestegi(konusmaTanimaDestegi()); }, []);
+  useEffect(() => () => durdur(), []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  function durdur() {
+    try { tanimaRef.current?.abort(); } catch { /* yok */ }
+    tanimaRef.current = null;
+    setDinliyor(false);
+    setAraMetin("");
+    if (sesRef.current) { try { sesRef.current.pause(); } catch { /* yok */ } sesRef.current = null; }
+    if (typeof window !== "undefined" && "speechSynthesis" in window) window.speechSynthesis.cancel();
+    setKonusuyor(false);
+  }
+
+  function dinle() {
+    const rec = konusmaTanimaOlustur();
+    if (!rec) { setSesHata("Bu tarayıcı sesli girişi desteklemiyor; Chrome, Edge ya da Safari kullanın."); return; }
+    durdur();
+    setSesHata("");
+    rec.lang = "tr-TR";
+    rec.interimResults = true;
+    rec.continuous = false;
+    rec.maxAlternatives = 1;
+    let son = "";
+    rec.onresult = (e) => {
+      let kesin = "", gecici = "";
+      for (let i = 0; i < e.results.length; i++) { const r = e.results[i]; if (r.isFinal) kesin += r[0].transcript; else gecici += r[0].transcript; }
+      setAraMetin(gecici);
+      if (kesin.trim()) son = kesin.trim();
+    };
+    rec.onerror = (e) => {
+      if (e.error === "not-allowed" || e.error === "service-not-allowed") { setSesHata("Mikrofon izni verilmedi. Tarayıcının adres çubuğundan mikrofona izin verin."); setSurekli(false); }
+      else if (e.error === "network") setSesHata("Konuşma tanıma servisine ulaşılamadı (ağ).");
+      // "no-speech" / "aborted": sessizce geç
+    };
+    rec.onend = () => {
+      tanimaRef.current = null;
+      setDinliyor(false);
+      setAraMetin("");
+      if (son) { setSesliYanit(true); void send(son, true); }
+      else if (surekliRef.current && !loadingRef.current) setTimeout(() => { if (surekliRef.current && !tanimaRef.current && !loadingRef.current) dinle(); }, 400);
+    };
+    tanimaRef.current = rec;
+    setDinliyor(true);
+    try { rec.start(); } catch { setDinliyor(false); tanimaRef.current = null; }
+  }
+
+  async function seslendir(metin: string) {
+    const okunacak = seslendirmeMetni(metin);
+    if (!okunacak) return;
+    setKonusuyor(true);
+    try {
+      if (sunucuSesi.current !== false) {
+        const r = await fetch("/api/ai/ses", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ metin: okunacak }) });
+        if (r.ok && (r.headers.get("content-type") || "").includes("audio")) {
+          sunucuSesi.current = true;
+          const url = URL.createObjectURL(await r.blob());
+          const a = new Audio(url);
+          sesRef.current = a;
+          await new Promise<void>((cozul) => { a.onended = () => cozul(); a.onerror = () => cozul(); a.play().catch(() => cozul()); });
+          URL.revokeObjectURL(url);
+          return;
+        }
+        if (r.status === 501) sunucuSesi.current = false; // sunucu sesi tanımlı değil: bundan sonra tarayıcı sesi
+      }
+      await tarayiciSesi(okunacak);
+    } catch { /* ses çalınamadı: metin zaten ekranda */ }
+    finally {
+      sesRef.current = null;
+      setKonusuyor(false);
+    }
+  }
+
+  async function send(metin?: string, sesli = false) {
+    const text = (metin ?? input).trim();
+    if (!text || loadingRef.current) return;
+    const sesliMod = sesli || sesliYanit;
     const next: Msg[] = [...messages, { role: "user", content: text }];
     setMessages(next);
     setInput("");
     setLoading(true);
+    loadingRef.current = true;
+    let cevap = "";
     try {
       const res = await fetch("/api/ai", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: next }),
+        body: JSON.stringify({ messages: next, sesli: sesliMod }),
       });
       const data = await res.json();
-      setMessages([
-        ...next,
-        {
-          role: "assistant",
-          content: data.ok ? data.reply : `⚠️ ${data.error || "Hata oluştu."}`,
-        },
-      ]);
+      cevap = data.ok ? data.reply : `⚠️ ${data.error || "Hata oluştu."}`;
+      setMessages([...next, { role: "assistant", content: cevap }]);
     } catch {
-      setMessages([
-        ...next,
-        { role: "assistant", content: "⚠️ Sunucuya ulaşılamadı." },
-      ]);
+      cevap = "⚠️ Sunucuya ulaşılamadı.";
+      setMessages([...next, { role: "assistant", content: cevap }]);
     } finally {
       setLoading(false);
+      loadingRef.current = false;
       setTimeout(() => {
         listRef.current?.scrollTo({ top: 99999, behavior: "smooth" });
       }, 50);
     }
+    if (sesliMod && cevap) await seslendir(cevap);
+    // Sürekli konuşma: yanıt bittikten sonra yeniden dinle
+    if (surekliRef.current && !tanimaRef.current) dinle();
   }
 
   // Yüzen düğme: sağ altta, telefonda alt sekme çubuğunun üstünde kalır
@@ -73,7 +164,7 @@ export default function AiChat() {
         }}
         onClick={() => setOpen(true)}
       >
-        <Icon name="sparkles" size={16} /> Ürün Asistanı
+        <Icon name="sparkles" size={16} /> Jarvis
       </button>
     );
   }
@@ -82,7 +173,7 @@ export default function AiChat() {
     <div
       className="card pad-sm no-print"
       role="dialog"
-      aria-label="Olga Ürün Asistanı"
+      aria-label="Jarvis — Olga Ürün Asistanı"
       style={{
         position: "fixed",
         right: 20,
@@ -100,10 +191,21 @@ export default function AiChat() {
           <Icon name="sparkles" size={16} />
         </span>
         <div>
-          <h2>Olga Ürün Asistanı</h2>
+          <h2>Jarvis</h2>
+          <div className="card-head-sub">Olga ürün ve sipariş asistanı</div>
         </div>
         <span className="spacer" />
         <div className="card-head-actions">
+          <button
+            type="button"
+            className={`btn icon small ${sesliYanit ? "" : "ghost"}`}
+            aria-pressed={sesliYanit}
+            aria-label={sesliYanit ? "Sesli yanıtı kapat" : "Sesli yanıtı aç"}
+            title={sesliYanit ? "Sesli yanıt açık — kapat" : "Yanıtları sesli oku"}
+            onClick={() => { if (sesliYanit) { durdur(); setSurekli(false); } setSesliYanit(!sesliYanit); }}
+          >
+            <Icon name={sesliYanit ? "volume" : "volume-off"} size={16} />
+          </button>
           <button
             type="button"
             className="btn icon small ghost"
@@ -175,18 +277,48 @@ export default function AiChat() {
         )}
       </div>
 
-      <div style={{ display: "flex", gap: 8, marginTop: 10, flex: "0 0 auto" }}>
+      {(dinliyor || konusuyor || sesHata || surekli) && (
+        <div className="ai-durum" aria-live="polite">
+          {dinliyor ? (
+            <><span className="ai-nokta dinliyor" /> Dinliyorum… {araMetin && <em>{araMetin}</em>}</>
+          ) : konusuyor ? (
+            <><span className="ai-nokta konusuyor" /> Jarvis konuşuyor… <button type="button" className="btn ghost xs" onClick={durdur}>Durdur</button></>
+          ) : sesHata ? (
+            <span style={{ color: "var(--warning)" }}>{sesHata}</span>
+          ) : (
+            <><span className="ai-nokta" /> Sürekli konuşma açık: yanıttan sonra mikrofon yeniden açılır.</>
+          )}
+        </div>
+      )}
+      <div style={{ display: "flex", gap: 8, marginTop: 8, flex: "0 0 auto", alignItems: "center" }}>
+        <button
+          type="button"
+          className={`btn icon small ai-mic ${dinliyor ? "dinliyor" : "secondary"}`}
+          aria-pressed={dinliyor}
+          aria-label={dinliyor ? "Dinlemeyi durdur" : "Sesle sor"}
+          title={sesDestegi ? (dinliyor ? "Dinlemeyi durdur" : "Sesle sor (Türkçe)") : "Bu tarayıcı sesli girişi desteklemiyor; Chrome, Edge ya da Safari kullanın"}
+          disabled={!sesDestegi || loading}
+          onClick={() => (dinliyor ? durdur() : dinle())}
+        >
+          <Icon name="mic" size={16} />
+        </button>
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && send()}
-          placeholder="Sorunuzu yazın…"
+          placeholder={dinliyor ? "Konuşun…" : "Sorunuzu yazın ya da mikrofona basın…"}
           aria-label="Sorunuzu yazın"
         />
-        <button type="button" className="btn small" onClick={send} disabled={loading}>
+        <button type="button" className="btn small" onClick={() => send()} disabled={loading}>
           Gönder
         </button>
       </div>
+      {sesDestegi && (
+        <label className="ai-surekli">
+          <input type="checkbox" checked={surekli} onChange={(e) => { const v = e.target.checked; setSurekli(v); if (v) { setSesliYanit(true); if (!dinliyor && !loading && !konusuyor) dinle(); } else durdur(); }} />
+          Sürekli konuşma (Jarvis her yanıttan sonra dinler)
+        </label>
+      )}
     </div>
   );
 }

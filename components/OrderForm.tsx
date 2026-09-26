@@ -448,7 +448,7 @@ export default function OrderForm({
 
   // Rozetin yanında eşleşen stok kodu da yazılır: "KS4022-BİG" gibi eksik ya da hatalı yazımda başka
   // rengin/modelin stoku gösterilebilir; kod birebir değilse rozet sarıya döner ve "en yakın kod" belirtilir.
-  function stokRozet(code: string): { txt: string; bulundu: boolean; kod?: string; tam?: boolean; aday?: number; adaylar?: string[] } | null {
+  function stokRozet(code: string): { txt: string; bulundu: boolean; kod?: string; tam?: boolean; yon?: "eksik" | "fazla"; aday?: number; adaylar?: string[] } | null {
     if (!stokItems || !stokItems.length) return null;
     const q = code.trim();
     // Kod yeterince yazılmadan rozet gösterme (model seçilirken gürültü olmasın)
@@ -457,12 +457,13 @@ export default function OrderForm({
     const e = stokEslesme(stokItems, q);
     if (!e) return { txt: "stokta görünmüyor", bulundu: false };
     // Eksik yazımda birden çok olası kod varsa miktar gösterilmez (yanlış rengin stoku sanılmasın)
-    if (!e.tam && e.aday > 1) return { txt: `${e.aday} benzer kod — kodu tamamlayın`, bulundu: true, kod: e.item.code, tam: false, aday: e.aday, adaylar: e.adaylar };
+    if (!e.tam && e.aday > 1) return { txt: `${e.aday} benzer kod — ${e.yon === "fazla" ? "kodu kontrol edin" : "kodu tamamlayın"}`, bulundu: true, kod: e.item.code, tam: false, yon: e.yon, aday: e.aday, adaylar: e.adaylar };
     return {
       txt: `ANK ${toBoy(e.item.ankaraMt)} boy · İST ${toBoy(e.item.istanbulMt)} boy`,
       bulundu: true,
       kod: e.item.code,
       tam: e.tam,
+      yon: e.yon,
       aday: e.aday,
       adaylar: e.adaylar,
     };
@@ -1287,7 +1288,9 @@ export default function OrderForm({
                                 : kesin
                                   ? `Depo stok listesindeki güncel miktar (1 boy = 2,9 mt) — stok kodu: ${rz.kod}`
                                   : belirsiz
-                                    ? "Yazdığınız kod birden çok stok koduna uyuyor; miktar için kodu tamamlayın"
+                                    ? rz.yon === "fazla"
+                                      ? "Yazdığınız kod birden çok stok kodundan uzun; hangisi olduğunu kontrol edin"
+                                      : "Yazdığınız kod birden çok stok koduna uyuyor; miktar için kodu tamamlayın"
                                     : `Yazdığınız kod stokta birebir yok; en yakın kodun (${rz.kod}) miktarı gösteriliyor — kodu kontrol edin`
                             }
                           >

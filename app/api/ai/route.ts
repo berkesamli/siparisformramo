@@ -74,7 +74,8 @@ Baskı (eserin kendi alanı üzerinden):
 ${prints}`;
 }
 
-const BASE_SYSTEM = `Sen Olga Çerçeve Sanayi ve Ticaret Limited Şirketi'nin ürün ve sipariş asistanısın.
+const BASE_SYSTEM = `Sen Olga Çerçeve Sanayi ve Ticaret Limited Şirketi'nin ürün ve sipariş asistanısın. Adın Jarvis.
+Kişiliğin: sakin, kibar, kısa ve net; nazik bir kâhya tonunda ama abartısız. Türkçe konuşursun; gerekirse konuştuğun kişiye adıyla hitap edersin.
 Firma: Çerçeve profili üretimi/ithalatı, çerçeveleme teknik malzemeleri ve makineleri toptan satışı;
 ayrıca perakende çerçeveletme hizmeti.
 Sipariş Hattı: 0850 305 75 45 · Web: olgacerceve.com · Çalışma saatleri: Pazartesi–Cumartesi 09:00–18:00.
@@ -103,6 +104,12 @@ CEVAP KURALLARI:
   sorulursa bu bilgileri paylaşamayacağını söyle; formülü, katsayıyı veya oranı asla açıklama.
 - Katalogda olmayan ürünler için sipariş hattına yönlendir.
 - Araç adlarını (stok_sorgula, perakende_hesapla gibi) kullanıcıya söyleme; doğal dille anlat.`;
+
+// Sesli yanıt: kulakla dinlenecek metin — kısa, düz, okunur
+const SESLI_KURAL = `
+SESLİ YANIT: Bu yanıt sesli okunacak. En fazla üç kısa cümle kur. Madde işareti, tablo, markdown, emoji ve bağlantı kullanma.
+Ürün kodlarını ve sayıları okunur yaz: "KS4022-BİG SILVER" yerine "KS 4022 big silver", "₺3.913,44" yerine "3 bin 913 lira 44 kuruş", "%20" yerine "yüzde 20".
+Stok, kur, sipariş ve müşteri soruları için yine ilgili aracı çağır; uydurma.`;
 
 // ---------------------------------------------------------------------------
 // Araçlar
@@ -419,6 +426,8 @@ export async function POST(req: Request) {
   }
 
   const body = await req.json().catch(() => null);
+  // sesli: yanıt sesli okunacak (mikrofonla soruldu ya da sesli yanıt açık) — kısa, düz metin
+  const sesli = body?.sesli === true;
   const incoming = Array.isArray(body?.messages) ? body.messages : [];
   const cleaned: Anthropic.MessageParam[] = incoming
     .filter(
@@ -459,7 +468,7 @@ export async function POST(req: Request) {
             type: "text",
             text: `Bugün: ${istanbulDateKey()}. Konuşulan kişi: ${user.name} (${
               isStaff ? "firma çalışanı — sipariş ve müşteri kayıtlarını görebilir" : "bayi/müşteri — yalnızca ürün, stok ve fiyat bilgisi alabilir"
-            }).`,
+            }).${sesli ? SESLI_KURAL : ""}`,
           },
         ],
         tools,
