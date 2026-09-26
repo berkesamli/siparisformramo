@@ -1,13 +1,13 @@
 import fs from "fs";
 import path from "path";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getSessionUser } from "@/lib/auth";
 import { isFinance, isKurYetkili, finansAktif } from "@/data/users";
 import PageHeader from "@/components/PageHeader";
-import Icon from "@/components/shell/Icon";
 import Dashboard from "@/components/dashboard/Dashboard";
 import CustomerDashboard from "@/components/dashboard/CustomerDashboard";
+import KomutaSatiri from "@/components/home/KomutaSatiri";
+import AcikVeBekleyenler from "@/components/home/AcikVeBekleyenler";
 import AiChat from "@/components/AiChat";
 import type { QuickTile } from "@/components/dashboard/QuickActions";
 
@@ -79,25 +79,22 @@ export default async function HomePage() {
   if (finance) chips.push({ label: "Raporlar", href: "/panel/raporlar", icon: "bar-chart" });
   if (finance && finansAktif()) chips.push({ label: "Finans", href: "/panel/finans", icon: "bar-chart" });
 
+  // Çalışan ana sayfası: önce komuta satırı (müşteri / stok / sipariş — cevap
+  // yerinde), sonra açık toptan siparişler + beni bekleyenler, en altta
+  // gösterge paneli (KPI, grafikler, hızlı işlemler).
   return (
     <main className="container">
       <PageHeader
         kicker={tarihStr()}
-        title={`Günün özeti — hoş geldin, ${ilkAd}`}
-        subtitle="Bugünkü siparişler, açık işler ve dikkat gerektiren konular tek bakışta."
+        title={`Hoş geldin, ${ilkAd}`}
+        subtitle="Müşteri, stok ya da sipariş ara; açık siparişleri buradan ilerlet."
         icon="home"
-        actions={
-          <>
-            <Link href="/panel/perakende" className="btn secondary">
-              <Icon name="frame" size={17} /> Online Çerçeve
-            </Link>
-            <Link href="/panel" className="btn">
-              <Icon name="plus" size={17} /> Yeni Sipariş
-            </Link>
-          </>
-        }
       />
-      <Dashboard finance={finance} tiles={tiles} chips={chips} />
+      <div className="home-stack">
+        <KomutaSatiri />
+        <AcikVeBekleyenler />
+        <Dashboard finance={finance} tiles={tiles} chips={chips} />
+      </div>
       <AiChat />
     </main>
   );

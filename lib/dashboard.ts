@@ -119,7 +119,8 @@ function gunEtiketi(dateKey: string): { label: string; gun: string } {
 const TOPTAN_ACIK: OrderStatus[] = ["olusturuldu", "hazirlaniyor", "yarim"];
 const PERAKENDE_ACIK: RetailStatus[] = ["Beklemede", "Hazırlanıyor", "Hazır"];
 
-async function toptanIndeks(): Promise<OrderIndexEntry[]> {
+/** Son 2 ayın toptan sipariş indeksi (45 sn önbellek); ana sayfa listeleri de bunu kullanır. */
+export async function toptanIndeks(): Promise<OrderIndexEntry[]> {
   return memo("dash:toptan-idx", 45_000, async () => {
     const idx = await readOrderIndex(2);
     if (idx.length || !blobConfigured()) return idx;

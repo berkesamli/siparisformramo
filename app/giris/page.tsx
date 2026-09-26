@@ -6,6 +6,7 @@ import { useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Icon from "@/components/shell/Icon";
 import ThemeToggle from "@/components/shell/ThemeToggle";
+import ParticleSphere from "@/components/ParticleSphere";
 
 function LoginForm() {
   const router = useRouter();
@@ -44,6 +45,11 @@ function LoginForm() {
   return (
     <main className="login">
       <div className="login-theme"><ThemeToggle /></div>
+      {/* Süs: altın parçacık küresi (yalnızca giriş ekranında; bilgi taşımaz) */}
+      <div className="login-stage" aria-hidden="true">
+        <ParticleSphere className="login-sphere" />
+        <span className="login-stage-txt">SİPARİŞ · STOK · KATALOG · FİNANS</span>
+      </div>
       <div className="login-card card">
         <div className="login-brand">
           <span className="login-mark"><img src="/logo.png" alt="Olga Çerçeve" /></span>

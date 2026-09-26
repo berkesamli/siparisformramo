@@ -6,7 +6,7 @@ import Icon from "./Icon";
 import { tabItems, isActive } from "./nav-config";
 import type { ShellUser, ShellStats } from "./types";
 
-export default function Tabbar({ user, stats, onMenu }: { user: ShellUser; stats: ShellStats | null; onMenu: () => void }) {
+export default function Tabbar({ user, stats, onMenu, onSearch }: { user: ShellUser; stats: ShellStats | null; onMenu: () => void; onSearch: () => void }) {
   const pathname = usePathname() || "/";
   const items = tabItems(user);
   return (
@@ -23,6 +23,11 @@ export default function Tabbar({ user, stats, onMenu }: { user: ShellUser; stats
           </Link>
         );
       })}
+      {/* Ara: komuta satırı (arama paleti) tek dokunuşla açılır, klavye hemen gelir */}
+      <button type="button" className="tab-item" onClick={onSearch} aria-label="Ara">
+        <span className="tab-ico"><Icon name="search" size={21} /></span>
+        <span>Ara</span>
+      </button>
       <button type="button" className="tab-item" onClick={onMenu} aria-label="Menü">
         <span className="tab-ico"><Icon name="menu" size={21} /></span>
         <span>Menü</span>

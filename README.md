@@ -20,9 +20,25 @@ Eski Apps Script kodu `legacy-apps-script/` klasöründe korunmaktadır.
   tablette ikon rayı + çekmece, telefonda çekmece + alt sekme çubuğu), üst çubuk
   (sayfa yolu, arama, bildirim zili, tema, kullanıcı menüsü). Menü/kırıntı/arama
   tek kaynaktan gelir: `components/shell/nav-config.ts`.
+- **Komuta satırı** (ana sayfa, `components/home/KomutaSatiri.tsx`): tek kutuya
+  müşteri adı / profil kodu / sipariş no yazılır, cevap yerinde gelir. Müşteri
+  satırında Mikro bakiyesi (`BakiyeChip`, tembel yüklenir; tüm çalışanlar görür),
+  son sipariş, telefon ve "Yeni Sipariş" düğmesi; stok satırında Ankara/İstanbul boy
+  ve liste fiyatı (günün kuru girildiyse ₺ karşılığı); sipariş satırında durum.
+  Kutu boşken "son baktıkların" çipleri (tarayıcıda `olga-son-bakilan`). Yanında
+  büyük **Yeni Sipariş** ve **Metin Yapıştır** (`/panel?metin=1` → içe aktarma
+  penceresi açık gelir) düğmeleri.
+- **Açık Toptan Siparişler / Beni Bekleyenler** (ana sayfa, `/api/orders/acik`):
+  açık siparişler en yeni önce, durum satırdan değiştirilir (seçici ya da tek
+  dokunuşla sonraki adım); son 7 günde kontrol edilmemiş siparişler "Kontrol edildi"
+  ile düşer. Sipariş yazımından sonra ilgili önbellekler temizlenir (`bust`).
 - **Genel arama** `Ctrl/⌘ + K`: sayfalar, toptan ve perakende siparişler, müşteriler,
   stok kodları, çerçeve profilleri ve teknik malzeme (`/api/search`). Müşteriler
-  yalnızca ürün/stok arar.
+  yalnızca ürün/stok arar. Telefonda alt çubuktaki **Ara** sekmesi de aynı paleti
+  açar (klavye hemen gelir); müşteri satırında Mikro bakiyesi görünür.
+- **Giriş ekranı**: altın parçacık küresi (`components/ParticleSphere.tsx`, canvas;
+  renk `--brand`'den okunur, "hareketi azalt" açıksa durur, sekme arka plandayken
+  çizmez). Yalnızca giriş ekranında; panelin içinde animasyon yoktur.
 - **Tema**: varsayılan açık tema; üst çubuktan koyu "cam" temaya geçilir, tercih
   tarayıcıda saklanır. Renkler yalnızca `app/styles/tokens.css` değişkenlerinden gelir.
 - **Bildirim zili**: yeni sipariş düştüğünde ses + tarayıcı bildirimi (90 sn'de bir
@@ -30,7 +46,7 @@ Eski Apps Script kodu `legacy-apps-script/` klasöründe korunmaktadır.
 - **Gösterge paneli** verisi `/api/dashboard` (aylık indeksler + tek stok dosyası +
   günün kuru; 45 sn süreç içi önbellek). Kenar çubuğu sayaçları `?lite=1` ile gelir.
 - Stil aileleri `app/styles/` altında: `tokens` → `base` → `shell` → `wizard`,
-  `labels`, `pickers`, `orders`, `reports`, `modals`, `dashboard`.
+  `labels`, `pickers`, `orders`, `reports`, `modals`, `dashboard`, `home`.
 - **Satışlarım** (`/panel/satislarim`, `/api/cirom`): her çalışan yalnızca kendi adına
   girilen siparişlerin cirosunu görür (toptan net + perakende toplam, iptaller hariç);
   bugün / son 7 gün / aylık, 6 aylık grafik, 14 günlük akış ve kendi sipariş listesi.

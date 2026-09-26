@@ -11,6 +11,7 @@ import "./styles/modals.css";
 import "./styles/dashboard.css";
 import "./styles/customers.css";
 import "./styles/inbox.css";
+import "./styles/home.css";
 import { getSessionUser } from "@/lib/auth";
 import { isOwner, isFinance, finansAktif, isMaliyet, isKurYetkili, isMesajci } from "@/data/users";
 import AppShell from "@/components/shell/AppShell";
