@@ -9,6 +9,10 @@ const nextConfig = {
       "/api/perakende/orders": ["./assets/**"],
       "/api/perakende/orders/pdf": ["./assets/**"],
       "/api/etiket/pdf": ["./assets/**"],
+      "/api/uretim/isler/[id]/foy": ["./assets/**"],
+      "/api/ikas/webhook": ["./assets/**"],
+      "/api/ikas/senk": ["./assets/**"],
+      "/api/uretim/cron": ["./assets/**"],
     },
   },
 };

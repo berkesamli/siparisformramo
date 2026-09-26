@@ -9,7 +9,7 @@
 import type { Pool as PgPool } from "pg";
 import { ozetTemizle, type Ek, type Kanal, type Konusma, type KonusmaDurum, type KonusmaFiltre, type Mesaj, type Yon } from "./tur";
 
-type Sorgu = { query: (text: string, params?: unknown[]) => Promise<{ rows: any[]; rowCount: number | null }> };
+export type Sorgu = { query: (text: string, params?: unknown[]) => Promise<{ rows: any[]; rowCount: number | null }> };
 
 let havuz: Sorgu | null = null;
 let kuruldu: Promise<void> | null = null;
@@ -41,6 +41,15 @@ export function dbConfigured(): boolean {
 export function setDbPool(p: Sorgu | null, semaHazir = false) {
   havuz = p;
   kuruldu = semaHazir ? Promise.resolve() : null;
+}
+
+/**
+ * Ortak bağlantı havuzu — başka modüller (üretim takvimi) de aynı Postgres'i
+ * kullanır; süreç başına TEK havuz açılsın diye buradan alırlar. Bu çağrı
+ * mesaj şemasını KURMAZ; her modül kendi şemasını kendi kurar.
+ */
+export async function ortakHavuz(): Promise<Sorgu> {
+  return pool();
 }
 
 async function pool(): Promise<Sorgu> {

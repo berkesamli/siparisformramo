@@ -111,7 +111,19 @@ function matColor(it: RetailItem, inner = false): string {
   return MAT_PLAIN;
 }
 
-export function generateRetailPdf(o: SavedRetailOrder): Promise<Buffer> {
+/**
+ * Üretim takvimi föyleri için ek bilgiler: şube rozeti (mağazaya göre ayırma —
+ * İstanbul mavi, Ankara mor), içine koyulacak ürün ve yön satırı, kaynak notu.
+ * Perakende sipariş föyünde (ekstra verilmezse) çıktı birebir eskisi gibidir.
+ */
+export interface FoyEkstra {
+  sube?: "ankara" | "istanbul" | "";
+  icerik?: string;   // "Resim / Fotoğraf Baskısı" — kalemler için tek satır
+  yon?: string;      // "Yatay" / "Dikey"
+  kaynak?: string;   // "Online sipariş #1463"
+}
+
+export function generateRetailPdf(o: SavedRetailOrder, ekstra?: FoyEkstra): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     const doc = new PDFDocument({ size: "A4", margin: 0, font: FONT });
     const chunks: Buffer[] = [];
@@ -169,6 +181,20 @@ export function generateRetailPdf(o: SavedRetailOrder): Promise<Buffer> {
     doc.text(o.customerAddress || "-", mm(30), my + mm(19), { width: W - mm(45), height: mm(6), ellipsis: true });
     // NOT: e-posta bilerek yazılmıyor (talimat §2)
 
+    // Şube rozeti (talimat §6.7): İstanbul mavi, Ankara mor — müşteri bandının sağ üstü
+    if (ekstra?.sube) {
+      const rozet = ekstra.sube === "istanbul" ? "İSTANBUL MAĞAZA" : "ANKARA MAĞAZA";
+      const renk = ekstra.sube === "istanbul" ? BLUE : PURPLE;
+      doc.font(FONT_BOLD).fontSize(9);
+      const bw = doc.widthOfString(rozet) + mm(8);
+      doc.roundedRect(W - mm(15) - bw, my + mm(3), bw, mm(7), 2).fill(renk);
+      doc.fillColor("white").text(rozet, W - mm(15) - bw, my + mm(4.8), { width: bw, align: "center" });
+    }
+    if (ekstra?.kaynak) {
+      doc.font(FONT).fontSize(7.5).fillColor(LABEL_GOLD);
+      doc.text(ekstra.kaynak, W - mm(95), my + mm(12), { width: mm(80), align: "right" });
+    }
+
     // ============ 3. ÖZEL NOT BANTLARI ============
     let y = mm(52) + mm(3);
     const band = (color: string, text: string) => {
@@ -180,6 +206,13 @@ export function generateRetailPdf(o: SavedRetailOrder): Promise<Buffer> {
     const printItems = items.filter((it) => it.printType && it.printType !== "Baskı Yok");
     if (printItems.length > 0) {
       band(PURPLE, `BASKI YAPILACAK — ${printItems.map((it) => it.printType).join(" | ")}`);
+    }
+    // İçine koyulacak ürün / yön (online sipariş ekranındaki seçim; "Baskı" seçimi baskı yapılacağı anlamına gelmez)
+    if (ekstra?.icerik || ekstra?.yon) {
+      const parca: string[] = [];
+      if (ekstra.icerik) parca.push(`İÇİNE KOYULACAK ÜRÜN: ${ekstra.icerik}`);
+      if (ekstra.yon) parca.push(`YÖN: ${ekstra.yon}`);
+      band(BLUE, parca.join("   ·   "));
     }
     if (o.notes) {
       const low = o.notes.toLowerCase();

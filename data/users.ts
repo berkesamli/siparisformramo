@@ -160,3 +160,22 @@ export function isMaliyet(username: string | undefined | null): boolean {
   if (!username) return false;
   return maliyetUsernames().includes(normalizeUsername(username));
 }
+
+// Üretim takvimi (/panel/uretim: online + mağaza siparişlerinin üretim planı,
+// teklif takibi, sabah listesi, şube yükü raporu) dar bir çevrenin ekranıdır:
+// sahipler + URETIM_USERNAMES ile eklenenler. Varsayılan ek kişi: eren
+// (Eren Yozgatlı). URETIM_USERNAMES="eren,ayse" → sahipler + Eren + Ayşe.
+const DEFAULT_URETIM = ["eren"];
+
+export function uretimUsernames(): string[] {
+  const raw = (process.env.URETIM_USERNAMES || "").trim();
+  const extra = raw
+    ? raw.split(",").map((s) => s.trim()).filter(Boolean).map(normalizeUsername)
+    : DEFAULT_URETIM.map(normalizeUsername);
+  return [...new Set([...ownerUsernames(), ...extra])];
+}
+
+export function isUretimci(username: string | undefined | null): boolean {
+  if (!username) return false;
+  return uretimUsernames().includes(normalizeUsername(username));
+}
