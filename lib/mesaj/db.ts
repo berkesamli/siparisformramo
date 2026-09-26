@@ -56,6 +56,15 @@ async function pool(): Promise<Sorgu> {
   if (havuz) return havuz;
   const url = dbUrl();
   if (!url) throw new Error("Mesajlar için veri tabanı ayarlanmamış (DATABASE_URL).");
+  // Yerel geliştirme: DATABASE_URL=pg-mem://yerel → süreç içi bellek veri tabanı (pg-mem, devDependency;
+  // yeniden başlatınca silinir). Postgres kurmadan mesajlar ve üretim takvimi denenebilir.
+  if (/^pg-mem:/i.test(url)) {
+    const { newDb } = await import("pg-mem");
+    const mem = newDb({ autoCreateForeignKeyIndices: true });
+    const { Pool: MemPool } = mem.adapters.createPg();
+    havuz = new MemPool() as unknown as Sorgu;
+    return havuz;
+  }
   const { Pool } = (await import("pg")) as { Pool: typeof PgPool };
   const ssl = /localhost|127\.0\.0\.1/.test(url) ? undefined : { rejectUnauthorized: false };
   havuz = new Pool({ connectionString: url, max: 3, idleTimeoutMillis: 10_000, ssl });
