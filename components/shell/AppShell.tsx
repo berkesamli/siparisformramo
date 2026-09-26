@@ -3,7 +3,7 @@
 // Uygulama kabuğu: sol kenar çubuğu + üst çubuk + içerik + telefonda alt sekme
 // çubuğu + genel arama paleti. Sunucu sayfaları children olarak gelir.
 
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
@@ -86,6 +86,54 @@ export default function AppShell({
 
   useEffect(() => { loadStats(); }, [loadStats, pathname]);
 
+  // Yüzen kutu düzeninde aktif menü "dili": kenar çubuğu ile içerik kutusu
+  // arasındaki 16 px boşluğa, aktif öğenin hizasına içerik renginde köprü
+  // (+ içbükey köşeler) çizilir. Menü kaydırılır; öğe görünür alandan çıkınca
+  // dil gizlenir. Ölçüm rAF ile birleştirilir: rota, ray, kaydırma, boyut,
+  // rozet/alt menü değişimleri tetikler.
+  const dilRef = useRef<HTMLSpanElement>(null);
+  useEffect(() => {
+    const el = dilRef.current;
+    if (!el) return;
+    let raf = 0;
+    const olc = () => {
+      raf = 0;
+      const sb = document.querySelector<HTMLElement>(".sb");
+      const nav = sb?.querySelector<HTMLElement>(".sb-nav");
+      const act = nav?.querySelector<HTMLElement>(".sb-link.active");
+      const kutu = window.matchMedia("(min-width: 1181px)").matches;
+      if (!sb || !nav || !act || !kutu) { el.classList.remove("on"); return; }
+      const s = sb.getBoundingClientRect();
+      const n = nav.getBoundingClientRect();
+      const a = act.getBoundingClientRect();
+      if (a.top < n.top - 1 || a.bottom > n.bottom - 26) { el.classList.remove("on"); return; }
+      el.style.left = `${Math.round(s.right)}px`;
+      el.style.top = `${Math.round(a.top - 16)}px`;
+      el.style.height = `${Math.round(a.height + 32)}px`;
+      el.classList.add("on");
+    };
+    const iste = () => { if (!raf) raf = requestAnimationFrame(olc); };
+    iste();
+    const sb = document.querySelector<HTMLElement>(".sb");
+    const nav = sb?.querySelector<HTMLElement>(".sb-nav");
+    nav?.addEventListener("scroll", iste, { passive: true });
+    window.addEventListener("resize", iste);
+    const ro = new ResizeObserver(iste);
+    if (sb) ro.observe(sb);
+    const mo = new MutationObserver(iste);
+    if (sb) mo.observe(sb, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ["class"] });
+    // Ray geçişi 0.22 sn animasyonlu: bitince tekrar ölç
+    const t = [60, 260, 420].map((ms) => setTimeout(iste, ms));
+    return () => {
+      cancelAnimationFrame(raf);
+      nav?.removeEventListener("scroll", iste);
+      window.removeEventListener("resize", iste);
+      ro.disconnect();
+      mo.disconnect();
+      t.forEach(clearTimeout);
+    };
+  }, [pathname, rail]);
+
   const toggleRail = useCallback(() => {
     const next = !rail;
     setRail(next);
@@ -125,6 +173,7 @@ export default function AppShell({
         />
         <div className="app-content">{children}</div>
       </div>
+      <span ref={dilRef} className="sb-dil" aria-hidden="true" />
       <Tabbar user={user} stats={stats} onMenu={() => setDrawer(true)} onSearch={() => setSearch(true)} />
       <AnnouncementModal duyurular={duyurular} username={user.username} />
       {search && <SearchPalette user={user} onClose={() => setSearch(false)} />}

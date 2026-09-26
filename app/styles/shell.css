@@ -506,3 +506,83 @@ a.sb-stat:hover { background: var(--surface-3); text-decoration: none; color: va
 .nb-ann strong { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .nb-ann .badge { font-size: 10.5px; padding: 0 7px; line-height: 1.7; }
 .nb-ann .nb-ann-text { display: block; line-height: 1.4; }
+
+/* =========================================================
+   YÜZEN KUTU DÜZENİ (geniş ekran, yalnızca ekran): kenar çubuğu ve içerik
+   16 px çerçeve içinde ayrı yuvarlak düz kutular; gradyan zemin yalnızca
+   çerçevede görünür. Aktif menü öğesi içerik rengine "dil" olur, kutunun
+   sağ kenarına dayanır; boşluktaki köprü + içbükey köşeler .sb-dil ile
+   (AppShell ölçer: aktif öğenin dikey konumu, kenar çubuğunun sağ kenarı).
+   Daraltılmış ray aynı düzende kalır; tablet/telefon (≤1180) değişmez.
+   ========================================================= */
+@media screen and (min-width: 1181px) {
+  .sb {
+    top: var(--box-gap); left: var(--box-gap); bottom: var(--box-gap);
+    border-radius: var(--box-radius);
+    background: var(--box-sb);
+    -webkit-backdrop-filter: none; backdrop-filter: none;
+    border-right: none;
+    box-shadow: var(--shadow-lg);
+  }
+  .app-main {
+    margin: var(--box-gap) var(--box-gap) var(--box-gap) calc(var(--sb-w) + var(--box-gap) * 2);
+    min-height: calc(100vh - var(--box-gap) * 2);
+    border-radius: var(--box-radius);
+    background: var(--box-content);
+    box-shadow: var(--shadow-lg);
+    /* Kartlar düz kutudan ayrılsın (cam yüzey kutu rengiyle kaynaşırdı) */
+    --surface: rgba(255, 255, 255, 0.045);
+  }
+  :root[data-sb="rail"] .app-main { margin-left: calc(var(--sb-rail) + var(--box-gap) * 2); }
+  :root[data-theme="light"] .app-main { --surface: rgba(38, 32, 26, 0.035); }
+
+  /* Üst çubuk kutunun içinde yapışkan; üstündeki 16 px çerçeve şeridi buzlu (kaydırınca içerik altından geçer) */
+  .topbar {
+    top: var(--box-gap);
+    border-radius: var(--box-radius) var(--box-radius) 0 0;
+    background: var(--box-content);
+    -webkit-backdrop-filter: none; backdrop-filter: none;
+  }
+  .topbar::after {
+    content: ""; position: absolute; left: 0; right: 0; top: calc(-1 * var(--box-gap)); height: var(--box-gap);
+    background: var(--box-frame);
+    -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px);
+    pointer-events: none;
+  }
+
+  /* Açık temada koyu kutu: kenar çubuğunun içi koyu tema değişkenleriyle çizilir */
+  :root[data-theme="light"] .sb {
+    --text: #f4efe6; --text-2: #cfc6b8; --muted: #9a8f80;
+    --brand: #e0a94f; --brand-light: #f1c97c; --brand-soft: rgba(224, 169, 79, 0.14); --brand-soft-2: rgba(224, 169, 79, 0.24); --brand-ring: rgba(224, 169, 79, 0.38);
+    --border: rgba(255, 255, 255, 0.09); --border-strong: rgba(255, 255, 255, 0.18); --hairline: rgba(255, 255, 255, 0.06);
+    --surface: rgba(255, 255, 255, 0.04); --surface-solid: #2a2219; --surface-2: rgba(255, 255, 255, 0.045); --surface-3: rgba(255, 255, 255, 0.085); --surface-4: rgba(255, 255, 255, 0.13);
+    --input: rgba(0, 0, 0, 0.28); --input-focus: rgba(0, 0, 0, 0.4);
+    --ink: #f4efe6; --on-ink: #1a1206;
+    --success: #34d399; --success-soft: rgba(52, 211, 153, 0.14); --info: #60a5fa; --info-soft: rgba(96, 165, 250, 0.14); --error: #f87171;
+    --shadow-md: 0 12px 40px rgba(0, 0, 0, 0.34);
+  }
+  :root[data-theme="light"] .sb { color: var(--text); } /* kalıtımla gelen koyu gövde rengi kutuda okunmazdı */
+  :root[data-theme="light"] .sb-brand-mark img { filter: brightness(1.7) saturate(0.95); }
+
+  /* Aktif öğe: içerik rengine dil, kutunun sağ kenarına kadar (kaydırma çubuğu gizli, alt solma yeter) */
+  .sb-nav { padding-right: 0; scrollbar-width: none; }
+  .sb-nav::-webkit-scrollbar { display: none; }
+  .sb-link { margin-right: 10px; }
+  .sb-link.active, .sb-link.active:hover {
+    margin-right: 0; padding-right: 22px;
+    border-radius: 14px 0 0 14px;
+    background: var(--box-content); color: var(--brand);
+  }
+  :root[data-sb="rail"] .sb-link { margin-right: 0; }
+  :root[data-sb="rail"] .sb-link.active, :root[data-sb="rail"] .sb-link.active:hover { padding-right: 0; border-radius: 12px 0 0 12px; }
+  .sb-dil.on { display: block; }
+}
+/* Boşluktaki köprü + içbükey köşeler: içerik rengi; konum AppShell'den (left = kutunun sağ kenarı) */
+.sb-dil {
+  position: fixed; z-index: 91; width: var(--box-gap); display: none; pointer-events: none;
+  background:
+    radial-gradient(circle at 0 0, transparent 15.5px, var(--box-content) 16px) 0 0 / var(--box-gap) var(--box-gap) no-repeat,
+    radial-gradient(circle at 0 100%, transparent 15.5px, var(--box-content) 16px) 0 100% / var(--box-gap) var(--box-gap) no-repeat,
+    linear-gradient(var(--box-content), var(--box-content)) 0 var(--box-gap) / var(--box-gap) calc(100% - var(--box-gap) * 2) no-repeat;
+}
+@media print { .sb-dil { display: none !important; } }
