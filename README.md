@@ -20,6 +20,12 @@ Eski Apps Script kodu `legacy-apps-script/` klasöründe korunmaktadır.
   tablette ikon rayı + çekmece, telefonda çekmece + alt sekme çubuğu), üst çubuk
   (sayfa yolu, arama, bildirim zili, tema, kullanıcı menüsü). Menü/kırıntı/arama
   tek kaynaktan gelir: `components/shell/nav-config.ts`.
+- **Yüzen kutu düzeni** (>1180 px): kenar çubuğu ve içerik 16 px çerçeve içinde ayrı
+  yuvarlak düz kutulardır (`--box-*` değişkenleri, `shell.css` sonundaki blok); gradyan
+  zemin yalnızca çerçevede görünür. Açık temada kenar çubuğu koyu kahve kutudur (içi
+  koyu tema değişkenleriyle çizilir). Aktif menü öğesi içerik rengine "dil" olur;
+  boşluktaki köprü ve içbükey köşeler `AppShell` içindeki `.sb-dil` ile ölçülüp çizilir
+  (menü kaydırılınca öğe görünmezse dil gizlenir). Tablet/telefon ve yazdırma değişmez.
 - **Komuta satırı** (ana sayfa, `components/home/KomutaSatiri.tsx`): tek kutuya
   müşteri adı / profil kodu / sipariş no yazılır, cevap yerinde gelir. Müşteri
   satırında Mikro bakiyesi (`BakiyeChip`, tembel yüklenir; tüm çalışanlar görür),

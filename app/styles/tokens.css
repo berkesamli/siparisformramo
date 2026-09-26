@@ -80,6 +80,13 @@
   --blur: 16px;
   --font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 
+  /* ---- Yüzen kutu düzeni (geniş ekran): kenar çubuğu ve içerik ayrı yuvarlak kutular ---- */
+  --box-gap: 16px;
+  --box-radius: 20px;
+  --box-sb: #070b15;        /* kenar çubuğu kutusu (düz) */
+  --box-content: #111a2f;   /* içerik kutusu (düz); aktif menü "dili" de bu renk */
+  --box-frame: rgba(11, 17, 32, 0.6); /* üst çubuk üstündeki 16 px çerçeve şeridi (buzlu) */
+
   /* ---- Kabuk ölçüleri ---- */
   --sb-w: 264px;
   --sb-rail: 76px;
@@ -145,6 +152,10 @@
   --st-iptal: #e34948;
   --grid: rgba(38, 32, 26, 0.08);
   --axis: rgba(38, 32, 26, 0.18);
+
+  --box-sb: #1d1710;        /* açık temada kutu koyu kahve ("ink"); içi koyu tema değişkenleriyle çizilir */
+  --box-content: #ffffff;
+  --box-frame: rgba(244, 241, 234, 0.6);
 
   --shadow-sm: 0 1px 2px rgba(38, 32, 26, 0.06);
   --shadow-md: 0 10px 34px rgba(38, 32, 26, 0.09);
