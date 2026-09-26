@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 export default async function PanelPage({
   searchParams,
 }: {
-  searchParams?: { musteri?: string };
+  searchParams?: { musteri?: string; metin?: string };
 }) {
   const user = await getSessionUser();
   if (!user) redirect("/giris?next=/panel");
@@ -40,7 +40,7 @@ export default async function PanelPage({
           </Link>
         }
       />
-      <OrderForm employeeName={user.name} initialCustomer={onMusteri} />
+      <OrderForm employeeName={user.name} initialCustomer={onMusteri} autoImport={searchParams?.metin === "1"} />
       <AiChat />
     </main>
   );

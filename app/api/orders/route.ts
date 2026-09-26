@@ -26,6 +26,7 @@ import {
 } from "@/lib/orders";
 import { isKurYetkili } from "@/data/users";
 import { eslesir } from "@/lib/search-norm";
+import { bust } from "@/lib/server-cache";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -203,6 +204,8 @@ export async function POST(req: Request) {
   let stored = false;
   try {
     ({ orderId, stored } = await createOrder(taslak));
+    // Yeni sipariş ana sayfadaki açık listede ve panelde hemen görünsün (45 sn önbellek)
+    if (stored) { bust("dash:"); bust("search:toptan-idx"); }
   } catch (err) {
     console.error("Sipariş kaydedilemedi:", err);
   }

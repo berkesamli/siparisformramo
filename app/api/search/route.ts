@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
-import { readOrderIndex, STATUS_LABELS, PAYMENT_LABELS, type OrderIndexEntry } from "@/lib/orders";
+import { readOrderIndex, getDailyRates, istanbulDateKey, STATUS_LABELS, PAYMENT_LABELS, type OrderIndexEntry } from "@/lib/orders";
 import { readRetailIndex, type RetailIndexEntry } from "@/lib/retail-orders";
 import { listCustomers, customerTitle, bolgeler, musteriBolgesi } from "@/lib/customers";
 import { listRetailCustomers } from "@/lib/retail-customers";
@@ -8,6 +8,7 @@ import { getStockData } from "@/lib/stock-store";
 import { searchStock, toBoy } from "@/lib/stock-search";
 import { eslesir, sikistir } from "@/lib/search-norm";
 import { FRAME_PROFILES } from "@/data/catalog";
+import { profilBul } from "@/lib/catalog-utils";
 import { TECHNICAL_PRODUCTS } from "@/data/technical";
 import { memo } from "@/lib/server-cache";
 
@@ -26,6 +27,13 @@ interface Hit {
   href: string;
   meta?: string;
   metaKind?: "ok" | "warn" | "err" | "info" | "brand" | "yarim";
+  // Komuta satırı / palet için ek veri (müşteri: kart no, telefon, Mikro bağlı mı, son sipariş)
+  data?: {
+    customerId?: string;
+    phone?: string;
+    mikro?: boolean;
+    sonSiparis?: { orderId: string; dateKey: string; net: number; status: string; href: string };
+  };
 }
 
 const nf = (n: number) => n.toLocaleString("tr-TR");
@@ -58,16 +66,29 @@ export async function GET(req: NextRequest) {
 
   const hits: Hit[] = [];
 
+  // Liste fiyatı (USD/mt) ve günün kuru: stok ve katalog satırında fiyat tek satırda görünür
+  const bugun = istanbulDateKey();
+  const kur = await memo(`search:kur:${bugun}`, 60_000, () => getDailyRates(bugun)).catch(() => null);
+  const usdTl = (usd: number) => {
+    const u = `$${usd.toLocaleString("tr-TR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/mt`;
+    return kur?.rate ? `${u} · ₺${(usd * kur.rate).toLocaleString("tr-TR", { maximumFractionDigits: 2 })}/mt` : u;
+  };
+  const fiyatYazisi = (code: string) => {
+    const p = profilBul(FRAME_PROFILES, code);
+    return p ? usdTl(p.priceUSD) : "";
+  };
+
   // ---- Ürün & stok (herkes) ----
   try {
     const stok = await memo("search:stok", 45_000, () => getStockData());
     for (const m of searchStock(stok.items, q, 0.74, 5)) {
       const ank = toBoy(m.item.ankaraMt);
       const ist = toBoy(m.item.istanbulMt);
+      const fiyat = fiyatYazisi(m.item.code);
       hits.push({
         kind: "stock",
         title: m.item.code,
-        sub: `Ankara ${nf(ank)} boy · İstanbul ${nf(ist)} boy`,
+        sub: `Ankara ${nf(ank)} boy · İstanbul ${nf(ist)} boy${fiyat ? " · " + fiyat : ""}`,
         href: `/portal?q=${encodeURIComponent(m.item.code)}`,
         meta: ank + ist > 0 ? "Stokta" : "Yok",
         metaKind: ank + ist > 0 ? "ok" : "err",
@@ -81,7 +102,7 @@ export async function GET(req: NextRequest) {
       hits.push({
         kind: "catalog",
         title: p.code,
-        sub: `${p.series} serisi · koli ${p.koliAdet} adet / ${p.koliMetraj} mt`,
+        sub: `${p.series} serisi · ${usdTl(p.priceUSD)} · koli ${p.koliAdet} adet / ${p.koliMetraj} mt`,
         href: `/portal/fiyat-listesi?q=${encodeURIComponent(p.code)}`,
         meta: p.stok === "var" ? "Var" : p.stok === "az" ? "Az" : "Yok",
         metaKind: p.stok === "var" ? "ok" : p.stok === "az" ? "warn" : "err",
@@ -140,12 +161,28 @@ export async function GET(req: NextRequest) {
         });
       }
     }
+    // Müşterinin en yeni (iptal olmayan) siparişi: kart numarasıyla, o yoksa adla eşleşir
+    const sonId = new Map<string, OrderIndexEntry>();
+    const sonAd = new Map<string, OrderIndexEntry>();
+    for (const o of tIdx) {
+      if (o.status === "iptal") continue;
+      if (o.customerId) {
+        const k = sonId.get(o.customerId);
+        if (!k || o.createdAt > k.createdAt) sonId.set(o.customerId, o);
+      }
+      const ak = sikistir(o.customer);
+      if (ak) {
+        const k = sonAd.get(ak);
+        if (!k || o.createdAt > k.createdAt) sonAd.set(ak, o);
+      }
+    }
     n = 0;
     for (const c of musteriler) {
       if (n >= 5) break;
       const ad = customerTitle(c);
       if (eslesir(q, ad, c.company, c.firstName, c.lastName, c.phone, c.city, c.email)) {
         n++;
+        const so = sonId.get(c.id) || sonAd.get(sikistir(ad));
         hits.push({
           kind: "customer",
           title: ad,
@@ -153,6 +190,20 @@ export async function GET(req: NextRequest) {
           href: `/musteriler/kart?id=${encodeURIComponent(c.id)}`,
           meta: c.iskontoPct ? `%${c.iskontoPct} isk.` : undefined,
           metaKind: "brand",
+          data: {
+            customerId: c.id,
+            phone: c.phone || undefined,
+            mikro: Boolean(c.mikroCariKod),
+            sonSiparis: so
+              ? {
+                  orderId: so.orderId,
+                  dateKey: so.dateKey,
+                  net: so.net,
+                  status: so.status,
+                  href: `/panel/siparisler/detay?d=${so.dateKey}&id=${encodeURIComponent(so.orderId)}`,
+                }
+              : undefined,
+          },
         });
       }
     }

@@ -125,7 +125,7 @@ export default function AppShell({
         />
         <div className="app-content">{children}</div>
       </div>
-      <Tabbar user={user} stats={stats} onMenu={() => setDrawer(true)} />
+      <Tabbar user={user} stats={stats} onMenu={() => setDrawer(true)} onSearch={() => setSearch(true)} />
       <AnnouncementModal duyurular={duyurular} username={user.username} />
       {search && <SearchPalette user={user} onClose={() => setSearch(false)} />}
     </div>

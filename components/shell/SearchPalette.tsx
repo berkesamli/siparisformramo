@@ -8,8 +8,17 @@ import { useRouter } from "next/navigation";
 import Icon, { type IconName } from "./Icon";
 import { flatNav } from "./nav-config";
 import type { ShellUser } from "./types";
+import BakiyeChip from "@/components/home/BakiyeChip";
 
 export type SearchKind = "page" | "order" | "retail" | "customer" | "retailCustomer" | "stock" | "catalog" | "technical";
+
+/** Komuta satırı ve palet için ek veri (müşteri satırı: kart no, telefon, son sipariş). */
+export interface SearchHitData {
+  customerId?: string;
+  phone?: string;
+  mikro?: boolean;
+  sonSiparis?: { orderId: string; dateKey: string; net: number; status: string; href: string };
+}
 
 export interface SearchHit {
   kind: SearchKind;
@@ -18,6 +27,7 @@ export interface SearchHit {
   href: string;
   meta?: string;
   metaKind?: "ok" | "warn" | "err" | "info" | "brand" | "yarim";
+  data?: SearchHitData;
 }
 
 const KIND_LABEL: Record<SearchKind, string> = {
@@ -143,6 +153,7 @@ export default function SearchPalette({ user, onClose }: { user: ShellUser; onCl
           <Icon name="search" size={20} />
           <input
             ref={inputRef}
+            autoFocus
             value={q}
             onChange={(e) => setQ(e.target.value)}
             onKeyDown={onKey}
@@ -187,6 +198,7 @@ export default function SearchPalette({ user, onClose }: { user: ShellUser; onCl
                       <span className="sp-item-title">{h.title}</span>
                       {h.sub && <span className="sp-item-sub">{h.sub}</span>}
                     </span>
+                    {h.kind === "customer" && h.data?.customerId && <BakiyeChip customerId={h.data.customerId} />}
                     {h.meta && <span className={`badge ${h.metaKind || ""} sp-item-meta`}>{h.meta}</span>}
                   </a>
                 );

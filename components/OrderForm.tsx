@@ -300,10 +300,13 @@ export default function OrderForm({
   employeeName,
   initialOrder,
   initialCustomer,
+  autoImport = false,
 }: {
   employeeName: string;
   initialOrder?: InitialOrder;
   initialCustomer?: InitialCustomer;
+  /** Ana sayfadaki "Metin Yapıştır" (/panel?metin=1): form açılır açılmaz metin penceresi gelir. */
+  autoImport?: boolean;
 }) {
   // Fiyat listesi (çerçeve + teknik) oturumla sunucudan gelir
   const katalog = useKatalog();
@@ -327,6 +330,8 @@ export default function OrderForm({
   // telefonu yoksa sunucu sessizce atlar. Düzenleme modunda gönderilmez.
   const [sendSms, setSendSms] = useState(true);
   const [importOpen, setImportOpen] = useState(false);
+  // Pencere portal ile document.body'ye çizildiğinden sunucuda değil, bağlandıktan sonra açılır
+  useEffect(() => { if (autoImport) setImportOpen(true); }, [autoImport]);
 
   /** Yapay zekanın çözümlediği satırları forma ekler. */
   function applyParsed(data: ParsedResult) {

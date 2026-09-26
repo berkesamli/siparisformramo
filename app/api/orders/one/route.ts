@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/auth";
+import { bust } from "@/lib/server-cache";
 import {
   getOrder,
   saveOrder,
@@ -135,6 +136,9 @@ export async function PATCH(req: Request) {
 
   order.updatedAt = new Date().toISOString();
   await saveOrder(order);
+  // Ana sayfa / gösterge paneli listeleri 45 sn önbellekli; değişiklik hemen görünsün
+  bust("dash:");
+  bust("search:toptan-idx");
   return NextResponse.json({
     ok: true,
     status: order.status,
