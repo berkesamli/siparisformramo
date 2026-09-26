@@ -11,6 +11,7 @@ Google Apps Script tabanlı sipariş formunun modern, Vercel'de yayınlanabilir
 | `/portal` | Müşteriler/Bayiler | Ürünleri, stok durumunu ve **toptan fiyat listesini** görür |
 | `/kataloglar` | Herkes | PDF katalogları **dergi görünümünde** (sayfa çevirmeli) inceler |
 | 🤖 Asistan | Giriş yapanlar | Claude API destekli ürün/fiyat asistanı |
+| `/panel/uretim` | Sahipler + `URETIM_USERNAMES` | **Üretim Takvimi**: online (ikas) ve mağaza siparişlerinin üretim planı, sürükle-bırak, föy PDF'i, gün notları, teklif takibi, sabah listesi, şube yükü raporu |
 
 Eski Apps Script kodu `legacy-apps-script/` klasöründe korunmaktadır.
 
@@ -87,6 +88,11 @@ Eski Apps Script kodu `legacy-apps-script/` klasöründe korunmaktadır.
 | `MESAJ_USERNAMES` | bütün çalışanlar | Gelen kutusunu (`/panel/mesajlar`) görüp yanıtlayabilenleri daraltır (virgülle; sahipler her zaman dahil) |
 | `WHATSAPP_TEMPLATE_SERBEST` | — | İsteğe bağlı: bizim başlattığımız WhatsApp mesajı için elle tanımlı Meta onaylı şablon ad(lar)ı. Boşsa Ayarlar kartındaki **"Şablonu oluştur"** ile açılan `genel_mesaj` şablonu Meta onaylayınca kendiliğinden kullanılır (`WHATSAPP_WABA_ID` gerekir) |
 | `GMAIL_HESAPLAR` | — | `adres:uygulama-şifresi;adres2:şifre2` — bu Gmail hesaplarının gelen kutusu IMAP ile okunur, yanıt aynı hesaptan SMTP ile gider |
+| `URETIM_USERNAMES` | eren | Üretim takvimini görüp kullananlar (sahipler her zaman dahil) |
+| `URETIM_SABAH_EPOSTA` | ORDER_EMAIL_TO | Her sabah 08:00'de (İstanbul) "bugünün üretim listesi" e-postasının alıcıları (virgülle) |
+| `CRON_SECRET` | — | Vercel cron isteklerini doğrular (`/api/uretim/cron`, `/api/ikas/senk`); Vercel bu değeri cron isteğine kendisi ekler |
+| `IKAS_CLIENT_ID`, `IKAS_CLIENT_SECRET`, `IKAS_STORE` | — | ikas özel uygulama (Uygulamalar → Uygulamalarım → Özel uygulama; kapsam read_orders). `IKAS_STORE` mağaza adı (olgacerceve). Online siparişler takvime düşer |
+| `IKAS_WEBHOOK_KEY`, `SITE_URL` | — | Webhook adresini koruyan gizli metin ve sitenin dış adresi; Ayarlar → ikas kartından "Webhook'u kur" |
 | `INSTAGRAM_TOKEN`, `INSTAGRAM_PAGE_ID`, `INSTAGRAM_ACCOUNT_ID` | — | Instagram DM'leri (Meta Messenger Platform); webhook `/api/mesaj/webhook`. `META_APP_SECRET` (ya da `WHATSAPP_APP_SECRET`) zorunlu; isteğe bağlı `INSTAGRAM_VERIFY_TOKEN` |
 
 ## Kullanıcılar ve Roller
@@ -119,6 +125,48 @@ Her PDF, `/kataloglar` sayfasında otomatik listelenir ve dergi görünümünde
    - SMTP tanımlıysa **e-posta** gönderilir (tablo + toplamlar).
    - WhatsApp Cloud API tanımlıysa **WhatsApp mesajı** otomatik gider;
      değilse panelde hazır metinli **wa.me linki** çıkar.
+
+## Üretim Takvimi
+
+`/panel/uretim` — sahipler ve `URETIM_USERNAMES`'teki çalışanlar (varsayılan: Eren) görür. Veri
+Postgres'te (`DATABASE_URL`, mesajlarla aynı bağlantı; tablolar ilk açılışta kendiliğinden kurulur:
+`uretim_is`, `uretim_olay`, `uretim_not`, `uretim_teklif`, `uretim_ayar`). Föy PDF'leri ve ekler Vercel Blob'da
+(`uretim/…`, özel).
+
+- **İş** = üretilecek her şey; kaynağı **Online Sipariş** (ikas, olgacerceve.com), **Mağaza Siparişi**
+  (perakende sihirbazı, `PRK-…`), **Teklif** ya da **Elle**. Online ve mağaza siparişleri ayrı kaynak/renk/filtredir,
+  birbirine karışmaz. Durumlar: Yeni → Planlandı → Üretimde → Hazır → Teslim/Kargo → Tamamlandı (İptal ayrı).
+- **Takvim**: sol rayda mini takvim, takvim/şube/durum filtreleri ve **planlanmamış kuyruk**; sağda hafta/ay/gün
+  görünümü. Kart sürüklenip güne bırakılır (gün içi sıra da sürüklenir), tıklanınca yan panelde durum, şube,
+  plan/teslim tarihi, müşteri, kalemler, föy (aç / indir / yeniden üret / yükle), ekler, notlar ve olay geçmişi.
+  Gün notları sütun başında yapışkan not olarak durur (onay kutulu).
+- **Mağaza siparişleri** takvime teslim tarihiyle düşer (`/api/uretim/takvim` açılışta senkronlar; elle
+  `/api/uretim/senk?kaynak=perakende`). Takvimde durum değişince perakende siparişinin durumu da güncellenir;
+  perakende listesinde değişen durum bir sonraki senkronda takvime yansır. Plan tarihi hiçbir zaman kaynaktan ezilmez.
+- **Online siparişler (ikas)**: `/api/ikas/webhook` (store/order/created + updated; imza = HMAC-SHA256(client
+  secret, data) ve/veya `?k=IKAS_WEBHOOK_KEY`) ya da senkron (`/api/ikas/senk`, cron ve takvim açılışı; son
+  senkrondan beri güncellenenler) siparişi API'den okur, **CERCEVE SIPARIS DETAYI** metnini çözer
+  (`lib/ikas/not.ts`: SKU, adet, eser/kesim/dış ölçü, içerik, yön, paspartu, cam, +2 mm pay, fiyat kırılımı;
+  not yoksa varyant adından SKU + eser + dış + cam), **üretim föyünü** kendiliğinden üretir (perakende föyüyle aynı
+  tasarım; şube rozeti İstanbul mavi / Ankara mor, "İçine koyulacak ürün" ve yön bandı, sipariş no) ve **stoktan
+  şube önerir** (`lib/uretim/sube-oneri.ts`: profil kodunun Ankara/İstanbul boyu + müşterinin şehri). Online iş
+  planlanmamış kuyruğa "Yeni" düşer; çalışan takvime sürükler.
+  > ikas zaman çizelgesindeki "Cerceve Hesaplayici" notu Admin API'den **okunamaz** (yalnızca yazılabilir). Tam
+  > detay için hesaplayıcı sunucusu aynı metni `POST /api/ikas/not?k=<IKAS_WEBHOOK_KEY>`
+  > `{ "orderNumber": "1463", "metin": "CERCEVE SIPARIS DETAYI (OZL-…) …" }` ile de göndermelidir; metin OZL
+  > kimliğiyle saklanır ve sipariş çözülürken kalemlere katılır. Sipariş notuna ya da satır seçeneklerine yazılırsa da okunur.
+  Kurulum: ikas paneli → Uygulamalar → Uygulamalarım → **Özel uygulama** (kapsam `read_orders`, `write_orders`) →
+  `IKAS_CLIENT_ID`, `IKAS_CLIENT_SECRET`, `IKAS_STORE`; rastgele `IKAS_WEBHOOK_KEY`; Redeploy; Ayarlar → ikas
+  kartında "Sına" ve "Webhook'u kur". Aynı kart son üç siparişin nasıl çözüldüğünü gösterir; "Siparişi takvime al"
+  tek siparişi numarasıyla içe aktarır.
+- **Teklifler** (`/panel/uretim/teklifler`): perakende sihirbazında "Teklif olarak kaydet" (`TKL-YYYY-NNN`), takip
+  tarihi takvime düşer ("Teklif takibi" kartı), durum (taslak/gönderildi/kabul/red), WhatsApp metni, **siparişe
+  dönüştür** (aynı fiyat çekirdeğiyle doğrulanıp `PRK` siparişi açılır, iş takvime düşer).
+- **Sabah listesi & rapor**: cron `/api/uretim/cron` (05:00 UTC = 08:00 İstanbul; `vercel.json`) mağaza + ikas
+  senkronu yapar ve günün üretim listesini (şubeye göre, gecikenler, yeni online, aranacak teklifler)
+  `URETIM_SABAH_EPOSTA`'ya e-postalar. Gösterge panelinde "Üretim" kutusu (yalnızca yetkililere), `/panel/uretim/rapor`
+  şube yükü (gün × şube iş/adet, tamamlanma süresi, gecikenler).
+- Testler: `npm test` (node:test + pg-mem; `scripts/ts-loader.mjs` TypeScript'i anında derler).
 
 ## Mesajlar (Gelen Kutusu)
 
