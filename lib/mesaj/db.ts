@@ -9,7 +9,7 @@
 import type { Pool as PgPool } from "pg";
 import { ozetTemizle, type Ek, type Kanal, type Konusma, type KonusmaDurum, type KonusmaFiltre, type Mesaj, type Yon } from "./tur";
 
-type Sorgu = { query: (text: string, params?: unknown[]) => Promise<{ rows: any[]; rowCount: number | null }> };
+export type Sorgu = { query: (text: string, params?: unknown[]) => Promise<{ rows: any[]; rowCount: number | null }> };
 
 let havuz: Sorgu | null = null;
 let kuruldu: Promise<void> | null = null;
@@ -43,10 +43,34 @@ export function setDbPool(p: Sorgu | null, semaHazir = false) {
   kuruldu = semaHazir ? Promise.resolve() : null;
 }
 
+/**
+ * Ortak bağlantı havuzu — başka modüller (üretim takvimi) de aynı Postgres'i
+ * kullanır; süreç başına TEK havuz açılsın diye buradan alırlar. Bu çağrı
+ * mesaj şemasını KURMAZ; her modül kendi şemasını kendi kurar.
+ */
+export async function ortakHavuz(): Promise<Sorgu> {
+  return pool();
+}
+
 async function pool(): Promise<Sorgu> {
   if (havuz) return havuz;
   const url = dbUrl();
   if (!url) throw new Error("Mesajlar için veri tabanı ayarlanmamış (DATABASE_URL).");
+  // Yerel geliştirme: DATABASE_URL=pg-mem://yerel → süreç içi bellek veri tabanı (pg-mem, devDependency;
+  // yeniden başlatınca silinir). Postgres kurmadan mesajlar ve üretim takvimi denenebilir.
+  if (/^pg-mem:/i.test(url)) {
+    // Next dev her rotayı ayrı modül grafiğiyle derler; bellek veri tabanı süreç genelinde
+    // tek olsun diye globalThis'te tutulur (yoksa her rota kendi boş veri tabanını görür).
+    const g = globalThis as unknown as { __olgaPgMemHavuz?: Sorgu };
+    if (!g.__olgaPgMemHavuz) {
+      const { newDb } = await import("pg-mem");
+      const mem = newDb({ autoCreateForeignKeyIndices: true });
+      const { Pool: MemPool } = mem.adapters.createPg();
+      g.__olgaPgMemHavuz = new MemPool() as unknown as Sorgu;
+    }
+    havuz = g.__olgaPgMemHavuz;
+    return havuz;
+  }
   const { Pool } = (await import("pg")) as { Pool: typeof PgPool };
   const ssl = /localhost|127\.0\.0\.1/.test(url) ? undefined : { rejectUnauthorized: false };
   havuz = new Pool({ connectionString: url, max: 3, idleTimeoutMillis: 10_000, ssl });

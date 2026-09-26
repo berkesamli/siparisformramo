@@ -5,6 +5,7 @@ import PageHeader from "@/components/PageHeader";
 import BildirimAyarlari from "@/components/BildirimAyarlari";
 import MikroAyarlari from "@/components/MikroAyarlari";
 import MesajAyarlari from "@/components/MesajAyarlari";
+import IkasAyarlari from "@/components/IkasAyarlari";
 
 export const dynamic = "force-dynamic";
 
@@ -20,11 +21,12 @@ export default async function AyarlarPage() {
         icon="bell"
         kicker="Yönetim"
         title="Bildirim Ayarları"
-        subtitle="WhatsApp fiş bildirimleri, Mikro bağlantısı ve Mesajlar (gelen kutusu): kurulum durumu ve test."
+        subtitle="WhatsApp fiş bildirimleri, Mikro bağlantısı, Mesajlar (gelen kutusu) ve ikas (üretim takvimi): kurulum durumu ve test."
       />
       <BildirimAyarlari />
       <MikroAyarlari />
       <MesajAyarlari />
+      <IkasAyarlari />
     </main>
   );
 }
